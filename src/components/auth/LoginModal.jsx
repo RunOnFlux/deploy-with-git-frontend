@@ -41,6 +41,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
   const [verifyPassword, setVerifyPassword] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Prefetch dashboard chunks while the user is signing in so navigation
+  // after auth is instant (no Suspense fallback delay).
+  useEffect(() => {
+    if (!isOpen) return;
+    import('../../pages/dashboard/DashboardLayout');
+    import('../../pages/dashboard/Overview');
+  }, [isOpen]);
+
   // Reset view when modal closes
   useEffect(() => {
     if (!isOpen) {
