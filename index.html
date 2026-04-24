@@ -30,9 +30,253 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
     <title>Orbit — Deploy to Flux with Git</title>
+
+    <!-- Structured data for crawlers and AI engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "%VITE_APP_URL%/#website",
+          "name": "Orbit by Flux",
+          "url": "%VITE_APP_URL%/",
+          "description": "Deploy any git repository to the Flux decentralized cloud. Auto-detect frameworks, global nodes, free tier available.",
+          "publisher": {
+            "@type": "Organization",
+            "name": "Flux Labs",
+            "url": "https://runonflux.io"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "%VITE_APP_URL%/#app",
+          "name": "Orbit",
+          "url": "%VITE_APP_URL%/",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web",
+          "description": "Git-native deployment platform for the Flux decentralized network. Deploy any stack — Next.js, Vue, Rust, Go, Rails and more — across 10,000+ global nodes. Free tier, zero configuration, built-in CI/CD.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Free",
+              "description": "Perfect for side projects and learning. 0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance. Free forever, no credit card required.",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            {
+              "@type": "Offer",
+              "name": "Standard",
+              "description": "For growing projects and small apps. 1.5 vCPU, 4 GB RAM, 15 GB storage, 2 instances.",
+              "price": "2.49",
+              "priceCurrency": "USD",
+              "billingPeriod": "P1M"
+            },
+            {
+              "@type": "Offer",
+              "name": "Pro",
+              "description": "For active development and production apps. 2 vCPU, 6 GB RAM, 20 GB storage, 2 instances.",
+              "price": "3.99",
+              "priceCurrency": "USD",
+              "billingPeriod": "P1M"
+            },
+            {
+              "@type": "Offer",
+              "name": "Custom",
+              "description": "Configure your own resources and pricing. 0.1–15 vCPU, 100 MB–59 GB RAM, 1–820 GB storage.",
+              "price": "0.99",
+              "priceCurrency": "USD",
+              "billingPeriod": "P1M"
+            }
+          ],
+          "featureList": "Unlimited Builds, Dedicated Resources, 100+ Frameworks, Zero Configuration, Built-in CI/CD, Custom Domain + SSL, Geolocation Selection, Deploy Previews, Auto Rollback, Monorepo Support, Health Monitoring, Enhanced Security"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "%VITE_APP_URL%/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Orbit?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I need to know Docker or Kubernetes?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. Orbit uses Nixpacks to automatically detect your framework and build a container image. No Dockerfile needed; just push your code and Orbit handles the rest."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What frameworks are supported?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Orbit supports 50+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is the free tier really free forever?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is Orbit different from Vercel or Netlify?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Orbit deploys to the Flux decentralized network, meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I use a custom domain?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Developer and Pro plans support custom domains. Point your DNS to your Orbit deployment and SSL is handled automatically through the Flux reverse proxy network."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <!--
+        Static fallback content for crawlers and AI engines that do not execute JavaScript.
+        React replaces #root entirely once the app boots; JS-enabled browsers never see this.
+      -->
+      <header>
+        <nav>
+          <a href="/">Orbit by Flux</a>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Docs</a></li>
+            <li><a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Guides</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main>
+        <section id="hero">
+          <h1>Deploy to Flux with Git</h1>
+          <p>Git-native deployment for the Flux decentralized network. Push any repo and Orbit automatically detects your framework, builds a container, and deploys across 10,000+ global nodes. Free tier, zero config, built-in CI/CD.</p>
+          <a href="/register">Start Deploying Free</a>
+          <a href="#features">See all features</a>
+        </section>
+
+        <section id="features">
+          <h2>Everything you need to ship</h2>
+          <ul>
+            <li><strong>Unlimited Builds</strong> — Push to your repo and every commit triggers an automatic build and deployment with no limits on build minutes.</li>
+            <li><strong>Dedicated Resources</strong> — Your app runs on isolated Flux nodes with guaranteed CPU, RAM, and storage — no noisy neighbours.</li>
+            <li><strong>100+ Frameworks</strong> — Next.js, Remix, SvelteKit, Astro, Nuxt, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Auto-detected via Nixpacks.</li>
+            <li><strong>Zero Configuration</strong> — No Dockerfile, no YAML manifests. Orbit infers build commands and start commands automatically.</li>
+            <li><strong>Built-in CI/CD</strong> — Every push builds, tests, and deploys. Branch deployments and pull-request previews included.</li>
+            <li><strong>Custom Domain + SSL</strong> — Point your DNS, SSL terminates automatically through the Flux reverse proxy network.</li>
+            <li><strong>Geolocation Selection</strong> — Choose which region your nodes run in, or distribute globally for lower latency.</li>
+            <li><strong>Deploy Previews</strong> — Every pull request gets its own live preview URL before merging to production.</li>
+            <li><strong>Auto Rollback</strong> — Health checks fail? Orbit rolls back to the last known-good deployment instantly.</li>
+            <li><strong>Monorepo Support</strong> — Deploy individual services from a single repository using root-directory configuration.</li>
+            <li><strong>Health Monitoring</strong> — Continuous uptime checks with alerting and auto-restart on failure.</li>
+            <li><strong>Enhanced Security</strong> — Private repos, secrets management, and isolated execution on Flux's ArcaneOS nodes.</li>
+          </ul>
+        </section>
+
+        <section id="pricing">
+          <h2>Simple, transparent pricing</h2>
+          <p>Start free. Scale as you grow. All plans include unlimited builds and the full Orbit feature set.</p>
+          <ul>
+            <li>
+              <h3>Free — $0/mo</h3>
+              <p>Perfect for side projects and learning. Free forever, no credit card required.</p>
+              <ul>
+                <li>0.5 vCPU</li>
+                <li>1 GB RAM</li>
+                <li>5 GB SSD/NVMe storage</li>
+                <li>1 instance</li>
+              </ul>
+            </li>
+            <li>
+              <h3>Standard — $2.49/mo</h3>
+              <p>For growing projects and small apps. First month free.</p>
+              <ul>
+                <li>1.5 vCPU</li>
+                <li>4 GB RAM</li>
+                <li>15 GB SSD/NVMe storage</li>
+                <li>2 instances</li>
+              </ul>
+            </li>
+            <li>
+              <h3>Pro — $3.99/mo</h3>
+              <p>For active development and production apps. First month free.</p>
+              <ul>
+                <li>2 vCPU</li>
+                <li>6 GB RAM</li>
+                <li>20 GB SSD/NVMe storage</li>
+                <li>2 instances</li>
+              </ul>
+            </li>
+            <li>
+              <h3>Custom — from $0.99/mo</h3>
+              <p>Configure your own resources. First month free.</p>
+              <ul>
+                <li>0.1–15 vCPU</li>
+                <li>100 MB–59 GB RAM</li>
+                <li>1–820 GB storage</li>
+                <li>1–3 instances</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section id="faq">
+          <h2>Common questions</h2>
+          <dl>
+            <dt>What is Orbit?</dt>
+            <dd>Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required.</dd>
+
+            <dt>Do I need to know Docker or Kubernetes?</dt>
+            <dd>No. Orbit uses Nixpacks to automatically detect your framework and build a container image. No Dockerfile needed; just push your code and Orbit handles the rest.</dd>
+
+            <dt>What frameworks are supported?</dt>
+            <dd>Orbit supports 50+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.</dd>
+
+            <dt>Is the free tier really free forever?</dt>
+            <dd>Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances.</dd>
+
+            <dt>How is Orbit different from Vercel or Netlify?</dt>
+            <dd>Orbit deploys to the Flux decentralized network, meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in.</dd>
+
+            <dt>Can I use a custom domain?</dt>
+            <dd>Yes. Developer and Pro plans support custom domains. Point your DNS to your Orbit deployment and SSL is handled automatically through the Flux reverse proxy network.</dd>
+          </dl>
+        </section>
+      </main>
+
+      <footer>
+        <p>© 2025 Flux Labs — Orbit</p>
+        <nav>
+          <a href="https://runonflux.io" rel="noopener noreferrer">Flux Network</a>
+          <a href="https://home.runonflux.io" rel="noopener noreferrer">FluxOS</a>
+          <a href="https://github.com/runonflux" rel="noopener noreferrer">GitHub</a>
+          <a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Docs</a>
+          <a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Guides</a>
+        </nav>
+      </footer>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

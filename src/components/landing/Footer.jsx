@@ -4,7 +4,8 @@ const links = [
   { label: 'Flux Network', href: 'https://runonflux.io', external: true },
   { label: 'FluxOS', href: 'https://home.runonflux.io', external: true },
   { label: 'GitHub', href: 'https://github.com/runonflux', external: true },
-  { label: 'Docs', href: '#', external: false },
+  { label: 'Docs', href: 'https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/', external: true },
+  { label: 'Guides', href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
 ];
 
 export default function Footer() {
