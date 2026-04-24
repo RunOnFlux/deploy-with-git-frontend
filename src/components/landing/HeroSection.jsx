@@ -4,6 +4,11 @@ import { ArrowRight, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LoginModal from '../auth/LoginModal';
 import { useAuth } from '../../context/AuthContext';
+import {
+  SiNextdotjs, SiReact, SiDjango, SiFastapi, SiNestjs, SiVuedotjs,
+  SiRemix, SiAstro, SiRubyonrails, SiLaravel, SiGo, SiRust,
+  SiSpring, SiSvelte, SiFlask, SiNuxt, SiHono, SiBlazor,
+} from 'react-icons/si';
 
 import { geoOrthographic, geoPath, geoGraticule } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -150,15 +155,24 @@ const FRAMEWORK_CYCLE = [
 ];
 
 const FRAMEWORKS_MARQUEE = [
-  { name: 'Next.js', color: '#e2e8f0' }, { name: 'React', color: '#61dafb' },
-  { name: 'Django', color: '#44b78b' }, { name: 'FastAPI', color: '#009688' },
-  { name: 'NestJS', color: '#e0234e' }, { name: 'Vue', color: '#42d392' },
-  { name: 'Remix', color: '#a78bfa' }, { name: 'Astro', color: '#ff7b35' },
-  { name: 'Rails', color: '#cc0000' }, { name: 'Laravel', color: '#ff2d20' },
-  { name: 'Gin', color: '#00acd7' }, { name: 'Actix Web', color: '#f74c00' },
-  { name: 'Spring Boot', color: '#6db33f' }, { name: 'Svelte', color: '#ff3e00' },
-  { name: 'Flask', color: '#94a3b8' }, { name: 'Nuxt', color: '#00dc82' },
-  { name: 'Hono', color: '#f97316' }, { name: 'Blazor', color: '#5c2d91' },
+  { name: 'Next.js',     color: '#e2e8f0', Icon: SiNextdotjs   },
+  { name: 'React',       color: '#61dafb', Icon: SiReact       },
+  { name: 'Django',      color: '#44b78b', Icon: SiDjango      },
+  { name: 'FastAPI',     color: '#009688', Icon: SiFastapi     },
+  { name: 'NestJS',      color: '#e0234e', Icon: SiNestjs      },
+  { name: 'Vue',         color: '#42d392', Icon: SiVuedotjs    },
+  { name: 'Remix',       color: '#a78bfa', Icon: SiRemix       },
+  { name: 'Astro',       color: '#ff7b35', Icon: SiAstro       },
+  { name: 'Rails',       color: '#cc0000', Icon: SiRubyonrails },
+  { name: 'Laravel',     color: '#ff2d20', Icon: SiLaravel     },
+  { name: 'Gin',         color: '#00acd7', Icon: SiGo          },
+  { name: 'Actix Web',   color: '#f74c00', Icon: SiRust        },
+  { name: 'Spring Boot', color: '#6db33f', Icon: SiSpring      },
+  { name: 'Svelte',      color: '#ff3e00', Icon: SiSvelte      },
+  { name: 'Flask',       color: '#94a3b8', Icon: SiFlask       },
+  { name: 'Nuxt',        color: '#00dc82', Icon: SiNuxt        },
+  { name: 'Hono',        color: '#f97316', Icon: SiHono        },
+  { name: 'Blazor',      color: '#9b72d0', Icon: SiBlazor      },
 ];
 const MARQUEE_ITEMS = [...FRAMEWORKS_MARQUEE, ...FRAMEWORKS_MARQUEE];
 
@@ -333,8 +347,8 @@ export default function HeroSection({ onLoginSuccess }) {
             className="w-full overflow-hidden"
             aria-label="Supported frameworks"
           >
-            <p className="text-xs text-text-muted text-center mb-3">
-              Deploys any stack.{' '}
+            <p className="text-xs text-indigo-200 text-center mb-3">
+              Deploy any stack.{' '}
               <a
                 href="https://github.com/RunOnFlux/deploy-with-git"
                 target="_blank"
@@ -351,14 +365,11 @@ export default function HeroSection({ onLoginSuccess }) {
                 {MARQUEE_ITEMS.map((fw, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/60
-                               bg-surface/50 text-[10px] font-mono whitespace-nowrap select-none"
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-border/60
+                               bg-surface/50 text-xs font-mono whitespace-nowrap select-none"
                     style={{ color: fw.color }}
                   >
-                    <span
-                      className="w-1 h-1 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: fw.color, opacity: 0.8 }}
-                    />
+                    <fw.Icon className="w-4 h-4 flex-shrink-0" style={{ color: fw.color }} />
                     {fw.name}
                   </div>
                 ))}
