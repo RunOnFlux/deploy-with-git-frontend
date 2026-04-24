@@ -1,0 +1,92 @@
+# ── Markdown (except README) ──────────────────────────────────────────────────
+*.md
+!README.md
+!readme.md
+
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+build/
+out/
+.output/
+*.tsbuildinfo
+
+# ── Environment & secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+*.secret
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.priv
+secrets/
+.secrets/
+config/secrets*
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Cache & temp ─────────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.turbo/
+.rollup.cache/
+.vite/
+*.swp
+*.swo
+*~
+.tmp/
+tmp/
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ── Editor & OS ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Package manager locks (keep package-lock.json, ignore others) ─────────────
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.local
+.eslintcache
+.stylelintcache
