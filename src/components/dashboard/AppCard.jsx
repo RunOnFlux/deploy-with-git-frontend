@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { GitBranch, Cpu, HardDrive, Layers, ExternalLink, Globe } from 'lucide-react';
+import { GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink, Globe } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
 /**
@@ -77,9 +77,21 @@ export default function AppCard({ app, compact = false }) {
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-text-muted">
-          Block #{app.height?.toLocaleString()}
-        </span>
+        <div className="flex items-center gap-2.5 text-xs text-text-muted min-w-0">
+          <span className="flex items-center gap-1 shrink-0">
+            <GitCommit className="w-3 h-3" />
+            <span className="font-mono">{app.hash ? app.hash.slice(0, 7) : '—'}</span>
+          </span>
+          {app.gitBranch && (
+            <>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1 min-w-0">
+                <GitBranch className="w-3 h-3 shrink-0" />
+                <span className="truncate">{app.gitBranch}</span>
+              </span>
+            </>
+          )}
+        </div>
         <Link
           to={`/dashboard/deployments/${app.name}`}
           className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors group-hover:text-primary"

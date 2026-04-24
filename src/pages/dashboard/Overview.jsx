@@ -25,7 +25,7 @@ export default function Overview() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="font-heading text-2xl font-bold text-text">
-              Welcome back, {displayName} 👋
+              Welcome back, {displayName}
             </h1>
             <p className="text-text-secondary text-sm mt-1">
               Here&apos;s an overview of your Orbit deployments.
@@ -41,7 +41,8 @@ export default function Overview() {
           </button>
         </div>
 
-        {/* Stat cards */}
+        {/* Stat cards — only shown once apps are loaded and at least one exists */}
+        {!loading && apps.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="card flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
@@ -50,7 +51,7 @@ export default function Overview() {
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wide">Running</p>
               <p className="text-2xl font-bold text-text">
-                {loading ? <span className="text-text-muted">—</span> : runningCount}
+                {runningCount}
               </p>
             </div>
           </div>
@@ -62,7 +63,7 @@ export default function Overview() {
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wide">Deployments</p>
               <p className="text-2xl font-bold text-text">
-                {loading ? <span className="text-text-muted">—</span> : apps.length}
+                {apps.length}
               </p>
             </div>
           </div>
@@ -74,11 +75,12 @@ export default function Overview() {
             <div>
               <p className="text-xs text-text-muted uppercase tracking-wide">Nodes</p>
               <p className="text-2xl font-bold text-text">
-                {loading ? <span className="text-text-muted">—</span> : totalNodes}
+                {totalNodes}
               </p>
             </div>
           </div>
         </div>
+        )}
 
         {/* Recent deployments or empty state */}
         {!loading && apps.length === 0 ? (

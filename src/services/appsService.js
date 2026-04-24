@@ -96,22 +96,26 @@ export async function fetchApps(zelid) {
 
 /**
  * Fetch the global node running status for a single app.
+ * Uses /apps/location (same source as AppDetail) and checks runningSince.
  *
  * Returns:
- *   'running'    — all nodes reporting RUNNING
+ *   'running'    — all nodes reporting running
  *   'partial'    — some but not all nodes running
  *   'stopped'    — nodes exist but none are running
  *   'unknown'    — no node data available (installing or not yet propagated)
  */
 export async function fetchAppStatus(appName) {
   try {
-    const resp = await axiosInstance.get(`/flux/apps/appglobalnodesstatuses/${appName}`);
+    const resp = await axiosInstance.get(
+      `/flux/apps/location/${encodeURIComponent(appName)}`,
+      { headers: { 'x-apicache-bypass': true } },
+    );
     if (resp.data?.status !== 'success') return 'unknown';
 
     const nodes = resp.data?.data ?? [];
     if (nodes.length === 0) return 'unknown';
 
-    const running = nodes.filter((n) => n.runningstatus === 'RUNNING').length;
+    const running = nodes.filter((n) => Boolean(n.runningSince)).length;
     if (running === 0) return 'stopped';
     if (running < nodes.length) return 'partial';
     return 'running';

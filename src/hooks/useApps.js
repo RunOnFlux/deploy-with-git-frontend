@@ -37,10 +37,15 @@ export function useAppsWithStatus() {
     })),
   });
 
-  const appsWithStatus = apps.map((app, i) => ({
-    ...app,
-    status: statusQueries[i]?.isLoading ? 'loading' : (statusQueries[i]?.data ?? 'unknown'),
-  }));
+  const appsWithStatus = apps.map((app, i) => {
+    const q = statusQueries[i];
+    // isPending = no data yet (covers both first-fetch and disabled state)
+    const statusLoading = !q || q.isPending;
+    return {
+      ...app,
+      status: statusLoading ? 'loading' : (q.data ?? 'unknown'),
+    };
+  });
 
   return {
     apps: appsWithStatus,
