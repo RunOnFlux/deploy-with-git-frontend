@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import BokehBackground, { BOKEH_FAQ } from './BokehBackground';
 
 const faqs = [
   {
@@ -68,7 +69,8 @@ function FAQItem({ q, a }) {
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="py-24 px-6 bg-surface/40">
+    <section id="faq" className="relative py-24 px-6 bg-surface/40 overflow-hidden">
+      <BokehBackground orbs={BOKEH_FAQ} />
       <div className="max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

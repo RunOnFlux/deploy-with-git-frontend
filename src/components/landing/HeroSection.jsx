@@ -145,17 +145,30 @@ function WireframeGlobe({ paused }) {
       phiRef.current += 0.001;
     }
 
-    // Throttle to ~20 fps to save CPU
+    // Throttle to ~5 fps to save CPU
     const FRAME_MS = 1000 / 5;
     let lastTime = 0;
+    let visible = true;
     function throttledDraw(ts) {
       rafRef.current = requestAnimationFrame(throttledDraw);
+      if (!visible) return;
       if (ts - lastTime < FRAME_MS) return;
       lastTime = ts;
       draw();
     }
     rafRef.current = requestAnimationFrame(throttledDraw);
-    return () => cancelAnimationFrame(rafRef.current);
+
+    // Pause when canvas scrolls out of view
+    const observer = new IntersectionObserver(
+      ([entry]) => { visible = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      observer.disconnect();
+    };
   }, [paused]);
 
   return (

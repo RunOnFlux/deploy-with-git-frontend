@@ -3,6 +3,7 @@ import {
   Infinity, Server, Layers, Zap, GitBranch, Globe,
   MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield,
 } from 'lucide-react';
+import BokehBackground, { BOKEH_FEATURES } from './BokehBackground';
 
 const features = [
   {
@@ -79,7 +80,8 @@ const cardVariants = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-24 px-6 bg-surface/40">
+    <section id="features" className="relative py-24 px-6 bg-surface/40 overflow-hidden">
+      <BokehBackground orbs={BOKEH_FEATURES} />
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

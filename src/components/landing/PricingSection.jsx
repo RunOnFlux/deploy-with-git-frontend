@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
+import BokehBackground, { BOKEH_PRICING } from './BokehBackground';
 import LoginModal from '../auth/LoginModal';
 
 const PLAN_COLORS = {
@@ -69,7 +70,8 @@ export default function PricingSection({ onLoginSuccess }) {
 
   return (
     <>
-      <section id="pricing" className="py-24 px-6">
+      <section id="pricing" className="relative py-24 px-6 overflow-hidden">
+        <BokehBackground orbs={BOKEH_PRICING} />
         <div className="max-w-6xl mx-auto">
           {/* Heading */}
           <motion.div
