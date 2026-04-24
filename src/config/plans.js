@@ -7,9 +7,10 @@ export const ORBIT_PLANS = [
   {
     id: 'free',
     name: 'Free',
-    tagline: 'Try Orbit forever',
+    tagline: 'Free forever*',
+    description: 'Perfect for side projects and learning',
     price: 0,
-    priceLabel: 'Free forever',
+    priceLabel: '$0*',
     cpu: 0.5,
     ram: 1,      // GB (spec uses ram * 1000 = MB)
     hdd: 5,      // GB
@@ -17,35 +18,43 @@ export const ORBIT_PLANS = [
     highlight: false,
   },
   {
-    id: 'developer',
-    name: 'Developer',
-    tagline: 'First month free',
+    id: 'standard',
+    name: 'Standard',
+    tagline: 'First month free*',
+    description: 'For growing projects and small apps',
     price: 2.49,
     priceLabel: '$2.49/mo',
     cpu: 1.5,
     ram: 4,
     hdd: 15,
     instances: 2,
-    highlight: false,
+    highlight: true,
   },
   {
     id: 'pro',
     name: 'Pro',
-    tagline: 'First month free',
+    tagline: 'First month free*',
+    description: 'For active development and production apps',
     price: 3.99,
     priceLabel: '$3.99/mo',
     cpu: 2,
     ram: 6,
     hdd: 20,
     instances: 2,
-    highlight: true,
+    highlight: false,
   },
   {
     id: 'custom',
     name: 'Custom',
-    tagline: 'Configure your own',
+    tagline: 'First month free*',
+    description: 'Configure your own resources and pricing',
     price: null,
-    priceLabel: 'From $0.99/mo',
+    priceLabel: 'Starting at $0.99/mo',
+    // Display ranges only; actual values set by user in wizard
+    cpuRange: '0.1 - 15 Cores',
+    ramRange: '100 MB - 59 GB',
+    hddRange: '1 - 820 GB',
+    instancesRange: '1 - 3',
     cpu: null,
     ram: null,
     hdd: null,
@@ -53,6 +62,12 @@ export const ORBIT_PLANS = [
     highlight: false,
   },
 ];
+
+/** Enterprise surcharge (private repos on ArcaneOS nodes) */
+export const ENTERPRISE_SURCHARGE = {
+  free: 1.33,
+  paid: 2.66, // Standard, Pro, Custom
+};
 
 /** Billing period multipliers for expire calculation */
 export const BILLING_PERIODS = [

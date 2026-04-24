@@ -53,6 +53,27 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset anchor targets so fixed navbar doesn't cover section headings */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* Framework logos marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 45s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 @layer components {
   /* Button variants */
   .btn-primary {

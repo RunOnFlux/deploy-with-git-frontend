@@ -55,7 +55,7 @@ function ExpiryBadge({ daysLeft }) {
 function PlanBadge({ plan }) {
   const colors = {
     free: 'bg-surface-hover text-text-muted border-border/40',
-    developer: 'bg-primary/15 text-primary border-primary/30',
+    standard: 'bg-primary/15 text-primary border-primary/30',
     pro: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
     custom: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   };

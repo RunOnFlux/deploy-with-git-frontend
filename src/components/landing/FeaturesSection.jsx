@@ -1,60 +1,86 @@
 import { motion } from 'framer-motion';
-import { Repeat2, Box, Layers, Globe, Leaf, Globe2 } from 'lucide-react';
+import {
+  Infinity, Server, Layers, Zap, GitBranch, Globe,
+  MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield,
+} from 'lucide-react';
 
 const features = [
   {
-    icon: Repeat2,
-    title: 'Auto CI/CD',
-    description:
-      'Every git push triggers a rebuild and rolling redeploy across your Flux nodes — zero downtime.',
+    icon: Infinity,
+    title: 'Unlimited Builds',
+    description: 'No limit on build count or build duration. Ship as often as you need.',
   },
   {
-    icon: Box,
-    title: 'No Docker needed',
-    description:
-      'Just push your code. Orbit builds your container automatically using Nixpacks — no Dockerfile required.',
+    icon: Server,
+    title: 'Dedicated Resources',
+    description: 'No shared hardware. Your rented resources are exclusively for your app.',
   },
   {
     icon: Layers,
-    title: '50+ frameworks',
-    description:
-      'Next.js, Remix, SvelteKit, Astro, Nuxt, Django, FastAPI, Rails, Go — auto-detected and configured.',
+    title: '100+ Frameworks',
+    description: 'Node.js, Python, Rust, Go, Java, .NET, PHP and more, auto-detected every time.',
+  },
+  {
+    icon: Zap,
+    title: 'Zero Configuration',
+    description: 'Auto-detects project type, installs dependencies, and builds automatically.',
+  },
+  {
+    icon: GitBranch,
+    title: 'Built-in CI/CD',
+    description: 'GitHub, GitLab, and Bitbucket webhooks plus polling mode. Your workflow, your choice.',
   },
   {
     icon: Globe,
-    title: '10,000+ global nodes',
-    description:
-      'Deploy to the Flux network spanning 100+ countries. Choose regions or let Orbit distribute automatically.',
+    title: 'Custom Domain + SSL',
+    description: "Connect your own domain with automatic SSL via Flux's reverse proxy network.",
   },
   {
-    icon: Leaf,
-    title: 'Free tier, always',
-    description:
-      'The Free plan runs forever at no cost — 0.5 vCPU, 1 GB RAM, 5 GB storage. No credit card needed.',
+    icon: MapPin,
+    title: 'Geolocation Selection',
+    description: 'Deploy to specific regions worldwide or let Orbit distribute automatically.',
   },
   {
-    icon: Globe2,
-    title: 'Custom domains',
-    description:
-      'Point your domain at your Orbit deployment. SSL is automatic via Flux\'s reverse proxy network.',
+    icon: Eye,
+    title: 'Deploy Previews',
+    description: 'Automatic preview deployments for branches and pull requests.',
+  },
+  {
+    icon: RotateCcw,
+    title: 'Auto Rollback',
+    description: 'Failed deployments automatically revert to the last known-good version.',
+  },
+  {
+    icon: FolderGit2,
+    title: 'Monorepo Support',
+    description: 'Deploy specific folders from a monorepo using the PROJECT_PATH variable.',
+  },
+  {
+    icon: Activity,
+    title: 'Health Monitoring',
+    description: 'Built-in health checks and process supervision keep your app always available.',
+  },
+  {
+    icon: Shield,
+    title: 'Enhanced Security',
+    description: 'Non-root execution, automatic log rotation, and encrypted app specs.',
   },
 ];
 
 const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.07 } },
 };
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
 export default function FeaturesSection() {
   return (
     <section id="features" className="py-24 px-6 bg-surface/40">
       <div className="max-w-5xl mx-auto">
-        {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -66,21 +92,20 @@ export default function FeaturesSection() {
             Features
           </p>
           <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-            Everything you need to ship
+            Your Code. Our Magic.
           </h2>
           <p className="text-text-secondary mt-4 max-w-xl mx-auto">
-            Orbit abstracts away the complexity of decentralized infrastructure so you can
-            focus on building.
+            Zero Docker headaches. Orbit handles the full build, deploy, and ops pipeline
+            so you can focus on shipping.
           </p>
         </motion.div>
 
-        {/* Grid */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {features.map((f) => (
             <motion.div
@@ -88,11 +113,11 @@ export default function FeaturesSection() {
               variants={cardVariants}
               className="p-5 rounded-2xl border border-border bg-surface hover:border-primary/30 transition-colors group"
             >
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <f.icon className="w-4.5 h-4.5 text-primary w-[18px] h-[18px]" />
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                <f.icon className="w-[16px] h-[16px] text-primary" />
               </div>
-              <h3 className="font-semibold text-text mb-1.5">{f.title}</h3>
-              <p className="text-text-secondary text-sm leading-relaxed">{f.description}</p>
+              <h3 className="font-semibold text-text text-sm mb-1">{f.title}</h3>
+              <p className="text-text-secondary text-xs leading-relaxed">{f.description}</p>
             </motion.div>
           ))}
         </motion.div>

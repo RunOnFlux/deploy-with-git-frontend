@@ -11,22 +11,43 @@ const TERMINAL_LINES = [
   { prefix: '',   prefixColor: '',               text: 'Enumerating objects: 5, done.', dim: true },
   { prefix: '',   prefixColor: '',               text: 'Writing objects: 100% (5/5), 1.2 KiB', dim: true },
   { prefix: '●',  prefixColor: 'text-primary',   text: ' Orbit detected push → triggering build…' },
-  { prefix: '●',  prefixColor: 'text-primary',   text: ' Framework: ', highlight: 'Next.js 14' },
+  { prefix: '●',  prefixColor: 'text-primary',   text: ' Framework: ', highlight: '__FRAMEWORK__' },
   { prefix: '●',  prefixColor: 'text-primary',   text: ' Build complete in 23s' },
   { prefix: '●',  prefixColor: 'text-primary',   text: ' Deploying to Flux network…' },
-  { prefix: '✓',  prefixColor: 'text-accent',    text: ' Live: ', highlight: 'my-app.app.runonflux.io' },
+  { prefix: '✓',  prefixColor: 'text-accent',    text: ' Live: ', highlight: '__LIVE__' },
 ];
 
-const STATS = [
-  { value: '10,000+', label: 'nodes' },
-  { value: '50+',     label: 'frameworks' },
-  { value: 'Free',    label: 'forever tier' },
-  { value: 'Zero',    label: 'Docker needed' },
+// Frameworks that cycle in the terminal on each loop
+const FRAMEWORK_CYCLE = [
+  { name: 'Next.js 14',  slug: 'my-nextjs-app'  },
+  { name: 'React 18',    slug: 'my-react-app'   },
+  { name: 'Vue 3',       slug: 'my-vue-app'     },
+  { name: 'Django 5',    slug: 'my-django-app'  },
+  { name: 'FastAPI',     slug: 'my-fastapi-app' },
+  { name: 'NestJS',      slug: 'my-nestjs-app'  },
+  { name: 'Svelte 5',    slug: 'my-svelte-app'  },
+  { name: 'Astro 4',     slug: 'my-astro-app'   },
+  { name: 'Laravel 11',  slug: 'my-laravel-app' },
+  { name: 'Go / Gin',    slug: 'my-go-app'      },
 ];
+
+const FRAMEWORKS_MARQUEE = [
+  { name: 'Next.js', color: '#e2e8f0' }, { name: 'React', color: '#61dafb' },
+  { name: 'Django', color: '#44b78b' }, { name: 'FastAPI', color: '#009688' },
+  { name: 'NestJS', color: '#e0234e' }, { name: 'Vue', color: '#42d392' },
+  { name: 'Remix', color: '#a78bfa' }, { name: 'Astro', color: '#ff7b35' },
+  { name: 'Rails', color: '#cc0000' }, { name: 'Laravel', color: '#ff2d20' },
+  { name: 'Gin', color: '#00acd7' }, { name: 'Actix Web', color: '#f74c00' },
+  { name: 'Spring Boot', color: '#6db33f' }, { name: 'Svelte', color: '#ff3e00' },
+  { name: 'Flask', color: '#94a3b8' }, { name: 'Nuxt', color: '#00dc82' },
+  { name: 'Hono', color: '#f97316' }, { name: 'Blazor', color: '#5c2d91' },
+];
+const MARQUEE_ITEMS = [...FRAMEWORKS_MARQUEE, ...FRAMEWORKS_MARQUEE];
 
 // Typewriter: reveals lines one by one, then loops
 function useTypewriter(lines, { paused = false } = {}) {
   const [visibleCount, setVisibleCount] = useState(0);
+  const [loopCount, setLoopCount] = useState(0);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -42,10 +63,13 @@ function useTypewriter(lines, { paused = false } = {}) {
           step(count + 1);
         }, 420);
       } else {
-        // Pause at end, then reset
+        // Pause at end, fade out, then swap framework + restart
         timerRef.current = setTimeout(() => {
-          setVisibleCount(0);
-          step(0);
+          setVisibleCount(0); // triggers fade-out (300ms transition)
+          timerRef.current = setTimeout(() => {
+            setLoopCount(c => c + 1); // switch framework only after fade is done
+            step(0);
+          }, 350);
         }, 3200);
       }
     }
@@ -54,7 +78,7 @@ function useTypewriter(lines, { paused = false } = {}) {
     return () => clearTimeout(timerRef.current);
   }, [paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return visibleCount;
+  return { visibleCount, loopCount };
 }
 
 export default function HeroSection({ onLoginSuccess }) {
@@ -63,7 +87,8 @@ export default function HeroSection({ onLoginSuccess }) {
   const [loginOpen, setLoginOpen] = useState(false);
   const reducedMotion = useReducedMotion();
 
-  const visibleLines = useTypewriter(TERMINAL_LINES, { paused: reducedMotion });
+  const { visibleCount: visibleLines, loopCount } = useTypewriter(TERMINAL_LINES, { paused: reducedMotion });
+  const currentFramework = FRAMEWORK_CYCLE[loopCount % FRAMEWORK_CYCLE.length];
 
   function handleCTA() {
     if (isAuthenticated) {
@@ -147,7 +172,7 @@ export default function HeroSection({ onLoginSuccess }) {
             className="text-text-secondary leading-relaxed max-w-2xl mx-auto mb-9
                        text-base sm:text-lg md:text-xl"
           >
-            Push your code. Orbit handles the rest — builds, deploys, and scales your app
+            Push your code. Orbit handles the rest: builds, deploys, and scales your app
             across 10,000+ Flux nodes worldwide. Free tier, no credit card required.
           </motion.p>
 
@@ -177,20 +202,45 @@ export default function HeroSection({ onLoginSuccess }) {
             </a>
           </motion.div>
 
-          {/* Stats — 2×2 on mobile, 4-col on sm+ */}
+          {/* Framework logos marquee */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.45 }}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden
-                       border border-border max-w-xl mx-auto"
+            className="w-full overflow-hidden"
+            aria-label="Supported frameworks"
           >
-            {STATS.map((s) => (
-              <div key={s.label} className="bg-surface flex flex-col items-center py-4 px-3">
-                <span className="text-lg font-bold text-text font-heading">{s.value}</span>
-                <span className="text-xs text-text-muted mt-0.5">{s.label}</span>
+            <p className="text-xs text-text-muted text-center mb-3">
+              Deploys any stack.{' '}
+              <a
+                href="https://github.com/RunOnFlux/deploy-with-git"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/80 transition-colors"
+              >
+                view all framework guides →
+              </a>
+            </p>
+            <div className="relative">
+              <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent" />
+              <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-background to-transparent" />
+              <div className="marquee-track flex gap-2" style={{ width: 'max-content' }}>
+                {MARQUEE_ITEMS.map((fw, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/60
+                               bg-surface/50 text-[10px] font-mono whitespace-nowrap select-none"
+                    style={{ color: fw.color }}
+                  >
+                    <span
+                      className="w-1 h-1 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: fw.color, opacity: 0.8 }}
+                    />
+                    {fw.name}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </motion.div>
         </div>
 
@@ -215,7 +265,7 @@ export default function HeroSection({ onLoginSuccess }) {
             </div>
 
             {/* Fixed-height body prevents layout shift during typewriter */}
-            <div className="p-4 sm:p-5 font-mono text-[11px] sm:text-xs leading-[1.75] h-[200px] sm:h-[220px] overflow-hidden">
+            <div className="p-4 sm:p-5 font-mono text-[11px] sm:text-xs leading-[1.75] h-[168px] sm:h-[186px] overflow-hidden">
               {TERMINAL_LINES.map((line, i) => (
                 <div
                   key={i}
@@ -228,7 +278,13 @@ export default function HeroSection({ onLoginSuccess }) {
                   )}
                   {line.text}
                   {line.highlight && (
-                    <span className="text-accent font-semibold">{line.highlight}</span>
+                    <span className="text-accent font-semibold">
+                      {line.highlight === '__FRAMEWORK__'
+                        ? currentFramework.name
+                        : line.highlight === '__LIVE__'
+                        ? `${currentFramework.slug}.app.runonflux.io`
+                        : line.highlight}
+                    </span>
                   )}
                   {/* Blinking cursor on last visible line */}
                   {i === visibleLines - 1 && !reducedMotion && (

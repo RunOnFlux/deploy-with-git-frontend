@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
 import { PLANS } from '../../services/deployService';
 import Step1Plan from '../../components/wizard/Step1Plan';
@@ -12,7 +12,7 @@ import Step5Register from '../../components/wizard/Step5Register';
 import Step6Payment from '../../components/wizard/Step6Payment';
 
 // Allowed plan IDs for deep-link prefill
-const PLAN_ALIASES = { free: 'free', developer: 'developer', dev: 'developer', pro: 'pro', custom: 'custom' };
+const PLAN_ALIASES = { free: 'free', standard: 'standard', developer: 'standard', dev: 'standard', pro: 'pro', custom: 'custom' };
 const POLLING_ALIASES = { disabled: 'disabled', '1h': '3600', '2h': '7200', '6h': '21600', '12h': '43200', '24h': '86400' };
 const RUNTIME_ALIASES = { node: 'node', nodejs: 'node', python: 'python', py: 'python', go: 'go', golang: 'go', rust: 'rust', java: 'java', php: 'php', ruby: 'ruby', dotnet: 'dotnet' };
 
@@ -25,44 +25,76 @@ const STEPS = [
   { label: 'Payment' },
 ];
 
-function WizardProgress({ current }) {
+function WizardProgress({ current, onBack, onNext, canNext, nextLabel, showBack, showNext }) {
   return (
-    <div className="flex items-center gap-0 mb-8 overflow-x-auto pb-2">
-      {STEPS.map((s, i) => {
-        const num = i + 1;
-        const done = num < current;
-        const active = num === current;
+    <div className="flex items-center gap-6 mb-8">
+      {/* Back button */}
+      <div className="w-14 flex-shrink-0 flex flex-col items-center">
+        {showBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-10 h-10 rounded-full border-2 border-border bg-surface hover:border-primary/60 hover:bg-primary/5 flex items-center justify-center transition-colors text-text-secondary hover:text-primary"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
+        {showBack && <span className="text-[10px] text-text-muted mt-1">Back</span>}
+      </div>
 
-        return (
-          <div key={s.label} className="flex items-center">
-            <div className="flex flex-col items-center min-w-[52px]">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  done
-                    ? 'border-primary bg-primary text-white'
-                    : active
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-surface text-text-muted'
-                }`}
-              >
-                {done ? <Check className="w-4 h-4" /> : num}
+      {/* Step indicators */}
+      <div className="flex items-center flex-1">
+        {STEPS.map((s, i) => {
+          const num = i + 1;
+          const done = num < current;
+          const active = num === current;
+
+          return (
+            <div key={s.label} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                    done
+                      ? 'border-primary bg-primary text-white'
+                      : active
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-surface text-text-muted'
+                  }`}
+                >
+                  {done ? <Check className="w-4 h-4" /> : num}
+                </div>
+                <span
+                  className={`text-xs mt-1 whitespace-nowrap ${
+                    active ? 'text-primary font-medium' : done ? 'text-text-secondary' : 'text-text-muted'
+                  }`}
+                >
+                  {s.label}
+                </span>
               </div>
-              <span
-                className={`text-xs mt-1 whitespace-nowrap ${
-                  active ? 'text-primary font-medium' : done ? 'text-text-secondary' : 'text-text-muted'
-                }`}
-              >
-                {s.label}
-              </span>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`h-px flex-1 mx-2 mb-4 transition-colors ${done ? 'bg-primary' : 'bg-border'}`}
+                />
+              )}
             </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={`h-px w-8 mx-1 mb-4 flex-shrink-0 transition-colors ${done ? 'bg-primary' : 'bg-border'}`}
-              />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* Next button — same fixed width as back for symmetry */}
+      <div className="w-14 flex-shrink-0 flex flex-col items-center">
+        {showNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!canNext}
+            className="w-10 h-10 rounded-full border-2 border-primary bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        )}
+        {showNext && <span className="text-[10px] text-text-muted mt-1">{nextLabel}</span>}
+      </div>
     </div>
   );
 }
@@ -166,7 +198,7 @@ export default function DeployWizard() {
         <title>New Deployment — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8 max-w-2xl mx-auto">
+      <div className="p-6 lg:p-8">
         <Link
           to="/dashboard/deployments"
           className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text transition-colors mb-6"
@@ -175,7 +207,15 @@ export default function DeployWizard() {
           Back to deployments
         </Link>
 
-        <WizardProgress current={step} />
+        <WizardProgress
+          current={step}
+          onBack={back}
+          onNext={handleNext}
+          canNext={canProceed()}
+          nextLabel={step === 4 ? 'Deploy' : 'Next'}
+          showBack={step > 1 && step <= 5}
+          showNext={step <= 4}
+        />
 
         <div className="card p-6 mb-6">
           {step === 1 && <Step1Plan plan={plan} onChange={setPlan} />}

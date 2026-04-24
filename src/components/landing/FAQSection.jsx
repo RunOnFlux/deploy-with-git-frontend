@@ -5,11 +5,11 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline';
 const faqs = [
   {
     q: 'What is Orbit?',
-    a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide — no server management required.',
+    a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required.',
   },
   {
     q: 'Do I need to know Docker or Kubernetes?',
-    a: "No. Orbit uses Nixpacks to automatically detect your framework and build a container image. You don't write a Dockerfile — just push your code and Orbit handles the rest.",
+    a: "No. Orbit uses Nixpacks to automatically detect your framework and build a container image. No Dockerfile needed; just push your code and Orbit handles the rest.",
   },
   {
     q: 'What frameworks are supported?',
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: 'How is Orbit different from Vercel or Netlify?',
-    a: "Orbit deploys to the Flux decentralized network — meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy. You're also not subject to vendor lock-in.",
+    a: "Orbit deploys to the Flux decentralized network, meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in.",
   },
   {
     q: 'Can I use a custom domain?',

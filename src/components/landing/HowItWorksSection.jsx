@@ -7,7 +7,7 @@ const steps = [
     step: '01',
     title: 'Connect your repo',
     description:
-      'Paste a GitHub, GitLab, or any Git URL. Public or private — Orbit supports token-based auth for private repos.',
+      'Paste a GitHub, GitLab, or any Git URL. Public or private; Orbit supports token-based auth for private repos.',
   },
   {
     icon: Settings,

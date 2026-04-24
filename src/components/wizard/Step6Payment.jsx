@@ -89,7 +89,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, onBack 
           signature: zelidauth.signature,
           loginPhrase: zelidauth.loginPhrase,
           details: {
-            name: plan?.id || 'developer',
+            name: plan?.id || 'standard',
             description: `Orbit deployment: ${appName}`,
             hash: txid,
             price: parseFloat((priceUsd ?? 0).toFixed(2)),
