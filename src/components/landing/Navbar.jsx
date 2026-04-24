@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Rocket } from 'lucide-react';
+import { Rocket, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../auth/LoginModal';
 
@@ -54,23 +54,24 @@ export default function Navbar({ onLoginSuccess }) {
               href="https://github.com/RunOnFlux/deploy-with-git"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-1.5 text-sm text-text-muted hover:text-text rounded-lg
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-muted hover:text-text rounded-lg
                          hover:bg-white/5 transition-colors"
             >
               Guides
+              <ExternalLink className="w-3 h-3 opacity-60" />
             </a>
           </nav>
 
           {/* CTA */}
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated ? (
-              <a href="/dashboard" className="btn-primary text-sm px-4 py-2">
+              <a href="/dashboard" className="btn-cta text-sm px-4 py-2">
                 Dashboard
               </a>
             ) : (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="btn-primary text-sm px-4 py-2"
+                className="btn-cta text-sm px-4 py-2"
               >
                 Sign In
               </button>

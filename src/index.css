@@ -82,6 +82,38 @@ html {
            transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  /* Landing-page CTA — gradient shimmer, dev-appealing */
+  .btn-cta {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-xl
+           font-bold text-white overflow-hidden
+           transition-all duration-300;
+    background: linear-gradient(90deg, #6366f1 0%, #3b82f6 40%, #06b6d4 70%, #3b82f6 100%);
+    background-size: 300% 100%;
+    animation: shimmer 3s linear infinite;
+    box-shadow: 0 4px 24px -4px rgba(99,102,241,0.5), 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .btn-cta:hover {
+    box-shadow: 0 6px 32px -4px rgba(99,102,241,0.7), 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* Terminal-style secondary for landing */
+  .btn-terminal {
+    @apply inline-flex items-center gap-2 rounded-lg border font-mono text-sm
+           transition-all duration-200;
+    background: rgba(15,23,42,0.6);
+    border-color: rgba(99,102,241,0.3);
+    color: #94a3b8;
+  }
+  .btn-terminal:hover {
+    border-color: rgba(99,102,241,0.6);
+    color: #e2e8f0;
+    box-shadow: 0 0 12px rgba(99,102,241,0.2);
+  }
+  .btn-terminal .prompt {
+    color: #6366f1;
+    user-select: none;
+  }
+
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
            bg-surface hover:bg-surface-hover border border-border text-text font-medium text-sm

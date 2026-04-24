@@ -49,7 +49,7 @@ const cardVariants = {
 export default function PricingSection({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [period, setPeriod] = useState('monthly');
+  const [period, setPeriod] = useState('annual');
 
   const activePeriod = PERIODS.find((p) => p.id === period);
   const isAnnual = activePeriod.months === 12;
@@ -140,30 +140,29 @@ export default function PricingSection({ onLoginSuccess }) {
               const resources = PLAN_RESOURCES[plan.id] ?? [];
 
               return (
-                <motion.div
-                  key={plan.id}
-                  variants={cardVariants}
-                  className={`relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 ${
-                    isRecommended
-                      ? 'border-primary/40 bg-surface shadow-lg shadow-primary/10'
-                      : 'border-border bg-surface'
-                  }`}
-                >
-                  {/* Most Popular badge */}
+                <div key={plan.id} className={`relative flex flex-col ${isRecommended ? 'pt-3.5' : ''}`}>
+                  {/* Most Popular badge floats above the card border */}
                   {isRecommended && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
                       <span className="bg-primary text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
                         Most Popular
                       </span>
                     </div>
                   )}
 
-                  {/* Annual savings ribbon for non-recommended paid plans */}
-                  {isAnnual && plan.price > 0 && !isRecommended && (
-                    <div className="absolute -top-3.5 right-4">
-                      <span className="bg-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-                        Save 15%
-                      </span>
+                <motion.div
+                  variants={cardVariants}
+                  className={`relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 overflow-hidden flex-1 ${
+                    isRecommended
+                      ? 'border-primary/40 bg-surface shadow-lg shadow-primary/10'
+                      : 'border-border bg-surface'
+                  }`}
+                >
+
+                  {/* Annual savings corner ribbon — all paid plans */}
+                  {isAnnual && plan.id !== 'free' && (
+                    <div className="absolute top-5 -right-9 w-36 text-white text-[10px] font-bold text-center py-1.5 rotate-45 shadow-sm pointer-events-none" style={{background:'#065f46'}}>
+                      Save 15%
                     </div>
                   )}
 
@@ -243,6 +242,7 @@ export default function PricingSection({ onLoginSuccess }) {
                     )}
                   </button>
                 </motion.div>
+                </div>
               );
             })}
           </motion.div>

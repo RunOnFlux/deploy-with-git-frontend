@@ -57,6 +57,7 @@ export default {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'shimmer': 'shimmer 2.5s linear infinite',
       },
       keyframes: {
         float: {
@@ -66,6 +67,10 @@ export default {
         glow: {
           from: { boxShadow: '0 0 10px #3b82f640' },
           to: { boxShadow: '0 0 20px #3b82f680, 0 0 40px #3b82f640' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '200% center' },
+          '100%': { backgroundPosition: '-200% center' },
         },
       },
     },

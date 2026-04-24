@@ -5,6 +5,124 @@ import { useNavigate } from 'react-router-dom';
 import LoginModal from '../auth/LoginModal';
 import { useAuth } from '../../context/AuthContext';
 
+import { geoOrthographic, geoPath, geoGraticule } from 'd3-geo';
+import { feature } from 'topojson-client';
+import worldTopo from 'world-atlas/countries-50m.json';
+
+// Pre-process once at module load
+const COUNTRIES = feature(worldTopo, worldTopo.objects.countries);
+const GRATICULE = geoGraticule().step([20, 20])();
+
+// ---------------------------------------------------------------------------
+// Wireframe Earth Globe (canvas 2D + d3-geo + live Flux nodes)
+// ---------------------------------------------------------------------------
+function WireframeGlobe({ paused }) {
+  const canvasRef = useRef(null);
+  const phiRef    = useRef(1.8); // start centered on Europe/Africa
+  const rafRef    = useRef(null);
+  const nodesRef  = useRef([]);   // [[lon, lat], ...]
+
+  // Fetch live Flux node positions once
+  useEffect(() => {
+    fetch('https://stats.runonflux.io/fluxinfo?projection=geolocation')
+      .then(r => r.json())
+      .then(({ data }) => {
+        nodesRef.current = data
+          .filter(n => n.geolocation?.lat != null && n.geolocation?.lon != null)
+          .map(n => [n.geolocation.lon, n.geolocation.lat]);
+      })
+      .catch(() => {}); // silent fail — globe still shows without nodes
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || paused) return;
+
+    const SIZE = 900;
+    const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale once, work in logical px
+
+    const cx     = SIZE / 2;
+    const cy     = SIZE / 2;
+    const radius = SIZE * 0.43;
+
+    function draw() {
+      ctx.clearRect(0, 0, SIZE, SIZE);
+
+      const rotDeg = phiRef.current * (180 / Math.PI);
+
+      const projection = geoOrthographic()
+        .scale(radius)
+        .translate([cx, cy])
+        .rotate([rotDeg, -20, 0])
+        .clipAngle(90);
+
+      const path = geoPath(projection, ctx);
+
+      // Globe base — subtle dark sphere
+      const grad = ctx.createRadialGradient(cx - radius * 0.25, cy - radius * 0.25, 0, cx, cy, radius);
+      grad.addColorStop(0, 'rgba(45, 40, 110, 0.35)');
+      grad.addColorStop(1, 'rgba(10, 8, 35, 0.55)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Graticule grid lines (every 20°)
+      ctx.beginPath();
+      path(GRATICULE);
+      ctx.strokeStyle = 'rgba(90, 90, 200, 0.18)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      // Country / continent outlines
+      ctx.beginPath();
+      path(COUNTRIES);
+      ctx.strokeStyle = 'rgba(140, 140, 255, 0.75)';
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+
+      // Live Flux node dots
+      const nodes = nodesRef.current;
+      for (let i = 0; i < nodes.length; i++) {
+        const pt = projection(nodes[i]);
+        if (!pt) continue;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], 2, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(100, 220, 255, 1.0)';
+        ctx.fill();
+      }
+
+      phiRef.current += 0.001;
+    }
+
+    // Throttle to ~20 fps to save CPU
+    const FRAME_MS = 1000 / 10;
+    let lastTime = 0;
+    function throttledDraw(ts) {
+      rafRef.current = requestAnimationFrame(throttledDraw);
+      if (ts - lastTime < FRAME_MS) return;
+      lastTime = ts;
+      draw();
+    }
+    rafRef.current = requestAnimationFrame(throttledDraw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [paused]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: '900px', height: '900px' }}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[53%] opacity-40 pointer-events-none select-none"
+      aria-hidden="true"
+    />
+  );
+}
+
 // Terminal lines — fixed set, card height never changes
 const TERMINAL_LINES = [
   { prefix: '$',  prefixColor: 'text-accent',   text: ' git push origin main' },
@@ -81,6 +199,22 @@ function useTypewriter(lines, { paused = false } = {}) {
   return { visibleCount, loopCount };
 }
 
+function GradientWord({ children, gradient = 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)' }) {
+  return (
+    <span
+      style={{
+        backgroundImage: gradient,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        color: '#3b82f6',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function HeroSection({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -104,6 +238,8 @@ export default function HeroSection({ onLoginSuccess }) {
 
         {/* ── Background ─────────────────────────────────────────────────── */}
         <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+          {/* Wireframe globe */}
+          <WireframeGlobe paused={reducedMotion} />
           {/* Primary glow */}
           <motion.div
             className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px]"
@@ -144,23 +280,13 @@ export default function HeroSection({ onLoginSuccess }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-heading font-bold text-text leading-[1.07] tracking-tight mb-5
-                       text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+            className="font-heading font-light text-text leading-[1.2] tracking-tight mb-5
+                       text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
           >
-            Deploy to Flux
+            Deploy to <GradientWord>Flux</GradientWord>
             <br />
-            {/* Gradient text with solid fallback */}
-            <span
-              className="text-primary bg-clip-text"
-              style={{
-                backgroundImage: 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                color: '#3b82f6', // fallback
-              }}
-            >
-              with Git
+            <span className="block mt-3">
+              with <GradientWord gradient="linear-gradient(90deg, #f97316 0%, #ef4444 100%)">Git</GradientWord>
             </span>
           </motion.h1>
 
@@ -185,20 +311,17 @@ export default function HeroSection({ onLoginSuccess }) {
           >
             <button
               onClick={handleCTA}
-              className="btn-primary text-sm sm:text-base px-6 py-3 sm:px-7 sm:py-3.5
-                         flex items-center gap-2 w-full sm:w-auto justify-center
-                         shadow-lg shadow-primary/20 hover:shadow-primary/35 transition-shadow"
+              className="btn-cta text-sm sm:text-base px-6 py-3 sm:px-8 sm:py-3.5 w-full sm:w-auto"
             >
               Start Deploying Free
               <ArrowRight className="w-4 h-4" />
             </button>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-1.5 text-sm text-text-secondary
-                         border border-border rounded-xl px-5 py-3 w-full sm:w-auto justify-center
-                         hover:border-primary/40 hover:text-text transition-colors"
+              className="btn-terminal px-5 py-3 w-full sm:w-auto justify-center"
             >
-              How it works ↓
+              <span className="prompt">$</span>
+              <span>how-it-works</span>
             </a>
           </motion.div>
 

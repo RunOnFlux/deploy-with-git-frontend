@@ -39,7 +39,7 @@ export default function CTASection({ onLoginSuccess }) {
               </p>
               <button
                 onClick={handleCTA}
-                className="btn-primary text-base px-8 py-3.5 inline-flex items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
+                className="btn-cta text-base px-8 py-3.5"
               >
                 Get started free
                 <ArrowRight className="w-4 h-4" />
