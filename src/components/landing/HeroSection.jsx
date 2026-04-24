@@ -101,7 +101,7 @@ function WireframeGlobe({ paused }) {
     }
 
     // Throttle to ~20 fps to save CPU
-    const FRAME_MS = 1000 / 10;
+    const FRAME_MS = 1000 / 5;
     let lastTime = 0;
     function throttledDraw(ts) {
       rafRef.current = requestAnimationFrame(throttledDraw);
@@ -269,7 +269,7 @@ export default function HeroSection({ onLoginSuccess }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-7"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-indigo-200 text-xs font-medium mb-7"
           >
             <GitBranch className="w-3.5 h-3.5" />
             Git-native deployment for the Flux network
@@ -339,7 +339,7 @@ export default function HeroSection({ onLoginSuccess }) {
                 href="https://github.com/RunOnFlux/deploy-with-git"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors"
+                className="text-indigo-200 hover:text-white transition-colors"
               >
                 view all framework guides →
               </a>
