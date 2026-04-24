@@ -465,12 +465,12 @@ app.post('/api/orbit-deploy', express.json(), async (req, res) => {
 
 /**
 /**
- * Screenshot — shared browser instance + 5-minute in-memory cache.
+ * Screenshot — shared browser instance + 1-hour in-memory cache.
  */
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/snap/bin/chromium';
 let _browser = null;
 const screenshotCache = new Map(); // url → { buf, ts }
-const SCREENSHOT_TTL = 5 * 60 * 1000;
+const SCREENSHOT_TTL = 60 * 60 * 1000;
 
 async function getBrowser() {
   if (_browser && _browser.connected) return _browser;
@@ -503,7 +503,7 @@ app.get('/api/screenshot', async (req, res) => {
   const cached = screenshotCache.get(decoded);
   if (cached && Date.now() - cached.ts < SCREENSHOT_TTL) {
     res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.send(cached.buf);
   }
 
@@ -517,7 +517,7 @@ app.get('/api/screenshot', async (req, res) => {
 
     screenshotCache.set(decoded, { buf, ts: Date.now() });
     res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.send(buf);
   } catch (err) {
     console.error('screenshot error:', err.message);

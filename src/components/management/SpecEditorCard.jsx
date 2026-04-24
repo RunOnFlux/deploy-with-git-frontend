@@ -7,10 +7,12 @@ import {
   verifyUpdateSpec,
   updateApp,
   buildDataToSign,
+  calculatePrice,
   signWithSSO,
   signWithSSP,
   signWithZelCore,
 } from '../../services/deployService';
+import Step6Payment from '../wizard/Step6Payment';
 
 // Keys that are completely hidden — never shown, always preserved as-is
 const HIDDEN_KEYS = new Set([
@@ -126,6 +128,9 @@ export default function SpecEditorCard({ spec, onSaved }) {
   const [savePhase, setSavePhase]     = useState(null);
   const [saveError, setSaveError]     = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [updatePrice, setUpdatePrice] = useState(null); // { flux, usd } | null
+  // If paid update: show payment step with { txid, verifiedSpec }
+  const [paymentContext, setPaymentContext] = useState(null);
 
   // ── Populate state from spec ─────────────────────────────────────────
   useEffect(() => {
@@ -198,6 +203,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
     if (!spec || !zelidauth) return;
     setSaveError(null);
     setSaveSuccess(false);
+    setUpdatePrice(null);
 
     // Rebuild env params: hidden first, then orbit settings, then user vars
     const orbitRows = Object.entries(orbitSettings)
@@ -230,9 +236,18 @@ export default function SpecEditorCard({ spec, onSaved }) {
       return;
     }
 
+    // Calculate price (best-effort; don't block on failure)
+    let price = { flux: 0, usd: 0 };
+    try {
+      price = await calculatePrice(verifiedSpec, zelidauth);
+    } catch {
+      // ignore price calculation errors — proceed with unknown price
+    }
+    setUpdatePrice(price);
+
     setSavePhase('signing');
     const timestamp   = Date.now();
-    const dataToSign  = buildDataToSign(verifiedSpec, timestamp);
+    const dataToSign  = buildDataToSign(verifiedSpec, timestamp, true);
     let signature;
     try {
       if (loginType === 'firebase') {
@@ -253,8 +268,9 @@ export default function SpecEditorCard({ spec, onSaved }) {
     }
 
     setSavePhase('registering');
+    let result;
     try {
-      await updateApp({ verifiedSpec, timestamp, signature, zelidauth });
+      result = await updateApp({ verifiedSpec, timestamp, signature, zelidauth });
     } catch (err) {
       setSaveError(`Update failed: ${err.message}`);
       setSavePhase(null);
@@ -263,8 +279,12 @@ export default function SpecEditorCard({ spec, onSaved }) {
 
     setSavePhase(null);
     setSaveSuccess(true);
-    toast.success('Settings saved — changes will propagate to nodes in a few minutes.');
-    onSaved?.();
+    if (price.flux > 0) {
+      setPaymentContext({ txid: result, verifiedSpec });
+    } else {
+      toast.success('Settings saved — changes will propagate to nodes in a few minutes.');
+      onSaved?.();
+    }
   }
 
   const isSaving = savePhase !== null;
@@ -273,6 +293,22 @@ export default function SpecEditorCard({ spec, onSaved }) {
     signing:     'Waiting for signature…',
     registering: 'Registering update…',
   };
+
+  const isFree = !updatePrice || updatePrice.flux === 0;
+
+  // After a paid update is submitted, show the full payment step
+  if (paymentContext) {
+    return (
+      <div className="card">
+        <Step6Payment
+          verifiedSpec={paymentContext.verifiedSpec}
+          plan={null}
+          registration={{ appName: paymentContext.verifiedSpec?.name, txid: paymentContext.txid }}
+          onBack={() => setPaymentContext(null)}
+        />
+      </div>
+    );
+  }
 
     if (!spec) {
     return (
@@ -459,7 +495,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
       {saveSuccess && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20 mb-3 text-sm text-accent">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
-          Update submitted to the blockchain. Changes will propagate to nodes in a few minutes.
+          Update submitted. Changes will propagate to nodes in a few minutes.
         </div>
       )}
 

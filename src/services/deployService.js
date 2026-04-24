@@ -341,8 +341,10 @@ export async function verifySpec(spec) {
   }
 }
 
+const FLUX_API = 'https://api.runonflux.io';
+
 /**
- * POST /apps/appregister
+ * POST /apps/appregister  (called directly — api.runonflux.io has CORS *)
  * Returns { data: <txid> }.
  */
 export async function registerApp({ verifiedSpec, timestamp, signature, zelidauth }) {
@@ -353,12 +355,9 @@ export async function registerApp({ verifiedSpec, timestamp, signature, zelidaut
     timestamp,
     signature,
   });
-  const resp = await fetch('/api/flux/apps/appregister', {
+  const resp = await fetch(`${FLUX_API}/apps/appregister`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      zelidauth: zelidauthHeader(zelidauth),
-    },
+    headers: { zelidauth: zelidauthHeader(zelidauth) },
     body: payload,
   });
   const json = await resp.json();
@@ -369,16 +368,16 @@ export async function registerApp({ verifiedSpec, timestamp, signature, zelidaut
 }
 
 /**
- * POST /apps/verifyappupdatespecifications
+ * POST /apps/verifyappupdatespecifications  (called directly — CORS *)
  * Validates an update spec. Returns the normalised spec on success.
+ * Can be slow (Docker image check) so we give it 2 minutes.
  */
 export async function verifyUpdateSpec(spec) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
   try {
-    const resp = await fetch('/api/flux/apps/verifyappupdatespecifications', {
+    const resp = await fetch(`${FLUX_API}/apps/verifyappupdatespecifications`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: JSON.stringify(spec),
       signal: controller.signal,
     });
@@ -393,7 +392,7 @@ export async function verifyUpdateSpec(spec) {
 }
 
 /**
- * POST /apps/appupdate
+ * POST /apps/appupdate  (called directly — CORS *)
  * Submits an app update transaction to the blockchain.
  * Returns the transaction hash on success.
  */
@@ -405,12 +404,9 @@ export async function updateApp({ verifiedSpec, timestamp, signature, zelidauth 
     timestamp,
     signature,
   });
-  const resp = await fetch('/api/flux/apps/appupdate', {
+  const resp = await fetch(`${FLUX_API}/apps/appupdate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      zelidauth: zelidauthHeader(zelidauth),
-    },
+    headers: { zelidauth: zelidauthHeader(zelidauth) },
     body: payload,
   });
   const json = await resp.json();
@@ -436,16 +432,12 @@ export async function getPaymentAddress(zelidauth) {
 }
 
 /**
- * POST /apps/calculatefiatandfluxprice
+ * POST /apps/calculatefiatandfluxprice  (direct — CORS *)
  * Returns { usd, flux }.
  */
 export async function calculatePrice(spec, zelidauth) {
-  const resp = await fetch('/api/flux/apps/calculatefiatandfluxprice', {
+  const resp = await fetch(`${FLUX_API}/apps/calculatefiatandfluxprice`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      zelidauth: zelidauthHeader(zelidauth),
-    },
     body: JSON.stringify(spec),
   });
   const json = await resp.json();
@@ -456,18 +448,15 @@ export async function calculatePrice(spec, zelidauth) {
 }
 
 /**
- * Sign the registration payload.
+ * Build the string to sign for a registration or update transaction.
  *
- * dataToSign = "fluxappregister1" + JSON.stringify(verifiedSpec) + timestamp
- *
- * Returns the signature string.
- *
- * For SSO: POST /api/fluxcore/sign with Bearer idToken.
- * For ZelCore: WebSocket + deep link (caller manages the WS).
- * For SSP: window.ssp.request('sign', ...).
+ * Format: type + version + JSON.stringify(verifiedSpec) + timestamp
+ *   register: "fluxappregister1" + ...
+ *   update:   "fluxappupdate1"   + ...
  */
-export function buildDataToSign(verifiedSpec, timestamp) {
-  return `fluxappregister1${JSON.stringify(verifiedSpec)}${timestamp}`;
+export function buildDataToSign(verifiedSpec, timestamp, isUpdate = false) {
+  const prefix = isUpdate ? 'fluxappupdate1' : 'fluxappregister1';
+  return `${prefix}${JSON.stringify(verifiedSpec)}${timestamp}`;
 }
 
 /**
