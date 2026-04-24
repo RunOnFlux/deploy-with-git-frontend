@@ -1,37 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Button from '../common/Button';
 import authService from '../../services/authService';
 
 /**
  * SSP Wallet login button.
- *
- * Shown only when window.ssp is available (browser extension installed).
- * Flow:
- * 1. Fetch loginPhrase + stickyBackend from BFF
- * 2. Request signature from SSP extension
- * 3. POST to /api/node-verifylogin via BFF (avoids CORS)
- * 4. Store zelidauth + call onSuccess
+ * Always rendered — shows an install prompt if the extension is not detected.
  */
 export default function SSPLoginButton({ onSuccess, onError }) {
-  const [available, setAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Check after a short delay to give the extension time to inject
-    const id = setTimeout(() => {
-      setAvailable(typeof window.ssp !== 'undefined');
-    }, 500);
-    return () => clearTimeout(id);
-  }, []);
-
-  if (!available) return null;
-
   async function handleClick() {
+    if (typeof window.ssp === 'undefined') {
+      onError?.(new Error('SSP wallet extension not found. Install it from ssp.runonflux.io and try again.'));
+      return;
+    }
     setLoading(true);
     try {
       const { loginPhrase, stickyBackend } = await authService.getLoginPhraseWithSticky();
 
-      // SSP extension API: window.ssp.request('sign', { message }) → { address, signature }
       let signResult;
       try {
         signResult = await window.ssp.request('sign', { message: loginPhrase });
