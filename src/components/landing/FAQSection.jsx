@@ -9,8 +9,8 @@ const faqs = [
     a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required.',
   },
   {
-    q: 'Do I need to know Docker or Kubernetes?',
-    a: "No. Orbit uses Nixpacks to automatically detect your framework and build a container image. No Dockerfile needed; just push your code and Orbit handles the rest.",
+    q: 'How is my data kept secure?',
+    a: "Enterprise apps run inside ArcaneOS, Flux's hardened execution environment, where all data is encrypted at rest. Your code, secrets, and persistent storage are fully isolated and encrypted, with no shared tenancy at the infrastructure level.",
   },
   {
     q: 'What frameworks are supported?',

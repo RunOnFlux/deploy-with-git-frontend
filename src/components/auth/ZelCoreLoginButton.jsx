@@ -118,7 +118,7 @@ export default function ZelCoreLoginButton({ onSuccess, onError }) {
       className="gap-3"
     >
       {status === 'idle' && (
-        <img src="/orbit-icon.svg" alt="" className="w-4 h-4 shrink-0" />
+        <img src="/zelcore.svg" alt="" className="w-4 h-4 shrink-0 rounded-full" />
       )}
       {labels[status]}
     </Button>

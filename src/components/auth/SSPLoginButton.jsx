@@ -67,7 +67,7 @@ export default function SSPLoginButton({ onSuccess, onError }) {
       onClick={handleClick}
       className="gap-3"
     >
-      <span className="text-base leading-none">🔑</span>
+      <img src="/ssp.svg" alt="" className="w-4 h-4 shrink-0" />
       Continue with SSP Wallet
     </Button>
   );

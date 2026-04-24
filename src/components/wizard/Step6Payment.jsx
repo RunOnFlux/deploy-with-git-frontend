@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { calculatePrice, getPaymentAddress } from '../../services/deployService';
 import DeploymentTracker from './DeploymentTracker';
-import { CreditCard, Zap, Wallet, Loader2, XCircle, ArrowRight } from 'lucide-react';
+import { CreditCard, Loader2, XCircle, ArrowRight } from 'lucide-react';
 import qs from 'qs';
 
 const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
@@ -274,7 +274,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, onBack 
           disabled={status === 'pending' || !priceFlux}
           className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Zap className="w-5 h-5 text-yellow-400 shrink-0" />
+          <img src="/zelcore.svg" alt="ZelCore" className="w-5 h-5 shrink-0 rounded-full" />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">ZelCore Wallet</p>
             <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
@@ -288,7 +288,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, onBack 
           disabled={status === 'pending' || !priceFlux}
           className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Wallet className="w-5 h-5 text-purple-400 shrink-0" />
+          <img src="/ssp.svg" alt="SSP" className="w-5 h-5 shrink-0" />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">SSP Wallet</p>
             <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>

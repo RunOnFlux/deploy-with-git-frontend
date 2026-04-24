@@ -400,17 +400,19 @@ export default function HeroSection({ onLoginSuccess }) {
             className="w-full overflow-hidden"
             aria-label="Supported frameworks"
           >
-            <p className="text-xs text-indigo-200 text-center mb-3">
-              Deploy any stack.{' '}
+            <div className="text-center mb-3">
               <a
                 href="https://github.com/RunOnFlux/deploy-with-git"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-indigo-200 hover:text-white transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-transparent
+                           text-xs text-indigo-200 transition-all duration-200
+                           hover:border-indigo-400/60 hover:text-white"
               >
-                view all framework guides →
+                Deploy any stack.{' '}
+                <span>view all framework guides →</span>
               </a>
-            </p>
+            </div>
             <div className="relative">
               <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent" />
               <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-background to-transparent" />
