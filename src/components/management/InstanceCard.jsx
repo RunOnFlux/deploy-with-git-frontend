@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   RotateCcw, Play, Square, PauseCircle, PlayCircle, Trash2,
@@ -50,7 +50,9 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
   const [activeTab, setActiveTab] = useState('app');
   const [loadingAction, setLoadingAction] = useState(null);
   const [actionResult, setActionResult] = useState(null); // { type: 'success'|'error', msg }
-  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // id of action awaiting confirmation
+
+  const CONFIRM_REQUIRED = new Set(['remove', 'redeploy', 'hard-redeploy', 'restart']);
   const [orbitStatus, setOrbitStatus] = useState(null);
 
   // Fetch per-node orbit status once on mount
@@ -71,11 +73,12 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
     : '';
 
   async function runAction(actionId) {
-    if (actionId === 'remove' && !confirmRemove) {
-      setConfirmRemove(true);
+    if (CONFIRM_REQUIRED.has(actionId) && confirmAction !== actionId) {
+      setConfirmAction(actionId);
+      setConfirmRemove(false);
       return;
     }
-    setConfirmRemove(false);
+    setConfirmAction(null);
     setLoadingAction(actionId);
     setActionResult(null);
 
@@ -156,9 +159,9 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
       <div className="px-4 py-3 flex flex-wrap gap-2">
         {/* Orbit actions */}
         <button
-          onClick={() => runDeploy(false)}
-          disabled={!!loadingAction || !mgmtPort}
-          title="Pull latest commit and build if changed"
+          onClick={() => runDeploy()}
+          disabled={!!loadingAction || !mgmtPort || !webhookSecret}
+          title={!webhookSecret ? 'WEBHOOK_SECRET not configured for this app' : 'Pull latest commit and build if changed'}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
         >
           {loadingAction === 'redeploy-orbit' ? (
@@ -174,22 +177,34 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
         {/* Flux node actions */}
         {ACTION_BUTTONS.map(({ id, label, icon: Icon, variant }) => {
           const isLoading = loadingAction === id;
-          const isConfirm = id === 'remove' && confirmRemove;
+          const isConfirm = confirmAction === id;
+          const confirmLabel = id === 'remove' ? 'Confirm Remove'
+            : id === 'hard-redeploy' ? 'Confirm Hard Redeploy'
+            : `Confirm ${label}`;
           return (
-            <button
-              key={id}
-              onClick={() => runAction(id)}
-              disabled={!!loadingAction}
-              title={isConfirm ? 'Click again to confirm removal' : label}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
-            >
-              {isLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Icon className="w-3.5 h-3.5" />
+            <React.Fragment key={id}>
+              <button
+                onClick={() => runAction(id)}
+                disabled={!!loadingAction}
+                title={isConfirm ? `Click again to confirm` : label}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Icon className="w-3.5 h-3.5" />
+                )}
+                {isConfirm ? confirmLabel : label}
+              </button>
+              {isConfirm && (
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border text-text-muted hover:bg-surface-hover hover:text-text"
+                >
+                  Cancel
+                </button>
               )}
-              {isConfirm ? 'Confirm Remove' : label}
-            </button>
+            </React.Fragment>
           );
         })}
       </div>
