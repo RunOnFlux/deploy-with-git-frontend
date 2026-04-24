@@ -22,21 +22,37 @@ const GRATICULE = geoGraticule().step([20, 20])();
 // Wireframe Earth Globe (canvas 2D + d3-geo + live Flux nodes)
 // ---------------------------------------------------------------------------
 function WireframeGlobe({ paused }) {
-  const canvasRef = useRef(null);
-  const phiRef    = useRef(1.8); // start centered on Europe/Africa
-  const rafRef    = useRef(null);
-  const nodesRef  = useRef([]);   // [[lon, lat], ...]
+  const canvasRef   = useRef(null);
+  const phiRef      = useRef(30 * Math.PI / 180); // start at -30° longitude
+  const rafRef      = useRef(null);
+  const clustersRef = useRef([]); // [{lon, lat, h}] — density bins
 
-  // Fetch live Flux node positions once
+  // Fetch live nodes → cluster into density bins
   useEffect(() => {
     fetch('https://stats.runonflux.io/fluxinfo?projection=geolocation')
       .then(r => r.json())
       .then(({ data }) => {
-        nodesRef.current = data
-          .filter(n => n.geolocation?.lat != null && n.geolocation?.lon != null)
-          .map(n => [n.geolocation.lon, n.geolocation.lat]);
+        // Bin into 4° grid cells
+        const BIN = 1;
+        const bins = new Map();
+        for (const n of data) {
+          const g = n.geolocation;
+          if (g?.lat == null || g?.lon == null) continue;
+          const bLon = Math.round(g.lon / BIN) * BIN;
+          const bLat = Math.round(g.lat / BIN) * BIN;
+          const key  = `${bLon},${bLat}`;
+          bins.set(key, (bins.get(key) ?? { lon: bLon, lat: bLat, count: 0 }));
+          bins.get(key).count++;
+        }
+        const cells    = Array.from(bins.values());
+        const maxCount = Math.max(...cells.map(c => c.count));
+        // Height: 3–36 px, sqrt-scaled so dense clusters don't overwhelm
+        clustersRef.current = cells.map(({ lon, lat, count }) => ({
+          lon, lat,
+          h: 15 + Math.sqrt(count / maxCount) * 45,
+        }));
       })
-      .catch(() => {}); // silent fail — globe still shows without nodes
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -91,16 +107,40 @@ function WireframeGlobe({ paused }) {
       ctx.lineWidth = 0.7;
       ctx.stroke();
 
-      // Live Flux node dots
-      const nodes = nodesRef.current;
-      for (let i = 0; i < nodes.length; i++) {
-        const pt = projection(nodes[i]);
+      // Radial density bars (three-globe style)
+      const clusters = clustersRef.current;
+      ctx.save();
+      for (const { lon, lat, h } of clusters) {
+        const pt = projection([lon, lat]);
         if (!pt) continue;
+        const [x, y] = pt;
+
+        // Outward normal in screen space (orthographic projection property)
+        const dx = x - cx, dy = y - cy;
+        const r  = Math.sqrt(dx * dx + dy * dy);
+        // foreshortening: at globe center normal→viewer, at limb normal→sideways
+        const nx = r > 0 ? dx / radius : 0;
+        const ny = r > 0 ? dy / radius : 0;
+
+        const tx = x + nx * h;
+        const ty = y + ny * h;
+
+        // Bar — gradient from dim base to bright tip
+        const g = ctx.createLinearGradient(x, y, tx, ty);
+        g.addColorStop(0,   'rgba(255, 255, 255, 1.0)');
+        g.addColorStop(0.4, 'rgba(180, 235, 255, 0.9)');
+        g.addColorStop(1,   'rgba(120, 200, 255, 0.0)');
+
+        ctx.shadowBlur  = 8;
+        ctx.shadowColor = 'rgba(180, 230, 255, 0.9)';
+        ctx.strokeStyle = g;
+        ctx.lineWidth   = 1.5;
         ctx.beginPath();
-        ctx.arc(pt[0], pt[1], 2, 0, 2 * Math.PI);
-        ctx.fillStyle = 'rgba(100, 220, 255, 1.0)';
-        ctx.fill();
+        ctx.moveTo(x, y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
       }
+      ctx.restore();
 
       phiRef.current += 0.001;
     }
@@ -383,7 +423,7 @@ export default function HeroSection({ onLoginSuccess }) {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.55, ease: 'easeOut' }}
-          className="relative z-10 w-full max-w-xl sm:max-w-2xl mx-auto px-5 sm:px-6 pb-20"
+          className="relative z-10 w-full max-w-xl sm:max-w-2xl mx-auto px-5 sm:px-6 pb-20 -mt-6"
           aria-hidden="true"
         >
           <div

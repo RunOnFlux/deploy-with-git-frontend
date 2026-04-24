@@ -140,7 +140,7 @@ export default function PricingSection({ onLoginSuccess }) {
               const resources = PLAN_RESOURCES[plan.id] ?? [];
 
               return (
-                <div key={plan.id} className={`relative flex flex-col ${isRecommended ? 'pt-3.5' : ''}`}>
+                <div key={plan.id} className="relative flex flex-col pt-3.5">
                   {/* Most Popular badge floats above the card border */}
                   {isRecommended && (
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
@@ -161,7 +161,10 @@ export default function PricingSection({ onLoginSuccess }) {
 
                   {/* Annual savings corner ribbon — all paid plans */}
                   {isAnnual && plan.id !== 'free' && (
-                    <div className="absolute top-5 -right-9 w-36 text-white text-[10px] font-bold text-center py-1.5 rotate-45 shadow-sm pointer-events-none" style={{background:'#065f46'}}>
+                    <div
+                      className="absolute top-5 -right-9 w-36 text-white text-[10px] font-bold text-center py-1.5 rotate-45 shadow-md pointer-events-none"
+                      style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)' }}
+                    >
                       Save 15%
                     </div>
                   )}

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Rocket, ExternalLink } from 'lucide-react';
+import { Rocket, Zap, DollarSign, HelpCircle, BookOpen, ExternalLink, LogIn, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../auth/LoginModal';
 
 const NAV_LINKS = [
-  { label: 'Features',   href: '#features'    },
-  { label: 'Pricing',    href: '#pricing'      },
-  { label: 'FAQ',        href: '#faq'          },
+  { label: 'Features', href: '#features', Icon: Zap         },
+  { label: 'Pricing',  href: '#pricing',  Icon: DollarSign  },
+  { label: 'FAQ',      href: '#faq',      Icon: HelpCircle  },
 ];
 
 export default function Navbar({ onLoginSuccess }) {
@@ -40,39 +40,43 @@ export default function Navbar({ onLoginSuccess }) {
 
           {/* Nav links - hidden on small screens */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((l) => (
+            {NAV_LINKS.map(({ label, href, Icon }) => (
               <a
-                key={l.href}
-                href={l.href}
-                className="px-3.5 py-1.5 text-sm text-text-secondary hover:text-text rounded-lg
+                key={href}
+                href={href}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-secondary hover:text-text rounded-lg
                            hover:bg-white/5 transition-colors"
               >
-                {l.label}
+                <Icon className="w-3.5 h-3.5 opacity-70" />
+                {label}
               </a>
             ))}
             <a
               href="https://github.com/RunOnFlux/deploy-with-git"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-muted hover:text-text rounded-lg
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-secondary hover:text-text rounded-lg
                          hover:bg-white/5 transition-colors"
             >
+              <BookOpen className="w-3.5 h-3.5 opacity-70" />
               Guides
-              <ExternalLink className="w-3 h-3 opacity-60" />
+              <ExternalLink className="w-3 h-3 opacity-40" />
             </a>
           </nav>
 
           {/* CTA */}
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated ? (
-              <a href="/dashboard" className="btn-cta text-sm px-4 py-2">
+              <a href="/dashboard" className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2">
+                <LayoutDashboard className="w-4 h-4" />
                 Dashboard
               </a>
             ) : (
               <button
                 onClick={() => setLoginOpen(true)}
-                className="btn-cta text-sm px-4 py-2"
+                className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2"
               >
+                <LogIn className="w-4 h-4" />
                 Sign In
               </button>
             )}
