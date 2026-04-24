@@ -59,7 +59,7 @@ export async function fetchNodeStatuses(appName) {
  * Proxy a request to a specific Flux node through the BFF (avoids CORS).
  */
 async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '') {
-  const resp = await axiosInstance.post('/api/node-proxy', {
+  const resp = await axiosInstance.post('/node-proxy', {
     nodeBase,
     path,
     method,
@@ -72,6 +72,8 @@ async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '') {
  * Per-node action paths — all are GET requests on the node's Flux daemon API.
  */
 export const NODE_ACTIONS = {
+  redeploy:       (app) => `/apps/redeploy/${encodeURIComponent(app)}/false`,
+  'hard-redeploy': (app) => `/apps/redeploy/${encodeURIComponent(app)}/true`,
   restart:  (app) => `/apps/apprestart/${encodeURIComponent(app)}`,
   start:    (app) => `/apps/appstart/${encodeURIComponent(app)}`,
   stop:     (app) => `/apps/appstop/${encodeURIComponent(app)}`,
@@ -140,7 +142,7 @@ export async function fetchOrbitStatus(appName, port) {
  * Bypasses CORS — goes to http://<nodeIp>:<mgmtPort>/status
  */
 export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
-  const resp = await axiosInstance.post('/api/orbit-node-status', {
+  const resp = await axiosInstance.post('/orbit-node-status', {
     nodeIp,
     mgmtPort,
     path: '/status',
@@ -153,7 +155,7 @@ export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
  * Returns plain-text log output.
  */
 export async function fetchNodeOrbitLogs(nodeIp, mgmtPort, releaseId) {
-  const resp = await axiosInstance.post('/api/orbit-node-status', {
+  const resp = await axiosInstance.post('/orbit-node-status', {
     nodeIp,
     mgmtPort,
     path: `/logs/${encodeURIComponent(releaseId)}`,
@@ -182,7 +184,7 @@ export function getSpecEnvValue(spec, ...keys) {
  * Posts a synthetic push payload to that node's webhook server.
  */
 export async function triggerOrbitDeploy(nodeIp, mgmtPort, webhookSecret, branch, hardRedeploy = false) {
-  const resp = await axiosInstance.post('/api/orbit-deploy', {
+  const resp = await axiosInstance.post('/orbit-deploy', {
     nodeIp,
     mgmtPort,
     webhookSecret,

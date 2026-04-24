@@ -58,6 +58,17 @@ Deploy any Git repository to the **Flux Decentralized Cloud** in minutes. Orbit 
 - Node.js 18+ and npm
 - A Flux account (SSP Wallet, ZelCore, or Firebase email)
 - Firebase project with Email/Password and Google auth enabled *(optional — a shared project is used by default)*
+- **Chromium** — required for the app preview screenshot feature (not bundled via npm)
+
+  ```bash
+  # Ubuntu / Debian
+  sudo apt install chromium
+
+  # Snap (any Linux)
+  sudo snap install chromium
+  ```
+
+  The server expects Chromium at `/snap/bin/chromium` by default. Override with the `CHROMIUM_PATH` env variable if your binary is elsewhere (e.g. `/usr/bin/chromium`).
 
 ### Installation
 

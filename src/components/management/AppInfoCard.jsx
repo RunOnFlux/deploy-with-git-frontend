@@ -59,12 +59,12 @@ function SitePreview({ url }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors group relative mb-4"
+      className="block h-full rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors group relative"
       title="Open live site"
     >
       {/* Skeleton shown while loading */}
       {state === 'loading' && (
-        <div className="w-full h-48 bg-surface-hover animate-pulse flex items-center justify-center">
+        <div className="w-full h-full bg-surface-hover animate-pulse flex items-center justify-center">
           <Monitor className="w-6 h-6 text-text-muted/40" />
         </div>
       )}
@@ -76,13 +76,12 @@ function SitePreview({ url }) {
         loading="lazy"
         onLoad={() => setState('loaded')}
         onError={() => setState('error')}
-        className={`w-full object-cover object-top transition-opacity duration-300 ${state === 'loaded' ? 'opacity-100' : 'opacity-0 absolute inset-0 h-0'}`}
-        style={{ aspectRatio: '16/9' }}
+        className={`w-full h-full object-cover object-top transition-opacity duration-300 ${state === 'loaded' ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
       />
 
       {/* Error fallback */}
       {state === 'error' && (
-        <div className="w-full h-48 bg-surface-hover flex flex-col items-center justify-center gap-2">
+        <div className="w-full h-full bg-surface-hover flex flex-col items-center justify-center gap-2">
           <Monitor className="w-6 h-6 text-text-muted/40" />
           <span className="text-xs text-text-muted">Preview unavailable</span>
         </div>
@@ -100,11 +99,11 @@ function SitePreview({ url }) {
 
 function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
   return (
-    <div className="bg-surface-hover rounded-lg px-2 py-2 flex items-center gap-2">
-      <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
-      <div className="flex-1 min-w-0 flex items-baseline justify-between gap-1">
-        <div className="text-xs font-semibold text-text leading-none truncate">{value}</div>
-        <div className="text-[11px] text-text-muted leading-none shrink-0">{label}</div>
+    <div className="bg-surface-hover rounded-lg px-3 py-3 flex items-center gap-3 flex-1">
+      <Icon className={`w-5 h-5 shrink-0 ${color}`} />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-text leading-snug truncate">{value}</div>
+        <div className="text-xs text-text-muted leading-snug">{label}</div>
       </div>
     </div>
   );
@@ -131,10 +130,12 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
           </div>
           <div className="h-6 w-16 bg-surface-hover rounded-full" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-          {[1,2,3,4].map((i) => <div key={i} className="h-14 bg-surface-hover rounded-lg" />)}
+        <div className="flex gap-3 mb-4">
+          <div className="w-2/3 bg-surface-hover rounded-xl" style={{ aspectRatio: '16/9' }} />
+          <div className="w-1/3 flex flex-col gap-2">
+            {[1,2,3,4].map((i) => <div key={i} className="h-10 bg-surface-hover rounded-lg" />)}
+          </div>
         </div>
-        <div className="w-full bg-surface-hover rounded-xl mb-4" style={{ aspectRatio: '16/9' }} />
         <div className="space-y-3">
           {[1,2,3].map((i) => <div key={i} className="h-8 bg-surface-hover rounded" />)}
         </div>
@@ -190,21 +191,28 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
         <StatusBadge status={overallStatus} />
       </div>
 
-      {/* Resource chips */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <ResourceChip icon={Cpu}        label="CPU"   value={`${compose.cpu} vCPU`}  color="text-blue-400" />
-        <ResourceChip icon={MemoryStick} label="RAM"   value={ram}                    color="text-purple-400" />
-        <ResourceChip icon={HardDrive}  label="SSD"   value={`${compose.hdd} GB`}    color="text-amber-400" />
-        <ResourceChip
-          icon={ServerIcon}
-          label="Nodes"
-          value={`${running}/${spec.instances ?? 3}`}
-          color={running === 0 ? 'text-danger' : running < (spec.instances ?? 3) ? 'text-warning' : 'text-accent'}
-        />
-      </div>
+      {/* Preview + resource chips side by side */}
+      {liveUrl && (
+      <div className="flex gap-3 mb-4">
+        {/* Site screenshot — left half */}
+        <div className="w-2/3 aspect-video min-w-0">
+          <SitePreview url={liveUrl} />
+        </div>
 
-      {/* Site screenshot */}
-      {liveUrl && <SitePreview url={liveUrl} />}
+        {/* Resource chips — right half, stacked */}
+        <div className="w-1/3 flex flex-col gap-2 self-stretch">
+          <ResourceChip icon={Cpu}        label="CPU"   value={`${compose.cpu} vCPU`}  color="text-blue-400" />
+          <ResourceChip icon={MemoryStick} label="RAM"   value={ram}                    color="text-purple-400" />
+          <ResourceChip icon={HardDrive}  label="SSD"   value={`${compose.hdd} GB`}    color="text-amber-400" />
+          <ResourceChip
+            icon={ServerIcon}
+            label="Nodes"
+            value={`${running}/${spec.instances ?? 3}`}
+            color={running === 0 ? 'text-danger' : running < (spec.instances ?? 3) ? 'text-warning' : 'text-accent'}
+          />
+        </div>
+      </div>
+      )}
 
       {/* Info rows */}
       <div className="divide-y divide-border/50">

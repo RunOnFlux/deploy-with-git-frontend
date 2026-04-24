@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import {
   RotateCcw, Play, Square, PauseCircle, PlayCircle, Trash2,
   ChevronDown, ChevronUp, Loader2, AlertCircle, CheckCircle2, Terminal, Wrench, GitCommit,
-  RefreshCw, Zap,
+  RefreshCcw, GitMerge, Zap,
 } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import LogsPanel from './LogsPanel';
@@ -11,12 +11,14 @@ import { performNodeAction, nodeBaseUrl, fetchNodeOrbitStatus, triggerOrbitDeplo
 import { useAuth } from '../../context/AuthContext';
 
 const ACTION_BUTTONS = [
-  { id: 'restart', label: 'Restart', icon: RotateCcw,   variant: 'secondary' },
-  { id: 'start',   label: 'Start',   icon: Play,         variant: 'secondary' },
-  { id: 'stop',    label: 'Stop',    icon: Square,       variant: 'secondary' },
-  { id: 'pause',   label: 'Pause',   icon: PauseCircle,  variant: 'secondary' },
-  { id: 'unpause', label: 'Unpause', icon: PlayCircle,   variant: 'secondary' },
-  { id: 'remove',  label: 'Remove',  icon: Trash2,       variant: 'danger'    },
+  { id: 'redeploy',      label: 'Redeploy',      icon: RefreshCcw,   variant: 'secondary' },
+  { id: 'hard-redeploy', label: 'Hard Redeploy',  icon: Zap,          variant: 'warning'   },
+  { id: 'restart',       label: 'Restart',        icon: RotateCcw,    variant: 'secondary' },
+  { id: 'start',         label: 'Start',          icon: Play,         variant: 'secondary' },
+  { id: 'stop',          label: 'Stop',           icon: Square,       variant: 'secondary' },
+  { id: 'pause',         label: 'Pause',          icon: PauseCircle,  variant: 'secondary' },
+  { id: 'unpause',       label: 'Unpause',        icon: PlayCircle,   variant: 'secondary' },
+  { id: 'remove',        label: 'Remove',         icon: Trash2,       variant: 'danger'    },
 ];
 
 const LOG_TABS = [
@@ -93,18 +95,16 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
     }
   }
 
-  async function runDeploy(hardRedeploy = false) {
-    const actionId = hardRedeploy ? 'hard-redeploy' : 'redeploy';
-    setLoadingAction(actionId);
+  async function runDeploy() {
+    setLoadingAction('redeploy-orbit');
     setActionResult(null);
     try {
-      const result = await triggerOrbitDeploy(node.ip, mgmtPort, webhookSecret, branch, hardRedeploy);
+      const result = await triggerOrbitDeploy(node.ip, mgmtPort, webhookSecret, branch, false);
       if (result?.status === 'ok') {
-        const msg = hardRedeploy ? 'Hard redeploy triggered — clean build started.' : 'Redeploy triggered — pulling latest code.';
-        toast.success(msg);
-        setActionResult({ type: 'success', msg });
+        toast.success('Pull & Build triggered — checking for new commits.');
+        setActionResult({ type: 'success', msg: 'Pull & Build triggered — checking for new commits.' });
       } else {
-        setActionResult({ type: 'error', msg: result?.error || result?.message || 'Deploy trigger failed' });
+        setActionResult({ type: 'error', msg: result?.error || result?.message || 'Pull & Build failed' });
       }
     } catch (err) {
       setActionResult({ type: 'error', msg: err.message });
@@ -154,32 +154,19 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
 
       {/* ── Action buttons ── */}
       <div className="px-4 py-3 flex flex-wrap gap-2">
-        {/* Orbit deploy actions */}
+        {/* Orbit actions */}
         <button
           onClick={() => runDeploy(false)}
           disabled={!!loadingAction || !mgmtPort}
-          title="Pull latest code and rebuild"
+          title="Pull latest commit and build if changed"
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
         >
-          {loadingAction === 'redeploy' ? (
+          {loadingAction === 'redeploy-orbit' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
+            <GitMerge className="w-3.5 h-3.5" />
           )}
-          Redeploy
-        </button>
-        <button
-          onClick={() => runDeploy(true)}
-          disabled={!!loadingAction || !mgmtPort}
-          title="Force clean rebuild from scratch"
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 border border-warning/40 text-warning hover:bg-warning/10`}
-        >
-          {loadingAction === 'hard-redeploy' ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Zap className="w-3.5 h-3.5" />
-          )}
-          Hard Redeploy
+          Pull & Build
         </button>
 
         <div className="w-px bg-border mx-0.5 self-stretch" />

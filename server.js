@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import crypto from 'crypto';
 import { createRequire } from 'module';
+import puppeteer from 'puppeteer-core';
 
 const require = createRequire(import.meta.url);
 const ecc = require('tiny-secp256k1');
@@ -463,8 +464,28 @@ app.post('/api/orbit-deploy', express.json(), async (req, res) => {
 });
 
 /**
+/**
+ * Screenshot — shared browser instance + 5-minute in-memory cache.
+ */
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/snap/bin/chromium';
+let _browser = null;
+const screenshotCache = new Map(); // url → { buf, ts }
+const SCREENSHOT_TTL = 5 * 60 * 1000;
+
+async function getBrowser() {
+  if (_browser && _browser.connected) return _browser;
+  _browser = await puppeteer.launch({
+    executablePath: CHROMIUM_PATH,
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
+  _browser.on('disconnected', () => { _browser = null; });
+  return _browser;
+}
+
+/**
  * GET /api/screenshot?url=<encoded-url>
- * Proxies a screenshot from thum.io server-side to avoid browser ORB blocking.
+ * Takes a headless screenshot and returns it as a JPEG.
  */
 app.get('/api/screenshot', async (req, res) => {
   const { url } = req.query;
@@ -473,24 +494,33 @@ app.get('/api/screenshot', async (req, res) => {
   let decoded;
   try {
     decoded = decodeURIComponent(url);
-    new URL(decoded); // validate it's a real URL
+    new URL(decoded);
   } catch {
     return res.status(400).send('Invalid url');
   }
 
-  const thumbUrl = `https://image.thum.io/get/width/600/crop/400/noanimate/${decoded}`;
+  // Serve from cache if fresh
+  const cached = screenshotCache.get(decoded);
+  if (cached && Date.now() - cached.ts < SCREENSHOT_TTL) {
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.send(cached.buf);
+  }
+
   try {
-    const upstream = await fetch(thumbUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OrbitUI/1.0)' },
-      signal: AbortSignal.timeout(20000),
-    });
-    const contentType = upstream.headers.get('content-type') || 'image/jpeg';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=300'); // cache 5 min
-    const buf = await upstream.arrayBuffer();
-    res.send(Buffer.from(buf));
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720 });
+    await page.goto(decoded, { waitUntil: 'networkidle2', timeout: 20000 });
+    const buf = await page.screenshot({ type: 'jpeg', quality: 80 });
+    await page.close();
+
+    screenshotCache.set(decoded, { buf, ts: Date.now() });
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.send(buf);
   } catch (err) {
-    console.error('screenshot proxy error:', err.message);
+    console.error('screenshot error:', err.message);
     res.status(502).send('Screenshot unavailable');
   }
 });
