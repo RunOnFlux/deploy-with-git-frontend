@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
+import GlobeLoader from './components/common/GlobeLoader';
+
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
@@ -36,14 +38,7 @@ function StripeSuccessPage() {
   );
 }
 
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
-      <p className="text-text-muted text-sm">Loading…</p>
-    </div>
-  </div>
-);
+const PageLoader = () => <GlobeLoader />;
 
 const queryClient = new QueryClient({
   defaultOptions: {
