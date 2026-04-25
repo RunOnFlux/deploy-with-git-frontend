@@ -219,6 +219,7 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
     appName, port, billingPeriod, geolocation = [], extraEnvVars = [],
     pollingInterval, runtime, runtimeVersion,
     buildCommand, runCommand, installCommand, prPreviewEnabled,
+    webhookSecret, apiKey,
   } = config;
 
   // Core env vars — only add GIT_BRANCH if not the default branch
@@ -250,11 +251,15 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
   if (runCommand?.trim()) envParams.push(`RUN_COMMAND=${runCommand.trim()}`);
   if (installCommand?.trim()) envParams.push(`INSTALL_COMMAND=${installCommand.trim()}`);
 
+  // Security secrets (always present when set — Enterprise encrypts them)
+  if (webhookSecret?.trim()) envParams.push(`WEBHOOK_SECRET=${webhookSecret.trim()}`);
+  if (apiKey?.trim()) envParams.push(`API_KEY=${apiKey.trim()}`);
+
   // PR preview (static sites only)
   if (prPreviewEnabled) envParams.push('PR_PREVIEW_ENABLED=true');
 
   // Extra user-defined env vars (reserved keys are filtered out at the UI layer)
-  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED']);
+  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED', 'WEBHOOK_SECRET', 'API_KEY']);
   for (const { key, value } of extraEnvVars) {
     if (key?.trim() && !RESERVED.has(key.trim().toUpperCase())) {
       envParams.push(`${key.trim()}=${value || ''}`);

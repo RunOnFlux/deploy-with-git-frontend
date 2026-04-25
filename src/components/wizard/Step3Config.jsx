@@ -27,6 +27,7 @@ const RUNTIMES = [
 const RESERVED_ENV_KEYS = new Set([
   'BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND',
   'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED',
+  'WEBHOOK_SECRET', 'API_KEY',
 ]);
 
 function EnvImporter({ onImport }) {
@@ -237,7 +238,8 @@ function GeoSelector({ selected, onChange }) {
 export default function Step3Config({ config, onChange, portAutoDetected, isEnterpriseForced }) {
   const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
           contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
-          buildCommand, runCommand, installCommand, prPreviewEnabled, enterprise } = config;
+          buildCommand, runCommand, installCommand, webhookSecret, apiKey,
+          prPreviewEnabled, enterprise } = config;
   const [nameState, setNameState] = useState('idle');
   const [nameError, setNameError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -266,11 +268,16 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
   useEffect(() => {
     if (pollingInterval && pollingInterval !== '86400') setShowAdvanced(true);
     if (runtime) setShowAdvanced(true);
-    if (buildCommand || runCommand || installCommand || prPreviewEnabled) setShowAdvanced(true);
+    if (buildCommand || runCommand || installCommand || webhookSecret || apiKey || prPreviewEnabled) setShowAdvanced(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field, value) {
     onChange({ ...config, [field]: value });
+  }
+
+  // Setting a secret field auto-enables Enterprise mode
+  function updateSecret(field, value) {
+    onChange({ ...config, [field]: value, enterprise: true });
   }
 
   function importEnvVars(pairs) {
@@ -287,7 +294,6 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
 
   function addEnvVar() {
     update('extraEnvVars', [...extraEnvVars, { key: '', value: '' }]);
-    setShowAdvanced(true);
   }
 
   function updateEnvVar(idx, data) {
@@ -513,7 +519,7 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
       >
         {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         Advanced options
-        {(runtime || (pollingInterval && pollingInterval !== '86400') || buildCommand || runCommand || installCommand || prPreviewEnabled) && (
+        {(runtime || (pollingInterval && pollingInterval !== '86400') || buildCommand || runCommand || installCommand || webhookSecret || apiKey || prPreviewEnabled) && (
           <span className="ml-auto text-xs text-primary">configured</span>
         )}
       </button>
@@ -602,6 +608,41 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
               ))}
             </div>
             <p className="text-xs text-text-muted mt-2">Leave blank to use Orbit's auto-detected defaults.</p>
+          </div>
+
+          {/* Security secrets */}
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Security</label>
+            <p className="text-xs text-text-muted mb-3">
+              Setting either field automatically enables{' '}
+              <span className="text-orange-400 font-medium">Enterprise mode</span> to keep secrets encrypted.
+            </p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-text-secondary mb-1">Webhook secret</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={webhookSecret ?? ''}
+                  onChange={(e) => updateSecret('webhookSecret', e.target.value)}
+                  className="input-base w-full font-mono text-sm"
+                  autoComplete="new-password"
+                />
+                <p className="text-xs text-text-muted mt-1">Secret for webhook deployments.</p>
+              </div>
+              <div>
+                <label className="block text-xs text-text-secondary mb-1">API key</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={apiKey ?? ''}
+                  onChange={(e) => updateSecret('apiKey', e.target.value)}
+                  className="input-base w-full font-mono text-sm"
+                  autoComplete="new-password"
+                />
+                <p className="text-xs text-text-muted mt-1">Protects status, logs, and preview endpoints.</p>
+              </div>
+            </div>
           </div>
 
           {/* PR preview */}

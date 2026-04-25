@@ -46,6 +46,8 @@ const INITIAL_STATE = {
     buildCommand: '',
     runCommand: '',
     installCommand: '',
+    webhookSecret: '',
+    apiKey: '',
     prPreviewEnabled: false,
     enterprise: false, // true = encrypt contacts+compose with RSA/AES
   },
