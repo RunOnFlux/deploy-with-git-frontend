@@ -198,7 +198,10 @@ export default function Step6Payment({ verifiedSpec, plan, registration, onBack 
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Payment</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <CreditCard className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Payment</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         Your app has been registered. Complete payment to activate deployment.
       </p>

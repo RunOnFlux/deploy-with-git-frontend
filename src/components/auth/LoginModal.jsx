@@ -180,8 +180,9 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
             variant="secondary"
             fullWidth
             onClick={() => { clearError(); setView(VIEW.EMAIL_LOGIN); }}
+            className="!justify-start pl-16 gap-3"
           >
-            <EnvelopeIcon className="w-4 h-4" />
+            <EnvelopeIcon className="w-6 h-6 shrink-0" />
             Continue with Email
           </Button>
 

@@ -17,7 +17,7 @@ import {
 } from '../../services/deployService';
 import { encryptSpec, isWebCryptoAvailable } from '../../services/enterpriseCrypto';
 import qs from 'qs';
-import { CheckCircle2, XCircle, Loader2, Terminal } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Terminal, Rocket } from 'lucide-react';
 
 function zelidauthStr(za) {
   const { zelid, signature, loginPhrase } = za;
@@ -50,6 +50,9 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
   // Cancel stream on unmount
   useEffect(() => () => streamRef.current?.abort(), []);
+
+  // Auto-start deploying when step mounts
+  useEffect(() => { handleDeploy(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function fail(msg) {
     setError(msg);
@@ -225,7 +228,6 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
     });
   }
 
-  const isRunning = ['contacts', 'verify', 'encrypt', 'sign', 'register'].includes(phase);
   const isEnterprise = repo.isPrivate || !!config.enterprise;
   const phaseSteps = isEnterprise
     ? ['verify', 'encrypt', 'sign', 'register', 'install']
@@ -236,7 +238,10 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Deploy</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <Rocket className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Deploy</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         We'll verify, sign, and submit your app to the Flux network.
       </p>
@@ -331,24 +336,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
         </div>
       )}
 
-      {/* Action buttons */}
-      {phase === 'idle' && (
-        <button type="button" onClick={handleDeploy} className="btn-primary w-full">
-          Deploy {config.appName} →
-        </button>
-      )}
-      {isRunning && (
-        <button type="button" disabled className="btn-primary w-full opacity-60 cursor-not-allowed">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          {PHASE_LABELS[phase]}
-        </button>
-      )}
-      {phase === 'install' && (
-        <button type="button" disabled className="btn-primary w-full opacity-60 cursor-not-allowed">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Running test installation…
-        </button>
-      )}
+      {/* Action buttons — only shown on failure */}
       {phase === 'test_failed' && (
         <div className="flex gap-3">
           <button type="button" onClick={retryTest} className="btn-primary flex-1">

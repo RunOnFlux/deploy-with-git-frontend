@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { BILLING_PERIODS, GEO_OPTIONS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
 
@@ -314,7 +314,10 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Configure</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <SlidersHorizontal className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Configure</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         Set your app name, port, and deployment settings.
       </p>

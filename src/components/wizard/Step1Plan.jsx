@@ -1,4 +1,4 @@
-import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket } from 'lucide-react';
+import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid } from 'lucide-react';
 import { PLANS } from '../../services/deployService';
 
 const PLAN_COLORS = {
@@ -147,7 +147,10 @@ export default function Step1Plan({ plan, onChange }) {
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Select your plan</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <LayoutGrid className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Select your plan</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         Choose your plan based on your resource needs.
       </p>

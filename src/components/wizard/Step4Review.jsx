@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList } from 'lucide-react';
 import { maskGitUrl, GEO_OPTIONS, BILLING_PERIODS } from '../../services/deployService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -107,7 +107,10 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Review</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <ClipboardList className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Review</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         Confirm your deployment settings before signing.
       </p>

@@ -256,7 +256,10 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-text mb-1">Repository</h2>
+      <div className="flex items-center gap-2.5 mb-1">
+        <GitBranch className="w-5 h-5 text-primary" />
+        <h2 className="font-heading text-xl font-bold text-text">Repository</h2>
+      </div>
       <p className="text-sm text-text-secondary mb-6">
         Connect the Git repository you want to deploy.
       </p>
@@ -538,36 +541,6 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
             </p>
           </div>
         </>
-      )}
-
-      {/* Plain branch/subdir inputs when no repo URL entered yet */}
-      {!showBranchAndPath && repoStatus === 'idle' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-          <div>
-            <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
-              <GitBranch className="w-3.5 h-3.5" /> Branch
-            </label>
-            <input
-              type="text"
-              placeholder="main"
-              value={repo.branch}
-              onChange={(e) => onChange({ ...repo, branch: e.target.value, branchTouched: true })}
-              className="input-base w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
-              <FolderOpen className="w-3.5 h-3.5" /> Subdirectory
-            </label>
-            <input
-              type="text"
-              placeholder="/apps/web"
-              value={repo.subdirectory}
-              onChange={(e) => onChange({ ...repo, subdirectory: e.target.value })}
-              className="input-base w-full"
-            />
-          </div>
-        </div>
       )}
 
       {/* ── Monorepo project picker ── */}
