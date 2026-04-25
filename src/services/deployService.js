@@ -218,6 +218,7 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
   const {
     appName, port, billingPeriod, geolocation = [], extraEnvVars = [],
     pollingInterval, runtime, runtimeVersion,
+    buildCommand, runCommand, installCommand, prPreviewEnabled,
   } = config;
 
   // Core env vars — only add GIT_BRANCH if not the default branch
@@ -244,9 +245,20 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
     if (runtimeVersion) envParams.push(`ORBIT_RUNTIME_VERSION=${runtimeVersion}`);
   }
 
-  // Extra user-defined env vars
+  // Build/run/install command overrides
+  if (buildCommand?.trim()) envParams.push(`BUILD_COMMAND=${buildCommand.trim()}`);
+  if (runCommand?.trim()) envParams.push(`RUN_COMMAND=${runCommand.trim()}`);
+  if (installCommand?.trim()) envParams.push(`INSTALL_COMMAND=${installCommand.trim()}`);
+
+  // PR preview (static sites only)
+  if (prPreviewEnabled) envParams.push('PR_PREVIEW_ENABLED=true');
+
+  // Extra user-defined env vars (reserved keys are filtered out at the UI layer)
+  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED']);
   for (const { key, value } of extraEnvVars) {
-    if (key?.trim()) envParams.push(`${key.trim()}=${value || ''}`);
+    if (key?.trim() && !RESERVED.has(key.trim().toUpperCase())) {
+      envParams.push(`${key.trim()}=${value || ''}`);
+    }
   }
 
   // Geolocation: array of "a=XX" / "f=XX" strings

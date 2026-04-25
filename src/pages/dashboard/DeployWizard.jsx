@@ -138,11 +138,22 @@ export default function DeployWizard() {
   /** Called by Step2Repo when flux.json / vercel.json config is imported. */
   function handleConfigImported(payload) {
     const updates = {};
-    if (payload.appPort && !config.portTouched) { updates.port = payload.appPort; }
+    if (payload.appPort && !config.portTouched) updates.port = payload.appPort;
     if (payload.pollingInterval) updates.pollingInterval = payload.pollingInterval;
     if (payload.runtime) updates.runtime = payload.runtime;
     if (payload.runtimeVersion) updates.runtimeVersion = payload.runtimeVersion;
-    if (payload.envVars?.length) updates.extraEnvVars = payload.envVars;
+
+    if (payload.envVars?.length) {
+      const COMMAND_KEYS = { BUILD_COMMAND: 'buildCommand', RUN_COMMAND: 'runCommand', INSTALL_COMMAND: 'installCommand' };
+      const userEnvVars = [];
+      for (const { key, value } of payload.envVars) {
+        const mapped = COMMAND_KEYS[key];
+        if (mapped) updates[mapped] = value;
+        else userEnvVars.push({ key, value });
+      }
+      if (userEnvVars.length) updates.extraEnvVars = userEnvVars;
+    }
+
     if (Object.keys(updates).length) setConfig(updates);
   }
 

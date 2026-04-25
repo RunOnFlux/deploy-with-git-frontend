@@ -43,6 +43,10 @@ const INITIAL_STATE = {
     pollingInterval: '86400', // default: 24 hours; 'disabled' to skip
     runtime: '',
     runtimeVersion: '',
+    buildCommand: '',
+    runCommand: '',
+    installCommand: '',
+    prPreviewEnabled: false,
     enterprise: false, // true = encrypt contacts+compose with RSA/AES
   },
 

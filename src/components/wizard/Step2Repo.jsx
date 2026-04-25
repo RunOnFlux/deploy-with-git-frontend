@@ -16,6 +16,14 @@ import {
 } from '../../services/repoIntelligenceService';
 import { loadRepoDeploymentConfig } from '../../services/repoConfigImportService';
 
+import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
+
+const PROVIDER_ICONS = {
+  'github.com': FaGithub,
+  'gitlab.com': FaGitlab,
+  'bitbucket.org': FaBitbucket,
+};
+
 const PROVIDER_LABELS = {
   'github.com': { label: 'GitHub', color: 'text-white bg-[#24292e]', tokenUrl: 'https://github.com/settings/tokens/new?scopes=repo&description=Orbit+Deploy' },
   'gitlab.com': { label: 'GitLab', color: 'text-white bg-orange-600', tokenUrl: 'https://gitlab.com/-/profile/personal_access_tokens' },
@@ -259,12 +267,16 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
           Repository URL <span className="text-red-400">*</span>
         </label>
         <div className="relative flex items-center">
+          {parsed?.provider && PROVIDER_ICONS[parsed.provider] && (() => {
+            const Icon = PROVIDER_ICONS[parsed.provider];
+            return <span className="absolute left-3 text-text-muted pointer-events-none"><Icon className="w-4 h-4" /></span>;
+          })()}
           <input
             type="url"
             placeholder="https://github.com/owner/repo"
             value={repo.url}
             onChange={(e) => onChange({ ...repo, url: e.target.value })}
-            className="input-base w-full pr-24"
+            className={`input-base w-full pr-24 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-9' : ''}`}
             required
           />
           {provider && (

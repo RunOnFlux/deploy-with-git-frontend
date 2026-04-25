@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck } from 'lucide-react';
 import { BILLING_PERIODS, GEO_OPTIONS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
+import { parseEnvText } from '../../utils/envParser';
 
 const POLLING_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
@@ -22,38 +23,176 @@ const RUNTIMES = [
   { value: 'dotnet', label: '.NET' },
 ];
 
-// Orbit-specific env var suggestions (not API_KEY — env vars are public on Flux)
-const ORBIT_ENV_SUGGESTIONS = [
-  { key: 'BUILD_COMMAND', placeholder: 'npm run build', description: 'Custom build command' },
-  { key: 'RUN_COMMAND', placeholder: 'node server.js', description: 'Custom start command' },
-  { key: 'INSTALL_COMMAND', placeholder: 'npm install', description: 'Custom install command' },
-  { key: 'PR_PREVIEW_ENABLED', placeholder: 'true', description: 'Enable PR preview builds' },
-];
+// Orbit-reserved env keys — users cannot set these manually
+const RESERVED_ENV_KEYS = new Set([
+  'BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND',
+  'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED',
+]);
+
+function EnvImporter({ onImport }) {
+  const [dragging, setDragging] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', message }
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const fileRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  function flash(type, message) {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback(null), 3500);
+  }
+
+  function applyParsed({ pairs, format, error }) {
+    if (error) return flash('error', error);
+    if (!pairs.length) return flash('error', 'No variables found');
+    onImport(pairs);
+    flash('success', `Imported ${pairs.length} variable${pairs.length !== 1 ? 's' : ''} from ${format.toUpperCase()}`);
+  }
+
+  function handleText(text) {
+    applyParsed(parseEnvText(text));
+  }
+
+  async function handleFile(file) {
+    const text = await file.text();
+    handleText(text);
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }
+
+  async function pasteClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      handleText(text);
+    } catch {
+      // Clipboard API blocked — open the manual textarea instead
+      setShowPasteArea(true);
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }
+
+  function submitPasteArea() {
+    if (!pasteText.trim()) return;
+    handleText(pasteText);
+    setPasteText('');
+    setShowPasteArea(false);
+  }
+
+  return (
+    <div className="mb-3">
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => fileRef.current?.click()}
+        className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm cursor-pointer transition-colors ${
+          dragging
+            ? 'border-primary bg-primary/5 text-primary'
+            : 'border-border text-text-muted hover:border-primary/50 hover:text-text-secondary hover:bg-surface-hover'
+        }`}
+      >
+        <Upload className="w-4 h-4 shrink-0" />
+        <span>Drop <code className="font-mono text-xs">.env</code>, JSON or YAML — or click to browse</span>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".env,.json,.yaml,.yml,text/plain,application/json"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+        />
+      </div>
+
+      {/* Clipboard button + feedback */}
+      <div className="flex items-center gap-2 mt-1.5">
+        <button
+          type="button"
+          onClick={pasteClipboard}
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors"
+        >
+          <Clipboard className="w-3.5 h-3.5" /> Paste from clipboard
+        </button>
+        {feedback && (
+          <span className={`flex items-center gap-1 text-xs ${feedback.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            {feedback.type === 'success' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+            {feedback.message}
+          </span>
+        )}
+      </div>
+
+      {/* Manual paste fallback */}
+      {showPasteArea && (
+        <div className="mt-2 rounded-lg border border-border bg-surface p-3 space-y-2">
+          <p className="text-xs text-text-muted">Paste your <code className="font-mono">.env</code>, JSON or YAML below:</p>
+          <textarea
+            ref={textareaRef}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitPasteArea(); }}
+            placeholder={'KEY=value\nANOTHER_KEY=value'}
+            rows={5}
+            className="w-full input-base font-mono text-xs resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={submitPasteArea}
+              className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors"
+            >
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowPasteArea(false); setPasteText(''); }}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs text-text-muted hover:text-text transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function EnvVarRow({ envVar, onChange, onRemove }) {
+  const isReserved = envVar.key && RESERVED_ENV_KEYS.has(envVar.key.trim().toUpperCase());
   return (
-    <div className="flex gap-2 items-center">
-      <input
-        type="text"
-        placeholder="KEY"
-        value={envVar.key}
-        onChange={(e) => onChange({ ...envVar, key: e.target.value.toUpperCase().replace(/\s/g, '_') })}
-        className="input-base flex-1 font-mono text-sm"
-      />
-      <input
-        type="text"
-        placeholder="value"
-        value={envVar.value}
-        onChange={(e) => onChange({ ...envVar, value: e.target.value })}
-        className="input-base flex-[2] font-mono text-sm"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+    <div className="space-y-1">
+      <div className="flex gap-2 items-center">
+        <input
+          type="text"
+          placeholder="KEY"
+          value={envVar.key}
+          onChange={(e) => onChange({ ...envVar, key: e.target.value.toUpperCase().replace(/\s/g, '_') })}
+          className={`input-base flex-1 font-mono text-sm ${isReserved ? 'border-red-400/60 focus:border-red-400' : ''}`}
+        />
+        <input
+          type="text"
+          placeholder="value"
+          value={envVar.value}
+          onChange={(e) => onChange({ ...envVar, value: e.target.value })}
+          className="input-base flex-[2] font-mono text-sm"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+      {isReserved && (
+        <p className="text-xs text-red-400 pl-1 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          <span><code className="font-mono">{envVar.key}</code> is managed by Orbit — use the dedicated field above instead.</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -97,7 +236,8 @@ function GeoSelector({ selected, onChange }) {
 
 export default function Step3Config({ config, onChange, portAutoDetected, isEnterpriseForced }) {
   const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
-          contactEmail, customDomain, pollingInterval, runtime, runtimeVersion, enterprise } = config;
+          contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
+          buildCommand, runCommand, installCommand, prPreviewEnabled, enterprise } = config;
   const [nameState, setNameState] = useState('idle');
   const [nameError, setNameError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -126,11 +266,23 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
   useEffect(() => {
     if (pollingInterval && pollingInterval !== '86400') setShowAdvanced(true);
     if (runtime) setShowAdvanced(true);
-    if (extraEnvVars?.length > 0) setShowAdvanced(true);
+    if (buildCommand || runCommand || installCommand || prPreviewEnabled) setShowAdvanced(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field, value) {
     onChange({ ...config, [field]: value });
+  }
+
+  function importEnvVars(pairs) {
+    // Merge: skip reserved keys and deduplicate (imported value wins for existing keys)
+    const filtered = pairs.filter(({ key }) => key && !RESERVED_ENV_KEYS.has(key.trim().toUpperCase()));
+    const merged = [...extraEnvVars];
+    for (const incoming of filtered) {
+      const idx = merged.findIndex((e) => e.key === incoming.key);
+      if (idx >= 0) merged[idx] = incoming;
+      else merged.push(incoming);
+    }
+    update('extraEnvVars', merged);
   }
 
   function addEnvVar() {
@@ -144,12 +296,6 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
 
   function removeEnvVar(idx) {
     update('extraEnvVars', extraEnvVars.filter((_, i) => i !== idx));
-  }
-
-  function addSuggestedEnvVar(key, placeholder) {
-    if (extraEnvVars.find((e) => e.key === key)) return; // already exists
-    update('extraEnvVars', [...extraEnvVars, { key, value: '' }]);
-    setShowAdvanced(true);
   }
 
   const nameStatusIcon = {
@@ -242,18 +388,17 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
       <div className="mb-5">
         {isEnterpriseForced ? (
           <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className="text-xl">🔐</span>
+            <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-text">Enterprise mode — required</p>
               <p className="text-xs text-text-secondary mt-0.5">
-                Private repositories always use end-to-end encryption. Your app specs and environment
-                variables are encrypted with your public key before being submitted to the Flux network.
+                Encrypt app specifications and run exclusively on ArcaneOS nodes for enhanced security and privacy.
               </p>
             </div>
           </div>
         ) : (
           <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-            <span className="text-xl">🔐</span>
+            <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-text">Enterprise mode</p>
@@ -270,8 +415,7 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
                 </button>
               </div>
               <p className="text-xs text-text-secondary mt-0.5">
-                Encrypt all app specs and environment variables end-to-end with your public key.
-                Enable for sensitive configurations or production secrets.
+                Encrypt app specifications and run exclusively on ArcaneOS nodes for enhanced security and privacy.
               </p>
             </div>
           </div>
@@ -322,6 +466,45 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
         </p>
       </div>
 
+      {/* Environment variables */}
+      <div className="mb-5">
+        <label className="block text-sm font-medium text-text mb-3">Environment variables</label>
+
+        {(isEnterpriseForced || enterprise) ? (
+          <div className="flex items-start gap-2 text-xs text-primary/80 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 mb-3">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            Environment variables are end-to-end encrypted and not visible on the blockchain.
+          </div>
+        ) : (
+          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 mb-3">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>
+              Environment variables are stored publicly on the Flux blockchain.{' '}
+              <strong>Do not include secrets.</strong>{' '}
+              Enable <button type="button" onClick={() => update('enterprise', true)} className="underline hover:text-amber-200">Enterprise mode</button> above if you need to store sensitive values.
+            </span>
+          </div>
+        )}
+
+        <EnvImporter onImport={importEnvVars} />
+
+        {extraEnvVars.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {extraEnvVars.map((ev, idx) => (
+              <EnvVarRow key={idx} envVar={ev} onChange={(d) => updateEnvVar(idx, d)} onRemove={() => removeEnvVar(idx)} />
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={addEnvVar}
+          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add variable
+        </button>
+      </div>
+
       {/* Advanced options toggle */}
       <button
         type="button"
@@ -330,7 +513,7 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
       >
         {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         Advanced options
-        {(runtime || (pollingInterval && pollingInterval !== '86400') || extraEnvVars?.length > 0) && (
+        {(runtime || (pollingInterval && pollingInterval !== '86400') || buildCommand || runCommand || installCommand || prPreviewEnabled) && (
           <span className="ml-auto text-xs text-primary">configured</span>
         )}
       </button>
@@ -397,90 +580,59 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
             </p>
           </div>
 
-          {/* Environment variables */}
+          {/* Build commands */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-text">Environment variables</label>
+            <label className="block text-sm font-medium text-text mb-3">Build commands <span className="text-text-muted font-normal">(optional)</span></label>
+            <div className="space-y-2">
+              {[
+                { field: 'installCommand', label: 'Install', placeholder: 'npm install' },
+                { field: 'buildCommand',   label: 'Build',   placeholder: 'npm run build' },
+                { field: 'runCommand',     label: 'Start',   placeholder: 'node server.js' },
+              ].map(({ field, label, placeholder }) => (
+                <div key={field} className="flex items-center gap-3">
+                  <span className="text-xs text-text-muted w-12 shrink-0 text-right">{label}</span>
+                  <input
+                    type="text"
+                    placeholder={placeholder}
+                    value={config[field] ?? ''}
+                    onChange={(e) => update(field, e.target.value)}
+                    className="input-base flex-1 font-mono text-sm"
+                  />
+                </div>
+              ))}
             </div>
+            <p className="text-xs text-text-muted mt-2">Leave blank to use Orbit's auto-detected defaults.</p>
+          </div>
 
-            {/* Orbit suggestions */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {ORBIT_ENV_SUGGESTIONS.map((s) => {
-                const alreadyAdded = extraEnvVars.find((e) => e.key === s.key);
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    disabled={!!alreadyAdded}
-                    onClick={() => addSuggestedEnvVar(s.key, s.placeholder)}
-                    title={s.description}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-mono transition-colors ${
-                      alreadyAdded
-                        ? 'bg-primary/5 text-primary/40 cursor-default'
-                        : 'bg-surface border border-border text-text-muted hover:text-text hover:bg-surface-hover'
-                    }`}
-                  >
-                    {alreadyAdded ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                    {s.key}
-                  </button>
-                );
-              })}
+          {/* PR preview */}
+          <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+            <span className="mt-0.5 text-text-muted"><GitPullRequest className="w-5 h-5" /></span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-text">PR preview builds</p>
+                  <span className="text-xs text-text-muted bg-surface-hover border border-border rounded px-1.5 py-0.5">Static sites only</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => update('prPreviewEnabled', !prPreviewEnabled)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    prPreviewEnabled ? 'bg-primary' : 'bg-border'
+                  }`}
+                  role="switch"
+                  aria-checked={!!prPreviewEnabled}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${prPreviewEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              <p className="text-xs text-text-secondary mt-1.5">
+                Automatically build and deploy a preview for each pull request.
+              </p>
             </div>
-
-            {(isEnterpriseForced || enterprise) ? (
-              <div className="flex items-start gap-2 text-xs text-primary/80 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 mb-3">
-                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                Environment variables are end-to-end encrypted and not visible on the blockchain.
-              </div>
-            ) : (
-              <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 mb-3">
-                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>
-                  Environment variables are stored publicly on the Flux blockchain.{' '}
-                  <strong>Do not include secrets.</strong>{' '}
-                  Enable <button type="button" onClick={() => update('enterprise', true)} className="underline hover:text-amber-200">Enterprise mode</button> above if you need to store sensitive values.
-                </span>
-              </div>
-            )}
-
-            {extraEnvVars.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {extraEnvVars.map((ev, idx) => (
-                  <EnvVarRow key={idx} envVar={ev} onChange={(d) => updateEnvVar(idx, d)} onRemove={() => removeEnvVar(idx)} />
-                ))}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={addEnvVar}
-              className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add variable
-            </button>
-            <p className="text-xs text-text-muted mt-1">
-              <code className="font-mono">GIT_REPO_URL</code>, <code className="font-mono">APP_PORT</code>, and{' '}
-              <code className="font-mono">ORBIT_CHECK_INTERVAL</code> are set automatically.
-            </p>
           </div>
         </div>
       )}
 
-      {/* Show env var add outside advanced section if advanced is closed */}
-      {!showAdvanced && (
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={addEnvVar}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add environment variable
-          </button>
-          {extraEnvVars.length > 0 && (
-            <p className="text-xs text-text-muted mt-1">{extraEnvVars.length} variable{extraEnvVars.length !== 1 ? 's' : ''} configured</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
