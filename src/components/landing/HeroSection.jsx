@@ -416,12 +416,12 @@ export default function HeroSection({ onLoginSuccess }) {
             <div className="relative">
               <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent" />
               <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-background to-transparent" />
-              <div className="marquee-track flex gap-2" style={{ width: 'max-content' }}>
+              <div className="marquee-track flex" style={{ width: 'max-content' }}>
                 {MARQUEE_ITEMS.map((fw, i) => (
                   <div
                     key={i}
                     className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-border/60
-                               bg-surface/50 text-xs font-mono whitespace-nowrap select-none"
+                               bg-surface/50 text-xs font-mono whitespace-nowrap select-none mr-2"
                     style={{ color: fw.color }}
                   >
                     <fw.Icon className="w-4 h-4 flex-shrink-0" style={{ color: fw.color }} />
