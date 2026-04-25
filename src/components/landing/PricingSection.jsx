@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
 import BokehBackground, { BOKEH_PRICING } from './BokehBackground';
-import LoginModal from '../auth/LoginModal';
 
 const PLAN_COLORS = {
   free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400' },
@@ -49,7 +49,7 @@ const cardVariants = {
 
 export default function PricingSection({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
+  const navigate = useNavigate();
   const [period, setPeriod] = useState('annual');
 
   const activePeriod = PERIODS.find((p) => p.id === period);
@@ -60,11 +60,11 @@ export default function PricingSection({ onLoginSuccess }) {
     return (plan.price * (1 - activePeriod.discount)).toFixed(2);
   }
 
-  function handlePlanCTA() {
+  function handlePlanCTA(planId) {
     if (isAuthenticated) {
-      window.location.href = '/dashboard';
+      navigate(`/dashboard/deploy?plan=${planId}`);
     } else {
-      setLoginOpen(true);
+      navigate(`/deploy?plan=${planId}`);
     }
   }
 
@@ -233,7 +233,7 @@ export default function PricingSection({ onLoginSuccess }) {
 
                   {/* CTA */}
                   <button
-                    onClick={handlePlanCTA}
+                    onClick={() => handlePlanCTA(plan.id)}
                     className={`w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
                       isRecommended
                         ? 'bg-primary hover:bg-primary/90 text-white'
@@ -276,15 +276,6 @@ export default function PricingSection({ onLoginSuccess }) {
           </div>
         </div>
       </section>
-
-      <LoginModal
-        isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={() => {
-          setLoginOpen(false);
-          onLoginSuccess?.();
-        }}
-      />
     </>
   );
 }

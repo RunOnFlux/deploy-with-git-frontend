@@ -17,6 +17,7 @@ const AppDetail = lazy(() => import('./pages/dashboard/AppDetail'));
 const Billing = lazy(() => import('./pages/dashboard/Billing'));
 const Support = lazy(() => import('./pages/dashboard/Support'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const DeployGateway = lazy(() => import('./pages/DeployGateway'));
 
 function StripeSuccessPage() {
   return (
@@ -76,6 +77,7 @@ function App() {
                 <Routes>
                   {/* Public */}
                   <Route path="/" element={<Home />} />
+                  <Route path="/deploy" element={<DeployGateway />} />
                   <Route path="/successcheckout" element={<StripeSuccessPage />} />
 
                   {/* Dashboard (auth-protected layout) */}
