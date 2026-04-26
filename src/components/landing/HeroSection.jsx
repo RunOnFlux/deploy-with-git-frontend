@@ -10,162 +10,281 @@ import {
   SiSpring, SiSvelte, SiFlask, SiNuxt, SiHono, SiBlazor,
 } from 'react-icons/si';
 
-import { geoOrthographic, geoPath, geoGraticule } from 'd3-geo';
+import { geoGraticule } from 'd3-geo';
 import { feature } from 'topojson-client';
 import worldTopo from 'world-atlas/countries-50m.json';
+import {
+  WebGLRenderer, Scene, Group, Mesh, LineSegments,
+  OrthographicCamera, SphereGeometry, BufferGeometry,
+  ShaderMaterial, Float32BufferAttribute,
+} from 'three';
 
-// Pre-process once at module load
+// Pre-process GeoJSON once at module load (geometry never changes)
 const COUNTRIES = feature(worldTopo, worldTopo.objects.countries);
 const GRATICULE = geoGraticule().step([20, 20])();
 
 // ---------------------------------------------------------------------------
-// Wireframe Earth Globe (canvas 2D + d3-geo + live Flux nodes)
+// Helpers — convert GeoJSON → flat Float32 vertex arrays for Three.js
+// ---------------------------------------------------------------------------
+function lonLatToVec3(lon, lat, r) {
+  const phi   = (90 - lat) * Math.PI / 180;
+  const theta = lon * Math.PI / 180;
+  return [
+    r * Math.sin(phi) * Math.sin(theta),  // x: lon=90°E → +X (East = right)
+    r * Math.cos(phi),                     // y: north pole → +Y
+    r * Math.sin(phi) * Math.cos(theta),  // z: lon=0° → +Z (faces camera)
+  ];
+}
+
+function pushRing(ring, r, out) {
+  for (let i = 0; i < ring.length - 1; i++) {
+    if (Math.abs(ring[i + 1][0] - ring[i][0]) > 180) continue; // skip antimeridian seam
+    out.push(...lonLatToVec3(ring[i][0],     ring[i][1],     r));
+    out.push(...lonLatToVec3(ring[i + 1][0], ring[i + 1][1], r));
+  }
+}
+
+function geojsonToPositions(geojson, r) {
+  const pos  = [];
+  const geoms = geojson.features ? geojson.features.map(f => f.geometry) : [geojson];
+  for (const g of geoms) {
+    if (!g) continue;
+    if      (g.type === 'LineString')      pushRing(g.coordinates, r, pos);
+    else if (g.type === 'MultiLineString') g.coordinates.forEach(c => pushRing(c, r, pos));
+    else if (g.type === 'Polygon')         g.coordinates.forEach(c => pushRing(c, r, pos));
+    else if (g.type === 'MultiPolygon')    g.coordinates.forEach(p => p.forEach(c => pushRing(c, r, pos)));
+  }
+  return pos;
+}
+
+// ---------------------------------------------------------------------------
+// Wireframe Earth Globe — WebGL via Three.js, d3-geo geometry data
 // ---------------------------------------------------------------------------
 function WireframeGlobe({ paused }) {
   const canvasRef   = useRef(null);
-  const phiRef      = useRef(30 * Math.PI / 180); // start at -30° longitude
-  const rafRef      = useRef(null);
-  const clustersRef = useRef([]); // [{lon, lat, h}] — density bins
+  const clustersRef = useRef([]);
 
-  // Fetch live nodes → cluster into density bins
+  // Fetch live Flux node geolocations → density-binned clusters
   useEffect(() => {
+    let alive = true;
     fetch('https://stats.runonflux.io/fluxinfo?projection=geolocation')
       .then(r => r.json())
       .then(({ data }) => {
-        // Bin into 4° grid cells
-        const BIN = 1;
-        const bins = new Map();
+        if (!alive) return;
+        const BIN = 1, bins = new Map();
         for (const n of data) {
           const g = n.geolocation;
           if (g?.lat == null || g?.lon == null) continue;
           const bLon = Math.round(g.lon / BIN) * BIN;
           const bLat = Math.round(g.lat / BIN) * BIN;
           const key  = `${bLon},${bLat}`;
-          bins.set(key, (bins.get(key) ?? { lon: bLon, lat: bLat, count: 0 }));
+          bins.set(key, bins.get(key) ?? { lon: bLon, lat: bLat, count: 0 });
           bins.get(key).count++;
         }
         const cells    = Array.from(bins.values());
         const maxCount = Math.max(...cells.map(c => c.count));
-        // Height: 3–36 px, sqrt-scaled so dense clusters don't overwhelm
         clustersRef.current = cells.map(({ lon, lat, count }) => ({
-          lon, lat,
+          lon: lon + (Math.random() - 0.5),
+          lat: lat + (Math.random() - 0.5),
           h: 15 + Math.sqrt(count / maxCount) * 45,
         }));
       })
       .catch(() => {});
+    return () => { alive = false; };
   }, []);
 
+  // Build and animate the Three.js WebGL scene
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || paused) return;
 
-    const SIZE = 900;
-    const dpr  = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width  = SIZE * dpr;
-    canvas.height = SIZE * dpr;
+    const SIZE   = 900;
+    const RADIUS = SIZE * 0.43;
+    const dpr    = Math.min(window.devicePixelRatio || 1, 2);
 
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale once, work in logical px
+    // Renderer ──────────────────────────────────────────────────────────────
+    const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(SIZE, SIZE);
+    renderer.setPixelRatio(dpr);
+    renderer.setClearColor(0x000000, 0);
 
-    const cx     = SIZE / 2;
-    const cy     = SIZE / 2;
-    const radius = SIZE * 0.43;
+    // Scene + orthographic camera positioned 10° above the equatorial plane,
+    // always aimed at the globe centre — gives a natural "looking down" perspective.
+    const scene  = new Scene();
+    const half   = SIZE / 2;
+    const camera = new OrthographicCamera(-half, half, half, -half, 1, 2000);
+    const ELEV   = 10 * Math.PI / 180;
+    const DIST   = 1000;
+    camera.position.set(0, DIST * Math.sin(ELEV), DIST * Math.cos(ELEV));
+    camera.lookAt(0, 0, 0);
 
-    function draw() {
-      ctx.clearRect(0, 0, SIZE, SIZE);
+    // rotation.y = +30° starts with lon = -30° (30°W, mid-Atlantic) facing the camera
+    const globe = new Group();
+    globe.rotation.y = 30 * Math.PI / 180;
+    scene.add(globe);
 
-      const rotDeg = phiRef.current * (180 / Math.PI);
+    // Shared GLSL snippet: discard fragments on the back hemisphere.
+    // The interpolated world-space Z of a line vertex goes negative the moment
+    // that part of the geometry is behind the globe centre from the camera (+Z).
+    const BACK_DISCARD = `if (vWorldZ < 0.0) discard;`;
 
-      const projection = geoOrthographic()
-        .scale(radius)
-        .translate([cx, cy])
-        .rotate([rotDeg, -20, 0])
-        .clipAngle(90);
-
-      const path = geoPath(projection, ctx);
-
-      // Globe base — subtle dark sphere
-      const grad = ctx.createRadialGradient(cx - radius * 0.25, cy - radius * 0.25, 0, cx, cy, radius);
-      grad.addColorStop(0, 'rgba(45, 40, 110, 0.35)');
-      grad.addColorStop(1, 'rgba(10, 8, 35, 0.55)');
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Graticule grid lines (every 20°)
-      ctx.beginPath();
-      path(GRATICULE);
-      ctx.strokeStyle = 'rgba(90, 90, 200, 0.18)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Country / continent outlines
-      ctx.beginPath();
-      path(COUNTRIES);
-      ctx.strokeStyle = 'rgba(140, 140, 255, 0.75)';
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-
-      // Radial density bars (three-globe style)
-      const clusters = clustersRef.current;
-      ctx.save();
-      for (const { lon, lat, h } of clusters) {
-        const pt = projection([lon, lat]);
-        if (!pt) continue;
-        const [x, y] = pt;
-
-        // Outward normal in screen space (orthographic projection property)
-        const dx = x - cx, dy = y - cy;
-        const r  = Math.sqrt(dx * dx + dy * dy);
-        // foreshortening: at globe center normal→viewer, at limb normal→sideways
-        const nx = r > 0 ? dx / radius : 0;
-        const ny = r > 0 ? dy / radius : 0;
-
-        const tx = x + nx * h;
-        const ty = y + ny * h;
-
-        // Bar — gradient from dim base to bright tip
-        const g = ctx.createLinearGradient(x, y, tx, ty);
-        g.addColorStop(0,   'rgba(255, 255, 255, 1.0)');
-        g.addColorStop(0.4, 'rgba(180, 235, 255, 0.9)');
-        g.addColorStop(1,   'rgba(120, 200, 255, 0.0)');
-
-        ctx.strokeStyle = g;
-        ctx.lineWidth   = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
+    // Reusable vertex shader that passes world-space Z to the fragment stage
+    const vsWorldZ = `
+      varying float vWorldZ;
+      void main() {
+        vWorldZ = (modelMatrix * vec4(position, 1.0)).z;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
-      ctx.restore();
+    `;
 
-      phiRef.current += 0.001;
+    // 1. Globe sphere — opaque so it renders in the opaque pass first, writes
+    //    depth cleanly, and lets transparent lines render on top without artifacts.
+    globe.add(new Mesh(
+      new SphereGeometry(RADIUS, 64, 64),
+      new ShaderMaterial({
+        vertexShader: `
+          varying vec3 vNormal;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vNormal;
+          void main() {
+            vec3 light = normalize(vec3(-0.25, 0.25, 1.0));
+            float d    = clamp(dot(vNormal, light) * 0.5 + 0.5, 0.0, 1.0);
+            vec4 dark  = vec4(0.008, 0.006, 0.045, 1.0);
+            vec4 lite  = vec4(0.055, 0.045, 0.16, 1.0);
+            gl_FragColor = mix(dark, lite, d);
+          }
+        `,
+      }),
+    ));
+
+
+    const LINE_R = RADIUS + 0.5;
+
+    // 2. Graticule grid lines (every 20°) — back hemisphere clipped in shader
+    const gratGeo = new BufferGeometry();
+    gratGeo.setAttribute('position', new Float32BufferAttribute(geojsonToPositions(GRATICULE, LINE_R), 3));
+    globe.add(new LineSegments(
+      gratGeo,
+      new ShaderMaterial({
+        transparent: true,
+        depthWrite:  false,
+        vertexShader: vsWorldZ,
+        fragmentShader: `
+          varying float vWorldZ;
+          void main() {
+            ${BACK_DISCARD}
+            gl_FragColor = vec4(0.353, 0.353, 0.784, 0.18);
+          }
+        `,
+      }),
+    ));
+
+    // 3. Country / continent outlines — same clipping
+    const countryGeo = new BufferGeometry();
+    countryGeo.setAttribute('position', new Float32BufferAttribute(geojsonToPositions(COUNTRIES, LINE_R), 3));
+    globe.add(new LineSegments(
+      countryGeo,
+      new ShaderMaterial({
+        transparent: true,
+        depthWrite:  false,
+        vertexShader: vsWorldZ,
+        fragmentShader: `
+          varying float vWorldZ;
+          void main() {
+            ${BACK_DISCARD}
+            gl_FragColor = vec4(0.549, 0.549, 1.0, 0.75);
+          }
+        `,
+      }),
+    ));
+
+    // 4. Density bars — gradient white (base) → light-blue (tip).
+    //    No worldZ discard here: the opaque sphere writes depth, so depth-testing
+    //    naturally hides bar segments behind the sphere surface while still
+    //    showing tips that protrude above the silhouette at the limb.
+    const barsMat = new ShaderMaterial({
+      transparent: true,
+      depthWrite:  false,
+      vertexShader: `
+        attribute float aT;
+        varying float vT;
+        void main() {
+          vT          = aT;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying float vT;
+        void main() {
+          vec3 base = vec3(1.0, 1.0, 1.0);
+          vec3 tip  = vec3(0.47, 0.78, 1.0);
+          gl_FragColor = vec4(mix(tip, base, vT), vT * 0.9);
+        }
+      `,
+    });
+    const barsGeo  = new BufferGeometry();
+    // Initialise with empty attributes so Three.js doesn't warn on first render
+    barsGeo.setAttribute('position', new Float32BufferAttribute([], 3));
+    barsGeo.setAttribute('aT',       new Float32BufferAttribute([], 1));
+    const barsMesh = new LineSegments(barsGeo, barsMat);
+    barsMesh.renderOrder = 3;
+    globe.add(barsMesh);
+
+    let lastClustersLen = -1;
+    function rebuildBars() {
+      const clusters = clustersRef.current;
+      const pos = [], ts = [];
+      for (const { lon, lat, h } of clusters) {
+        pos.push(...lonLatToVec3(lon, lat, LINE_R));
+        pos.push(...lonLatToVec3(lon, lat, LINE_R + h));
+        ts.push(1.0, 0.0); // base white, tip fades
+      }
+      barsGeo.setAttribute('position', new Float32BufferAttribute(pos, 3));
+      barsGeo.setAttribute('aT',       new Float32BufferAttribute(ts,  1));
+      barsGeo.computeBoundingSphere();
+      lastClustersLen = clusters.length;
     }
 
-    // Throttle to ~5 fps to save CPU
-    const FRAME_MS = 1000 / 5;
-    let lastTime = 0;
+    // Animation loop — runs at native display rate (GPU renders cheaply) ───
+    let lastTs  = 0;
     let visible = true;
-    function throttledDraw(ts) {
-      rafRef.current = requestAnimationFrame(throttledDraw);
-      if (!visible) return;
-      if (ts - lastTime < FRAME_MS) return;
-      lastTime = ts;
-      draw();
-    }
-    rafRef.current = requestAnimationFrame(throttledDraw);
+    let raf;
 
-    // Pause when canvas scrolls out of view
-    const observer = new IntersectionObserver(
-      ([entry]) => { visible = entry.isIntersecting; },
-      { threshold: 0 }
+    function animate(ts) {
+      raf = requestAnimationFrame(animate);
+      if (!visible) return;
+      const dt = lastTs ? Math.min(ts - lastTs, 100) : 0; // cap at 100 ms
+      lastTs = ts;
+
+      if (clustersRef.current.length !== lastClustersLen) rebuildBars();
+
+      globe.rotation.y += 0.005 * (dt / 1000); // eastward drift
+      renderer.render(scene, camera);
+    }
+    raf = requestAnimationFrame(animate);
+
+    // Pause when scrolled out of viewport
+    const io = new IntersectionObserver(
+      ([e]) => { visible = e.isIntersecting; },
+      { threshold: 0 },
     );
-    observer.observe(canvas);
+    io.observe(canvas);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
-      observer.disconnect();
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      // Dispose all GPU resources
+      scene.traverse(obj => {
+        obj.geometry?.dispose();
+        const mat = obj.material;
+        if (mat) (Array.isArray(mat) ? mat : [mat]).forEach(m => m.dispose());
+      });
+      renderer.dispose();
     };
   }, [paused]);
 
