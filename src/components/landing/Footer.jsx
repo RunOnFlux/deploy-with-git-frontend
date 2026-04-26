@@ -17,7 +17,7 @@ export default function Footer() {
           <Rocket className="w-4 h-4 text-primary" />
           <span className="font-heading font-bold text-text">Orbit</span>
           <span className="text-text-muted text-sm ml-2">
-            © {new Date().getFullYear()} Flux Labs
+            © {new Date().getFullYear()} InFlux Technologies. All rights reserved.
           </span>
         </div>
 

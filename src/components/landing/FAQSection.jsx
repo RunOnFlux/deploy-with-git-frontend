@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: 'Can I use a custom domain?',
-    a: 'Yes. Developer and Pro plans support custom domains. Point your DNS to your Orbit deployment and SSL is handled automatically through the Flux reverse proxy network.',
+    a: 'Yes — custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
   },
 ];
 
