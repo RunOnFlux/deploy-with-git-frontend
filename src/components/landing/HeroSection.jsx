@@ -131,8 +131,6 @@ function WireframeGlobe({ paused }) {
         g.addColorStop(0.4, 'rgba(180, 235, 255, 0.9)');
         g.addColorStop(1,   'rgba(120, 200, 255, 0.0)');
 
-        ctx.shadowBlur  = 8;
-        ctx.shadowColor = 'rgba(180, 230, 255, 0.9)';
         ctx.strokeStyle = g;
         ctx.lineWidth   = 1.5;
         ctx.beginPath();

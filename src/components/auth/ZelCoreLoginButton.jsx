@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Button from '../common/Button';
 import authService from '../../services/authService';
+import zelcoreUrl from '../../assets/zelcore.svg';
 
 const ZELCORE_TIMEOUT_MS = 3 * 60 * 1000; // 3 minute window
 
@@ -117,7 +118,7 @@ export default function ZelCoreLoginButton({ onSuccess, onError }) {
       onClick={handleClick}
       className="!justify-start pl-16 gap-3"
     >
-      <img src="/zelcore.svg" alt="" className="w-6 h-6 shrink-0 rounded-full" />
+      <img src={zelcoreUrl} alt="" className="w-6 h-6 shrink-0 rounded-full" />
       {labels[status]}
       {status === 'waiting' && (
         <svg className="ml-auto w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">

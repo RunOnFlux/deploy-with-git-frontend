@@ -1,16 +1,25 @@
 /**
  * Secure Binary Storage with Non-Extractable Keys
- * Uses Web Crypto API with non-extractable keys stored in IndexedDB
- * Key cannot be extracted even with console access
+ * Uses Web Crypto API with non-extractable keys stored in IndexedDB.
+ * Falls back to plain JSON localStorage when Web Crypto is unavailable
+ * (e.g. HTTP non-secure contexts).
  */
+
+const CRYPTO_AVAILABLE = typeof window !== 'undefined' &&
+  window.isSecureContext &&
+  typeof crypto !== 'undefined' &&
+  typeof crypto.subtle !== 'undefined';
 
 class SecureStorage {
   constructor() {
     this.dbName = '_secure_storage';
     this.keyStoreName = 'keys';
     this.keyName = 'encryption_key';
-    this.dbPromise = this.initDB();
-    this.keyPromise = this.getOrGenerateKey();
+
+    if (CRYPTO_AVAILABLE) {
+      this.dbPromise = this.initDB();
+      this.keyPromise = this.getOrGenerateKey();
+    }
   }
 
   /**
@@ -102,9 +111,12 @@ class SecureStorage {
   }
 
   /**
-   * Encrypt and store as binary
+   * Encrypt and store as binary, or plain JSON if crypto unavailable.
    */
   async setItem(key, value) {
+    if (!CRYPTO_AVAILABLE) {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
+    }
     try {
       const cryptoKey = await this.keyPromise;
 
@@ -144,9 +156,12 @@ class SecureStorage {
   }
 
   /**
-   * Retrieve and decrypt binary data
+   * Retrieve and decrypt binary data, or plain JSON if crypto unavailable.
    */
   async getItem(key) {
+    if (!CRYPTO_AVAILABLE) {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+    }
     try {
       const stored = localStorage.getItem(key);
       if (!stored) return null;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../common/Button';
 import authService from '../../services/authService';
+import sspUrl from '../../assets/ssp.svg';
 
 /**
  * SSP Wallet login button.
@@ -53,7 +54,7 @@ export default function SSPLoginButton({ onSuccess, onError }) {
       onClick={handleClick}
       className="!justify-start pl-16 gap-3"
     >
-      <img src="/ssp.svg" alt="" className="w-6 h-6 shrink-0" />
+      <img src={sspUrl} alt="" className="w-6 h-6 shrink-0" />
       Continue with SSP Wallet
       {loading && (
         <svg className="ml-auto w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">

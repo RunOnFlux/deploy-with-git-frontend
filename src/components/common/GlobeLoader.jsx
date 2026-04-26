@@ -33,7 +33,8 @@ export default function GlobeLoader() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const angles = ORBITS.map(o => o.start);
-    let last = null, raf;
+    let last = null, lastDraw = null, raf;
+    const FRAME_MS = 1000 / 30; // cap at 30fps
 
     const frame = (ts) => {
       if (last != null) {
@@ -41,6 +42,13 @@ export default function GlobeLoader() {
         ORBITS.forEach((o, i) => { angles[i] += o.speed * dt; });
       }
       last = ts;
+
+      // Skip rendering if under 30fps budget
+      if (lastDraw != null && ts - lastDraw < FRAME_MS) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      lastDraw = ts;
       ctx.clearRect(0, 0, S, S);
 
       // ── globe ───────────────────────────────────────────────────
