@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { MotionConfig } from 'framer-motion';
 import Navbar from '../components/landing/Navbar';
 import HeroSection from '../components/landing/HeroSection';
 import FrameworkLogosSection from '../components/landing/FrameworkLogosSection';
@@ -9,6 +10,7 @@ import ComparisonSection from '../components/landing/ComparisonSection';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import CTASection from '../components/landing/CTASection';
+import MobileStickyCTA from '../components/landing/MobileStickyCTA';
 import Footer from '../components/landing/Footer';
 
 export default function Home() {
@@ -33,18 +35,21 @@ export default function Home() {
         />
       </Helmet>
 
-      <div className="bg-background text-text">
-        <Navbar onLoginSuccess={handleLoginSuccess} />
-        <HeroSection onLoginSuccess={handleLoginSuccess} />
-        <FrameworkLogosSection />
-        <HowItWorksSection />
-        <FeaturesSection />
-        <ComparisonSection />
-        <PricingSection onLoginSuccess={handleLoginSuccess} />
-        <FAQSection />
-        <CTASection onLoginSuccess={handleLoginSuccess} />
-        <Footer />
-      </div>
+      <MotionConfig reducedMotion="user">
+        <div className="bg-background text-text pb-20 sm:pb-0">
+          <Navbar onLoginSuccess={handleLoginSuccess} />
+          <HeroSection onLoginSuccess={handleLoginSuccess} />
+          <FrameworkLogosSection />
+          <HowItWorksSection />
+          <FeaturesSection />
+          <ComparisonSection />
+          <PricingSection onLoginSuccess={handleLoginSuccess} />
+          <FAQSection />
+          <CTASection onLoginSuccess={handleLoginSuccess} />
+          <MobileStickyCTA onLoginSuccess={handleLoginSuccess} />
+          <Footer />
+        </div>
+      </MotionConfig>
     </>
   );
 }

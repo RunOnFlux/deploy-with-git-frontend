@@ -62,7 +62,7 @@ export default function FrameworkLogosSection() {
         {STATS.map((s) => (
           <div key={s.label} className="bg-background flex flex-col items-center py-5 px-3">
             <span className="text-xl font-bold text-text font-heading">{s.value}</span>
-            <span className="text-xs text-text-muted mt-0.5">{s.label}</span>
+            <span className="text-sm text-text-secondary mt-0.5">{s.label}</span>
           </div>
         ))}
       </div>

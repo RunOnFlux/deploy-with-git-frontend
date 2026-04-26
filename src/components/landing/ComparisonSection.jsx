@@ -107,9 +107,9 @@ export default function ComparisonSection() {
           <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="border-b border-border bg-surface">
-                <th className="text-left px-5 py-4 text-text-muted font-medium w-[22%]">Provider</th>
+                <th className="text-left px-5 py-4 text-text-secondary font-medium w-[22%]">Provider</th>
                 {COLS.map((c) => (
-                  <th key={c.key} className="px-4 py-4 text-center text-text-muted font-medium text-xs uppercase tracking-wide">
+                  <th key={c.key} className="px-4 py-4 text-center text-text-secondary font-medium text-xs uppercase tracking-wide">
                     {c.label}
                   </th>
                 ))}
@@ -135,14 +135,14 @@ export default function ComparisonSection() {
                         {p.name}
                       </span>
                       {p.badge && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-accent/15 text-accent">
                           {p.badge}
                         </span>
                       )}
                     </div>
                   </td>
                   {COLS.map((c) => (
-                    <td key={c.key} className="px-4 py-3.5 text-center text-xs sm:text-sm">
+                    <td key={c.key} className="px-4 py-3.5 text-center text-sm">
                       <ValueCell value={p[c.key]} highlight={p.highlight} />
                     </td>
                   ))}
@@ -152,7 +152,7 @@ export default function ComparisonSection() {
           </table>
         </motion.div>
 
-        <p className="text-center text-text-muted text-xs mt-5">
+        <p className="text-center text-text-secondary text-sm mt-5">
           Prices as of 2025. Orbit Developer plan: dedicated resources, decentralised infrastructure.
         </p>
       </div>

@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'What frameworks are supported?',
-    a: 'Orbit supports 50+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.',
+    a: 'Orbit supports 100+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.',
   },
   {
     q: 'Is the free tier really free forever?',

@@ -114,7 +114,7 @@ export default function PricingSection({ onLoginSuccess }) {
                   {p.label}
                   {p.discount > 0 && (
                     <span
-                      className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      className={`ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
                         period === p.id
                           ? 'bg-white/20 text-white'
                           : 'bg-accent/15 text-accent'
@@ -146,7 +146,7 @@ export default function PricingSection({ onLoginSuccess }) {
                   {/* Most Popular badge floats above the card border */}
                   {isRecommended && (
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
-                      <span className="bg-primary text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
+                      <span className="bg-primary text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
                         Most Popular
                       </span>
                     </div>
@@ -164,7 +164,7 @@ export default function PricingSection({ onLoginSuccess }) {
                   {/* Annual savings corner ribbon — all paid plans */}
                   {isAnnual && plan.id !== 'free' && (
                     <div
-                      className="absolute top-5 -right-9 w-36 text-white text-[10px] font-bold text-center py-1.5 rotate-45 shadow-md pointer-events-none"
+                      className="absolute top-5 -right-9 w-36 text-white text-xs font-bold text-center py-1.5 rotate-45 shadow-md pointer-events-none"
                       style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)' }}
                     >
                       Save 15%
@@ -177,7 +177,7 @@ export default function PricingSection({ onLoginSuccess }) {
                     return (
                       <div className={`flex flex-col items-center justify-center gap-0.5 px-4 py-3 h-20 ${c.bg} border ${c.border} rounded-xl`}>
                         {plan.price === null && (
-                          <span className={`text-[10px] font-semibold uppercase tracking-wide ${c.text} opacity-80`}>Starting at</span>
+                          <span className={`text-xs font-semibold uppercase tracking-wide ${c.text} opacity-85`}>Starting at</span>
                         )}
                         <div className="flex items-baseline gap-1">
                           <span className={`text-4xl font-bold font-heading ${c.text}`}>
@@ -198,7 +198,7 @@ export default function PricingSection({ onLoginSuccess }) {
                   })()}
 
                   {/* First month free / Free forever pill */}
-                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-[11px] font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
+                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
                     <Gift className="w-3 h-3 shrink-0" />
                     {plan.price === 0 ? 'Free forever*' : 'First month free*'}
                   </div>
@@ -206,12 +206,12 @@ export default function PricingSection({ onLoginSuccess }) {
                   {/* Plan header */}
                   <div className="text-center pb-4 border-b border-border flex flex-col justify-center min-h-[5rem]">
                     <h3 className="font-heading text-xl font-semibold text-text mb-1">{plan.name}</h3>
-                    <p className="text-sm text-text-muted">{plan.description}</p>
+                    <p className="text-sm text-text-secondary">{plan.description}</p>
                   </div>
 
                   {/* Annual billing note */}
                   {isAnnual && plan.price > 0 && (
-                    <p className="text-[11px] text-text-muted text-center -mt-2">
+                    <p className="text-xs text-text-secondary text-center -mt-2">
                       Billed ${(displayPrice * 12).toFixed(2)}/yr
                     </p>
                   )}
@@ -254,20 +254,20 @@ export default function PricingSection({ onLoginSuccess }) {
 
           {/* Disclaimer */}
           <div className="mt-10 p-5 bg-surface border border-border rounded-xl space-y-2.5">
-            <p className="text-xs text-text-muted leading-relaxed">
-              <span className="text-text-secondary font-semibold">*</span> Restrictions may apply to prevent abuse.
+            <p className="text-sm text-text-secondary leading-relaxed">
+              <span className="text-text font-semibold">*</span> Restrictions may apply to prevent abuse.
             </p>
-            <p className="text-xs text-text-muted leading-relaxed">
-              <span className="text-text-secondary font-semibold">*</span> The Free plan is automatically
+            <p className="text-sm text-text-secondary leading-relaxed">
+              <span className="text-text font-semibold">*</span> The Free plan is automatically
               renewed as long as you have only one Git app running on the network. Additional Git apps are
               charged $0.99/month each.
             </p>
-            <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
+            <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
               <span className="shrink-0 mt-0.5">ℹ️</span>
               The Free plan runs on a single instance. Brief downtime may occur if the hosting node restarts.
               For high-availability apps, Standard or Pro plans are recommended.
             </p>
-            <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
+            <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
               <span className="shrink-0 mt-0.5">🔒</span>
               Private GitHub repositories are deployed as Enterprise apps, running exclusively on ArcaneOS
               nodes with full encryption. Enterprise adds $1.33/month on Free, or $2.66/month on Standard,

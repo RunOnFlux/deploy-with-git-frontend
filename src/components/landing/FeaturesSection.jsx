@@ -119,7 +119,7 @@ export default function FeaturesSection() {
                 <f.icon className="w-[16px] h-[16px] text-primary" />
               </div>
               <h3 className="font-semibold text-text text-sm mb-1">{f.title}</h3>
-              <p className="text-text-secondary text-xs leading-relaxed">{f.description}</p>
+              <p className="text-text-secondary text-sm leading-relaxed">{f.description}</p>
             </motion.div>
           ))}
         </motion.div>

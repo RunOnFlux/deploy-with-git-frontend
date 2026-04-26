@@ -74,6 +74,22 @@ html {
   animation-play-state: paused;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .marquee-track {
+    animation: none;
+    transform: none;
+  }
+
+  .btn-cta {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
 @layer components {
   /* Button variants */
   .btn-primary {
