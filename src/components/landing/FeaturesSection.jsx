@@ -80,7 +80,7 @@ const cardVariants = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="relative py-24 px-6 bg-surface/40 overflow-hidden">
+    <section id="features" className="relative py-16 px-6 bg-surface/40 overflow-hidden">
       <BokehBackground orbs={BOKEH_FEATURES} />
       <div className="max-w-5xl mx-auto">
         <motion.div
@@ -90,11 +90,11 @@ export default function FeaturesSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <p className="text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
             Features
           </p>
-          <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-            Your Code. Our Magic.
+          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
+            Your Code. <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Our Magic.</span>
           </h2>
           <p className="text-text-secondary mt-4 max-w-xl mx-auto">
             Zero Docker headaches. Orbit handles the full build, deploy, and ops pipeline

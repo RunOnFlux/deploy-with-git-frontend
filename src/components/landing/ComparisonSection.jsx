@@ -86,11 +86,11 @@ export default function ComparisonSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
             Why Orbit
           </p>
-          <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-            How Git deployment compares
+          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
+            <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Orbit</span> vs. The Rest
           </h2>
           <p className="text-text-secondary mt-4 max-w-xl mx-auto">
             Dedicated resources, unlimited builds, a fraction of the price.

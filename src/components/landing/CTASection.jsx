@@ -19,7 +19,7 @@ export default function CTASection({ onLoginSuccess }) {
 
   return (
     <>
-      <section className="relative py-24 px-6 overflow-hidden">
+      <section className="relative py-16 px-6 overflow-hidden">
         <BokehBackground orbs={BOKEH_CTA} />
         <div className="max-w-4xl mx-auto">
           <motion.div
@@ -33,8 +33,8 @@ export default function CTASection({ onLoginSuccess }) {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
 
             <div className="relative z-10">
-              <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text mb-4">
-                Start deploying in minutes
+              <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text mb-4">
+                Start Deploying <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">in Minutes</span>
               </h2>
               <p className="text-text-secondary text-lg max-w-xl mx-auto mb-8">
                 Free tier forever. No credit card required. Your first paid month is on us.

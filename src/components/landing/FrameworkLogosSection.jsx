@@ -48,21 +48,44 @@ const FRAMEWORKS = [
 // Duplicate for seamless loop
 const ITEMS = [...FRAMEWORKS, ...FRAMEWORKS];
 
+import { Globe, Layers, Gift, Infinity } from 'lucide-react';
+
 const STATS = [
-  { value: '10,000+', label: 'global nodes' },
-  { value: '100+',    label: 'frameworks' },
-  { value: 'Free',    label: 'forever tier' },
-  { value: 'Zero',    label: 'Docker needed' },
+  { value: '10,000+', label: 'global nodes',  Icon: Globe     },
+  { value: '100+',    label: 'frameworks',    Icon: Layers    },
+  { value: 'Free',    label: 'forever tier',  Icon: Gift      },
+  { value: 'Unlimited', label: 'builds forever', Icon: Infinity  },
 ];
 
 export default function FrameworkLogosSection() {
   return (
     <div className="border-b border-border/50 bg-surface/20">
-      <div className="max-w-xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-px bg-border/40">
-        {STATS.map((s) => (
-          <div key={s.label} className="bg-background flex flex-col items-center py-5 px-3">
-            <span className="text-xl font-bold text-text font-heading">{s.value}</span>
-            <span className="text-sm text-text-secondary mt-0.5">{s.label}</span>
+      <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4">
+        {STATS.map((s, i) => (
+          <div
+            key={s.label}
+            className="group relative flex flex-col items-center py-7 px-4 overflow-hidden
+                       transition-colors duration-300 hover:bg-primary/5
+                       border-r border-b border-border/40 last:border-r-0
+                       [&:nth-child(2)]:border-r-0 sm:[&:nth-child(2)]:border-r
+                       [&:nth-child(3)]:border-b-0 [&:nth-child(4)]:border-b-0
+                       sm:[&:nth-child(1)]:border-b-0 sm:[&:nth-child(2)]:border-b-0"
+          >
+            {/* Subtle glow on hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                            bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08)_0%,transparent_70%)]" />
+
+            <s.Icon className="w-5 h-5 mb-1 text-text-muted group-hover:text-primary transition-colors duration-300" aria-hidden="true" />
+            <span className="relative text-2xl font-extrabold font-heading
+                             bg-gradient-to-br from-text to-text-secondary bg-clip-text text-transparent
+                             group-hover:from-primary group-hover:to-cyan-400
+                             transition-all duration-300">
+              {s.value}
+            </span>
+            <span className="relative text-xs text-text-muted mt-1 tracking-wide uppercase font-medium
+                             group-hover:text-text-secondary transition-colors duration-300">
+              {s.label}
+            </span>
           </div>
         ))}
       </div>

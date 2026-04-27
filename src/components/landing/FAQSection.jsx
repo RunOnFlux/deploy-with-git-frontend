@@ -69,7 +69,7 @@ function FAQItem({ q, a }) {
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="relative py-24 px-6 bg-surface/40 overflow-hidden">
+    <section id="faq" className="relative py-16 px-6 bg-surface/40 overflow-hidden">
       <BokehBackground orbs={BOKEH_FAQ} />
       <div className="max-w-2xl mx-auto">
         <motion.div
@@ -79,9 +79,9 @@ export default function FAQSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-primary text-sm font-semibold uppercase tracking-widest mb-3">FAQ</p>
-          <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-            Common questions
+          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">FAQ</p>
+          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
+            Common <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Questions</span>
           </h2>
         </motion.div>
 

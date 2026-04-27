@@ -37,7 +37,7 @@ const cardVariants = {
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-24 px-6">
+    <section id="how-it-works" className="py-16 px-6">
       <div className="max-w-5xl mx-auto">
         {/* Heading */}
         <motion.div
@@ -47,11 +47,11 @@ export default function HowItWorksSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <p className="text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
             How it works
           </p>
-          <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-            From commit to live in minutes
+          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
+            <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">Push.</span> Build. <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Ship.</span>
           </h2>
         </motion.div>
 

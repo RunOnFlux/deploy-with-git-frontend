@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Check } from 'lucide-react';
+import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Info, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
 import BokehBackground, { BOKEH_PRICING } from './BokehBackground';
 
 const PLAN_COLORS = {
-  free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400' },
-  standard: { bg: 'bg-primary/10',     border: 'border-primary/20',     text: 'text-primary'   },
-  pro:      { bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  text: 'text-purple-400' },
-  custom:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400' },
+  free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400',   glow: 'hover:shadow-slate-500/20',  btnGrad: 'from-slate-500 to-slate-400',   btnShadow: 'hover:shadow-slate-500/40'  },
+  standard: { bg: 'bg-primary/10',     border: 'border-primary/20',     text: 'text-primary',     glow: 'hover:shadow-primary/25',    btnGrad: 'from-indigo-500 to-blue-500',  btnShadow: 'hover:shadow-primary/50'    },
+  pro:      { bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  text: 'text-purple-400',  glow: 'hover:shadow-purple-500/20', btnGrad: 'from-purple-500 to-violet-500',btnShadow: 'hover:shadow-purple-500/40' },
+  custom:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400',   glow: 'hover:shadow-amber-500/20',  btnGrad: 'from-amber-500 to-orange-400', btnShadow: 'hover:shadow-amber-500/40'  },
 };
 
 const PLAN_RESOURCES = {
@@ -70,7 +70,7 @@ export default function PricingSection({ onLoginSuccess }) {
 
   return (
     <>
-      <section id="pricing" className="relative py-24 px-6 overflow-hidden">
+      <section id="pricing" className="relative py-16 px-6 overflow-hidden">
         <BokehBackground orbs={BOKEH_PRICING} />
         <div className="max-w-6xl mx-auto">
           {/* Heading */}
@@ -81,11 +81,11 @@ export default function PricingSection({ onLoginSuccess }) {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <p className="text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+            <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
               Pricing
             </p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-text">
-              Select your plan
+            <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
+              Select Your <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Plan</span>
             </h2>
             <p className="text-text-secondary mt-4 max-w-xl mx-auto">
               Choose your plan based on your resource needs.
@@ -140,6 +140,7 @@ export default function PricingSection({ onLoginSuccess }) {
               const displayPrice = getDisplayPrice(plan);
               const isRecommended = plan.highlight;
               const resources = PLAN_RESOURCES[plan.id] ?? [];
+              const c = PLAN_COLORS[plan.id];
 
               return (
                 <div key={plan.id} className="relative flex flex-col pt-3.5">
@@ -154,11 +155,12 @@ export default function PricingSection({ onLoginSuccess }) {
 
                 <motion.div
                   variants={cardVariants}
-                  className={`relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 overflow-hidden flex-1 ${
-                    isRecommended
-                      ? 'border-primary/40 bg-surface shadow-lg shadow-primary/10'
-                      : 'border-border bg-surface'
-                  }`}
+                  className={`relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 overflow-hidden flex-1
+                    shadow-lg ${c.glow}
+                    ${isRecommended
+                      ? 'border-primary/40 bg-surface shadow-primary/10'
+                      : 'border-border bg-surface hover:border-opacity-60'
+                    }`}
                 >
 
                   {/* Annual savings corner ribbon — all paid plans */}
@@ -172,30 +174,25 @@ export default function PricingSection({ onLoginSuccess }) {
                   )}
 
                   {/* Price badge */}
-                  {(() => {
-                    const c = PLAN_COLORS[plan.id];
-                    return (
-                      <div className={`flex flex-col items-center justify-center gap-0.5 px-4 py-3 h-20 ${c.bg} border ${c.border} rounded-xl`}>
-                        {plan.price === null && (
-                          <span className={`text-xs font-semibold uppercase tracking-wide ${c.text} opacity-85`}>Starting at</span>
-                        )}
-                        <div className="flex items-baseline gap-1">
-                          <span className={`text-4xl font-bold font-heading ${c.text}`}>
-                            {plan.price === 0 ? '$0' : plan.price === null ? '$0.99' : `$${displayPrice}`}
-                          </span>
-                          {plan.price === 0 && <span className={`text-sm font-semibold ${c.text} opacity-70`}>*</span>}
-                          {plan.price !== 0 && (
-                            <>
-                              {isAnnual && plan.price !== null && (
-                                <span className="text-text-muted text-xs line-through">${plan.price}</span>
-                              )}
-                              <span className="text-text-muted text-sm">/mo</span>
-                            </>
+                  <div className={`flex flex-col items-center justify-center gap-0.5 px-4 py-3 h-20 ${c.bg} border ${c.border} rounded-xl`}>
+                    {plan.price === null && (
+                      <span className={`text-xs font-semibold uppercase tracking-wide ${c.text} opacity-85`}>Starting at</span>
+                    )}
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-4xl font-bold font-heading ${c.text}`}>
+                        {plan.price === 0 ? '$0' : plan.price === null ? '$0.99' : `$${displayPrice}`}
+                      </span>
+                      {plan.price === 0 && <span className={`text-sm font-semibold ${c.text} opacity-70`}>*</span>}
+                      {plan.price !== 0 && (
+                        <>
+                          {isAnnual && plan.price !== null && (
+                            <span className="text-text-muted text-xs line-through">${plan.price}</span>
                           )}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                          <span className="text-text-muted text-sm">/mo</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
                   {/* First month free / Free forever pill */}
                   <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
@@ -234,12 +231,14 @@ export default function PricingSection({ onLoginSuccess }) {
                   {/* CTA */}
                   <button
                     onClick={() => handlePlanCTA(plan.id)}
-                    className={`w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                      isRecommended
-                        ? 'bg-primary hover:bg-primary/90 text-white'
-                        : 'bg-surface-hover hover:bg-border text-text border border-border'
-                    }`}
+                    className={`group relative w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5
+                      overflow-hidden text-white transition-all duration-300
+                      bg-gradient-to-r ${c.btnGrad}
+                      shadow-md ${c.btnShadow} hover:shadow-lg hover:brightness-110`}
                   >
+                    <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full
+                      bg-gradient-to-r from-transparent via-white/20 to-transparent
+                      transition-transform duration-500 ease-in-out" />
                     {plan.price === 0 ? (
                       <><Rocket className="w-4 h-4" /> Start Deploying</>
                     ) : (
@@ -263,12 +262,12 @@ export default function PricingSection({ onLoginSuccess }) {
               charged $0.99/month each.
             </p>
             <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
-              <span className="shrink-0 mt-0.5">ℹ️</span>
+              <Info className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />
               The Free plan runs on a single instance. Brief downtime may occur if the hosting node restarts.
               For high-availability apps, Standard or Pro plans are recommended.
             </p>
             <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
-              <span className="shrink-0 mt-0.5">🔒</span>
+              <Lock className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />
               Private GitHub repositories are deployed as Enterprise apps, running exclusively on ArcaneOS
               nodes with full encryption. Enterprise adds $1.33/month on Free, or $2.66/month on Standard,
               Pro, and Custom plans.

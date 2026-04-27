@@ -447,7 +447,7 @@ export default function HeroSection({ onLoginSuccess }) {
         </div>
 
         {/* ── Content ────────────────────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-5 sm:px-6 text-center pt-28 pb-10">
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-5 sm:px-6 text-center pt-16 pb-10">
 
           {/* Badge */}
           <motion.div
@@ -492,7 +492,7 @@ export default function HeroSection({ onLoginSuccess }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8"
           >
             <button
               onClick={handleCTA}
@@ -527,7 +527,7 @@ export default function HeroSection({ onLoginSuccess }) {
                            text-xs text-indigo-200 transition-all duration-200
                            hover:border-indigo-400/60 hover:text-white"
               >
-                Deploy any stack.{' '}
+                Deploy over 100 frameworks.{' '}
                 <span>view all framework guides →</span>
               </a>
             </div>
@@ -556,7 +556,7 @@ export default function HeroSection({ onLoginSuccess }) {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.55, ease: 'easeOut' }}
-          className="relative z-10 w-full max-w-xl sm:max-w-2xl mx-auto px-5 sm:px-6 pb-20 -mt-6"
+          className="relative z-10 w-full max-w-xl sm:max-w-2xl mx-auto px-5 sm:px-6 pb-8 -mt-6"
           aria-hidden="true"
         >
           <div
@@ -572,7 +572,7 @@ export default function HeroSection({ onLoginSuccess }) {
             </div>
 
             {/* Fixed-height body prevents layout shift during typewriter */}
-            <div className="p-4 sm:p-5 font-mono text-[11px] sm:text-xs leading-[1.75] h-[168px] sm:h-[186px] overflow-hidden">
+            <div className="p-4 sm:p-5 font-mono text-[11px] sm:text-xs leading-[1.75] h-[150px] sm:h-[166px] overflow-hidden">
               {TERMINAL_LINES.map((line, i) => (
                 <div
                   key={i}
