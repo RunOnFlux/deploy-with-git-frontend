@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Rocket, LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/deployments', label: 'Deployments', icon: Rocket },
+  { to: '/dashboard/deployments', label: 'Deployments', icon: LayoutDashboard },
   { to: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { to: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];
@@ -14,9 +14,8 @@ function SidebarContent({ user, onNavClick, onLogout }) {
   return (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-5 border-b border-border">
-        <Rocket className="w-5 h-5 text-primary" />
-        <span className="font-heading font-bold text-text text-lg">Orbit</span>
+      <div className="flex items-center px-4 py-5 border-b border-border">
+        <img src="/orbit-logo.svg" alt="Orbit" className="h-7 w-auto" />
       </div>
 
       {/* Navigation */}
@@ -131,8 +130,7 @@ export default function DashboardLayout() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Rocket className="w-4 h-4 text-primary" />
-          <span className="font-heading font-bold text-text">Orbit</span>
+          <img src="/orbit-logo.svg" alt="Orbit" className="h-6 w-auto" />
         </header>
 
         {/* Page content */}
