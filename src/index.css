@@ -2,6 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens (dark default) ── */
+:root {
+  --color-background:         8 12 24;      /* #080c18 */
+  --color-background-alt:     13 18 36;     /* #0d1224 */
+  --color-surface:            15 23 42;     /* #0f172a */
+  --color-surface-hover:      30 41 59;     /* #1e293b */
+  --color-surface-elevated:   26 37 64;     /* #1a2540 */
+  --color-border:             30 41 59;     /* #1e293b */
+  --color-border-light:       51 65 85;     /* #334155 */
+  --color-text:               241 245 249;  /* #f1f5f9 */
+  --color-text-secondary:     148 163 184;  /* #94a3b8 */
+  --color-text-muted:         100 116 139;  /* #64748b */
+}
+
+/* ── Light theme overrides ── */
+[data-theme="light"] {
+  --color-background:         248 250 252;  /* #f8fafc */
+  --color-background-alt:     241 245 249;  /* #f1f5f9 */
+  --color-surface:            255 255 255;  /* #ffffff */
+  --color-surface-hover:      232 238 245;  /* #e8eef5 */
+  --color-surface-elevated:   241 245 249;  /* #f1f5f9 */
+  --color-border:             226 232 240;  /* #e2e8f0 */
+  --color-border-light:       203 213 225;  /* #cbd5e1 */
+  --color-text:               15 23 42;     /* #0f172a */
+  --color-text-secondary:     71 85 105;    /* #475569 */
+  --color-text-muted:         100 116 139;  /* #64748b */
+}
+
+/* ── Logo invert in light mode ── */
+[data-theme="light"] .orbit-logo { filter: invert(1); }
+
+/* ── Status/brand text contrast fixes for light mode ── */
+/* These Tailwind utility colors are designed for dark backgrounds;          */
+/* in light mode they need darker equivalents to meet contrast requirements. */
+[data-theme="light"] .text-blue-400   { color: #2563eb; } /* blue-600   5.5:1 */
+[data-theme="light"] .text-purple-400 { color: #7c3aed; } /* violet-600 5.2:1 */
+[data-theme="light"] .text-green-400,
+[data-theme="light"] .text-green-300  { color: #16a34a; } /* green-600  4.5:1 */
+[data-theme="light"] .text-amber-400,
+[data-theme="light"] .text-amber-300  { color: #b45309; } /* amber-700  4.7:1 */
+[data-theme="light"] .text-red-400,
+[data-theme="light"] .text-red-300    { color: #b91c1c; } /* red-700    6.6:1 */
+[data-theme="light"] .text-rose-400   { color: #be123c; } /* rose-700   5.8:1 */
+[data-theme="light"] .text-primary-light { color: #1d4ed8; } /* blue-700 6.1:1 */
+/* Env vars warning banner */
+[data-theme="light"] .env-warning          { color: #92400e; background-color: #fffbeb; border-color: #fcd34d; } /* amber-800 on amber-50 */
+[data-theme="light"] .env-warning-link:hover { color: #78350f; }
+[data-theme="light"] .text-accent     { color: #047857; } /* emerald-700 4.5:1 */
+
+/* ── Log panel light mode ── */
+[data-theme="light"] .log-output               { background-color: #f6f8fa; }
+[data-theme="light"] .log-output .log-default  { color: #24292f; }
+[data-theme="light"] .log-output .log-muted    { color: #57606a; }
+[data-theme="light"] .log-output .log-error    { color: #b91c1c; }
+[data-theme="light"] .log-output .log-warn     { color: #b45309; }
+[data-theme="light"] .log-output .log-success  { color: #16a34a; }
+
+/* Scrollbar in light mode */
+[data-theme="light"] ::-webkit-scrollbar-track { background: #f1f5f9; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
 @layer base {
   * {
     @apply box-border;
@@ -34,7 +96,7 @@
     @apply bg-text-muted;
   }
 
-  /* Autofill override */
+  /* Autofill override — dark */
   @keyframes autofill {
     0%, 100% {
       background: #0f172a;
@@ -51,6 +113,24 @@
     -webkit-text-fill-color: #f1f5f9 !important;
     -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
   }
+
+  /* Autofill override — light */
+  @keyframes autofill-light {
+    0%, 100% {
+      background: #ffffff;
+      color: #0f172a;
+    }
+  }
+
+  [data-theme="light"] input:-webkit-autofill,
+  [data-theme="light"] input:-webkit-autofill:hover,
+  [data-theme="light"] input:-webkit-autofill:focus,
+  [data-theme="light"] input:-webkit-autofill:active {
+    -webkit-animation-name: autofill-light;
+    -webkit-animation-fill-mode: both;
+    -webkit-text-fill-color: #0f172a !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  }
 }
 
 html {
@@ -61,6 +141,13 @@ html {
 [id] {
   scroll-margin-top: 5rem;
 }
+
+/* Orbit "O" spinner */
+@keyframes orbit-spin {
+  to { transform: rotate(360deg); }
+}
+.spinner-color                  { color: #475569; } /* slate-600 — dark mode */
+[data-theme="light"] .spinner-color { color: #94a3b8; } /* slate-400 — light mode */
 
 /* Framework logos marquee */
 @keyframes marquee {

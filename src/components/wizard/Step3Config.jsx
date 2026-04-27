@@ -485,12 +485,12 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
             Environment variables are end-to-end encrypted and not visible on the blockchain.
           </div>
         ) : (
-          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 mb-3">
+          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 mb-3 light:text-amber-700 env-warning">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
               Environment variables are stored publicly on the Flux blockchain.{' '}
               <strong>Do not include secrets.</strong>{' '}
-              Enable <button type="button" onClick={() => update('enterprise', true)} className="underline hover:text-amber-200">Enterprise mode</button> above if you need to store sensitive values.
+              Enable <button type="button" onClick={() => update('enterprise', true)} className="underline hover:text-amber-200 env-warning-link">Enterprise mode</button> above if you need to store sensitive values.
             </span>
           </div>
         )}

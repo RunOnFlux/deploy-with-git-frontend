@@ -139,19 +139,19 @@ export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, active
       </div>
 
       {/* Log output */}
-      <div className="flex-1 overflow-auto bg-[#0d1117] font-mono text-xs leading-relaxed p-3">
+      <div className="flex-1 overflow-auto bg-[#0d1117] font-mono text-xs leading-relaxed p-3 log-output">
         {loading && lines.length === 0 ? (
-          <span className="text-gray-500">Loading logs…</span>
+          <span className="text-gray-500 log-muted">Loading logs…</span>
         ) : lines.length === 0 ? (
-          <span className="text-gray-500">No log output yet.</span>
+          <span className="text-gray-500 log-muted">No log output yet.</span>
         ) : (
           <>
             {lines.map((line, i) => (
               <div key={i} className={`whitespace-pre-wrap break-all ${
-                /error|fail|fatal/i.test(line) ? 'text-red-400'
-                  : /warn/i.test(line) ? 'text-yellow-400'
-                  : /success|done|ready|started|complete/i.test(line) ? 'text-green-400'
-                  : 'text-gray-300'
+                /error|fail|fatal/i.test(line) ? 'text-red-400 log-error'
+                  : /warn/i.test(line) ? 'text-yellow-400 log-warn'
+                  : /success|done|ready|started|complete/i.test(line) ? 'text-green-400 log-success'
+                  : 'text-gray-300 log-default'
               }`}>
                 {line}
               </div>

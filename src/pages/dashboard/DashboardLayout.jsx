@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon } from 'lucide-react';
+import OrbitSpinner from '../../components/common/OrbitSpinner';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -10,7 +12,7 @@ const navItems = [
   { to: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];
 
-function SidebarContent({ user, onNavClick, onLogout }) {
+function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -26,7 +28,7 @@ function SidebarContent({ user, onNavClick, onLogout }) {
     <>
       {/* Logo */}
       <div className="flex items-center px-4 py-5 border-b border-border">
-        <img src="/orbit-logo.svg" alt="Orbit" className="h-7 w-auto" />
+        <img src="/orbit-logo.svg" alt="Orbit" className="orbit-logo w-auto" style={{ height: '1.5rem' }} />
       </div>
 
       {/* Navigation */}
@@ -97,6 +99,16 @@ function SidebarContent({ user, onNavClick, onLogout }) {
           {menuOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
               <button
+                onClick={() => { toggleTheme(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
+              >
+                {theme === 'dark'
+                  ? <Sun className="w-4 h-4" />
+                  : <Moon className="w-4 h-4" />}
+                {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              </button>
+              <div className="h-px bg-border mx-2 my-1" />
+              <button
                 onClick={() => { setMenuOpen(false); onLogout(); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
               >
@@ -113,13 +125,16 @@ function SidebarContent({ user, onNavClick, onLogout }) {
 
 export default function DashboardLayout() {
   const { user, isAuthenticated, logout, authLoading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // (data-theme is managed globally by ThemeProvider in ThemeContext)
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        <div className="spinner-color"><OrbitSpinner size={56} /></div>
       </div>
     );
   }
@@ -165,6 +180,8 @@ export default function DashboardLayout() {
           user={user}
           onNavClick={() => setSidebarOpen(false)}
           onLogout={handleLogout}
+          theme={theme}
+          toggleTheme={toggleTheme}
         />
       </aside>
 
@@ -179,7 +196,7 @@ export default function DashboardLayout() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <img src="/orbit-logo.svg" alt="Orbit" className="h-6 w-auto" />
+          <img src="/orbit-logo.svg" alt="Orbit" className="orbit-logo w-auto" style={{ height: '1.5rem' }} />
         </header>
 
         {/* Page content */}

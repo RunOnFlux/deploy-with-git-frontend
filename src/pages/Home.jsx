@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { MotionConfig } from 'framer-motion';
@@ -15,6 +16,16 @@ import Footer from '../components/landing/Footer';
 
 export default function Home() {
   const navigate = useNavigate();
+
+  // Landing page is always dark regardless of user's theme preference.
+  // Restore the user's chosen theme when they leave.
+  useEffect(() => {
+    const prev = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    return () => {
+      if (prev) document.documentElement.setAttribute('data-theme', prev);
+    };
+  }, []);
 
   function handleLoginSuccess() {
     navigate('/dashboard');

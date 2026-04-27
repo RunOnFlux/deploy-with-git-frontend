@@ -235,6 +235,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
   // Phases that count as "all done" for the progress tracker
   const allRegistered = ['install', 'test_failed', 'done'].includes(phase);
+  const isRunning = phase !== 'idle' && phase !== 'done';
 
   return (
     <div>

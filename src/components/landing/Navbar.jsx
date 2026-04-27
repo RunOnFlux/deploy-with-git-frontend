@@ -34,7 +34,7 @@ export default function Navbar({ onLoginSuccess }) {
         <div className="w-full px-6 sm:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center shrink-0">
-            <img src="/orbit-logo.svg" alt="Orbit" className="h-8 w-auto" />
+            <img src="/orbit-logo.svg" alt="Orbit" className="w-auto" style={{ height: '1.5rem' }} />
           </div>
 
           {/* Nav links - hidden on small screens */}

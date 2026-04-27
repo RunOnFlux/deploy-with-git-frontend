@@ -27,22 +27,22 @@ export default {
           hover: '#dc2626',
         },
         background: {
-          DEFAULT: '#080c18',
-          alt: '#0d1224',
+          DEFAULT: 'rgb(var(--color-background) / <alpha-value>)',
+          alt: 'rgb(var(--color-background-alt) / <alpha-value>)',
         },
         surface: {
-          DEFAULT: '#0f172a',
-          hover: '#1e293b',
-          elevated: '#1a2540',
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          hover: 'rgb(var(--color-surface-hover) / <alpha-value>)',
+          elevated: 'rgb(var(--color-surface-elevated) / <alpha-value>)',
         },
         border: {
-          DEFAULT: '#1e293b',
-          light: '#334155',
+          DEFAULT: 'rgb(var(--color-border) / <alpha-value>)',
+          light: 'rgb(var(--color-border-light) / <alpha-value>)',
         },
         text: {
-          DEFAULT: '#f1f5f9',
-          secondary: '#94a3b8',
-          muted: '#64748b',
+          DEFAULT: 'rgb(var(--color-text) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
         },
       },
       fontFamily: {

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 import GlobeLoader from './components/common/GlobeLoader';
@@ -53,52 +54,64 @@ const queryClient = new QueryClient({
 
 const toastOptions = {
   duration: 4000,
-  style: {
-    background: '#0f172a',
-    color: '#f1f5f9',
-    border: '1px solid #1e293b',
-  },
-  success: {
-    iconTheme: { primary: '#10b981', secondary: '#f1f5f9' },
-  },
-  error: {
-    iconTheme: { primary: '#ef4444', secondary: '#f1f5f9' },
-  },
 };
+
+function ToasterWithTheme() {
+  const { theme } = useTheme();
+  const style = theme === 'light'
+    ? { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' }
+    : { background: '#0f172a', color: '#f1f5f9', border: '1px solid #1e293b' };
+  const iconTheme = theme === 'light'
+    ? { success: { primary: '#047857', secondary: '#0f172a' }, error: { primary: '#b91c1c', secondary: '#0f172a' } }
+    : { success: { primary: '#10b981', secondary: '#f1f5f9' }, error: { primary: '#ef4444', secondary: '#f1f5f9' } };
+  return (
+    <Toaster
+      position="top-center"
+      toastOptions={{
+        ...toastOptions,
+        style,
+        success: { iconTheme: iconTheme.success },
+        error: { iconTheme: iconTheme.error },
+      }}
+    />
+  );
+}
 
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Router>
-            <div className="min-h-screen bg-background text-text">
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* Public */}
-                  <Route path="/" element={<Home />} />
-                  <Route path="/deploy" element={<DeployGateway />} />
-                  <Route path="/successcheckout" element={<StripeSuccessPage />} />
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Router>
+              <div className="min-h-screen bg-background text-text">
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Public */}
+                    <Route path="/" element={<Home />} />
+                    <Route path="/deploy" element={<DeployGateway />} />
+                    <Route path="/successcheckout" element={<StripeSuccessPage />} />
 
-                  {/* Dashboard (auth-protected layout) */}
-                  <Route path="/dashboard" element={<DashboardLayout />}>
-                    <Route index element={<Overview />} />
-                    <Route path="deployments" element={<Deployments />} />
-                    <Route path="deployments/:appName" element={<AppDetail />} />
-                    <Route path="deploy" element={<DeployWizard />} />
-                    <Route path="billing" element={<Billing />} />
-                    <Route path="support" element={<Support />} />
-                  </Route>
+                    {/* Dashboard (auth-protected layout) */}
+                    <Route path="/dashboard" element={<DashboardLayout />}>
+                      <Route index element={<Overview />} />
+                      <Route path="deployments" element={<Deployments />} />
+                      <Route path="deployments/:appName" element={<AppDetail />} />
+                      <Route path="deploy" element={<DeployWizard />} />
+                      <Route path="billing" element={<Billing />} />
+                      <Route path="support" element={<Support />} />
+                    </Route>
 
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
 
-              <Toaster position="top-center" toastOptions={toastOptions} />
-            </div>
-          </Router>
-        </AuthProvider>
-      </QueryClientProvider>
+                <ToasterWithTheme />
+              </div>
+            </Router>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
