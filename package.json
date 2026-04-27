@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "client": "vite --host",
-    "server": "node server.js",
+    "server": "node --env-file=.env server.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
