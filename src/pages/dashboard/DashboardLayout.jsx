@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -11,6 +11,17 @@ const navItems = [
 ];
 
 function SidebarContent({ user, onNavClick, onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    }
+    if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
   return (
     <>
       {/* Logo */}
@@ -19,7 +30,7 @@ function SidebarContent({ user, onNavClick, onLogout }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -40,23 +51,61 @@ function SidebarContent({ user, onNavClick, onLogout }) {
         ))}
       </nav>
 
-      {/* User section */}
-      <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-            {user?.email?.[0]?.toUpperCase() ?? user?.displayName?.[0]?.toUpperCase() ?? '?'}
-          </div>
-          <span className="text-xs text-text-secondary truncate flex-1">
-            {user?.email ?? user?.displayName ?? 'Wallet User'}
-          </span>
-        </div>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+      {/* Help links */}
+      <div className="px-3 pb-2 shrink-0 space-y-0.5">
+        <a
+          href="https://github.com/RunOnFlux/deploy-with-git"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"
         >
-          <LogOut className="w-4 h-4" />
-          Sign out
-        </button>
+          <Github className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Deployment Guides</span>
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+        </a>
+        <a
+          href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"
+        >
+          <BookOpen className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Documentation</span>
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+        </a>
+      </div>
+
+      {/* User section */}
+      <div className="p-3 border-t border-border shrink-0">
+        <div ref={menuRef} className="relative">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-hover transition-colors min-w-0">
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+              {user?.email?.[0]?.toUpperCase() ?? user?.displayName?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <span className="text-xs text-text-secondary truncate flex-1">
+              {user?.email ?? user?.displayName ?? 'Wallet User'}
+            </span>
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="shrink-0 p-1 rounded hover:bg-surface text-text-muted hover:text-text transition-colors"
+              aria-label="User menu"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+
+          {menuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
+              <button
+                onClick={() => { setMenuOpen(false); onLogout(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
@@ -99,7 +148,7 @@ export default function DashboardLayout() {
         className={`
           fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-border bg-surface
           transition-transform duration-200 ease-in-out
-          lg:static lg:w-56 lg:translate-x-0 lg:shrink-0
+          lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:translate-x-0 lg:shrink-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >

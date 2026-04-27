@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import { fetchOrbitStatus, getMgmtPort } from '../../services/managementService';
 
@@ -99,12 +99,10 @@ function SitePreview({ url }) {
 
 function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
   return (
-    <div className="bg-surface-hover rounded-lg px-3 py-3 flex items-center gap-3 flex-1">
-      <Icon className={`w-5 h-5 shrink-0 ${color}`} />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-text leading-snug truncate">{value}</div>
-        <div className="text-xs text-text-muted leading-snug">{label}</div>
-      </div>
+    <div className="bg-surface-hover rounded-lg px-3 py-2.5 flex items-center gap-2 w-full">
+      <Icon className={`w-4 h-4 shrink-0 ${color}`} />
+      <span className="text-xs text-text-muted shrink-0">{label}</span>
+      <span className="text-xs font-semibold text-text ml-auto whitespace-nowrap">{value}</span>
     </div>
   );
 }
@@ -181,6 +179,13 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
 
   const ram = compose.ram >= 1000 ? `${(compose.ram / 1000).toFixed(1)} GB` : `${compose.ram} MB`;
 
+  const regionLabel = (() => {
+    const allowed = (spec.geolocation ?? [])
+      .filter((g) => g.startsWith('a='))
+      .map((g) => g.slice(2).toUpperCase());
+    return allowed.length ? allowed.join(', ') : 'Global';
+  })();
+
   return (
     <div className="card">
       <div className="flex items-start justify-between mb-4">
@@ -194,16 +199,16 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
       {/* Preview + resource chips side by side */}
       {liveUrl && (
       <div className="flex gap-3 mb-4">
-        {/* Site screenshot — left half */}
-        <div className="w-2/3 aspect-video min-w-0">
+        {/* Site screenshot — fills remaining space */}
+        <div className="flex-1 aspect-video min-w-0">
           <SitePreview url={liveUrl} />
         </div>
 
-        {/* Resource chips — right half, stacked */}
-        <div className="w-1/3 flex flex-col gap-2 self-stretch">
-          <ResourceChip icon={Cpu}        label="CPU"   value={`${compose.cpu} vCPU`}  color="text-blue-400" />
+        {/* Resource chips — fixed width column */}
+        <div className="w-44 shrink-0 flex flex-col gap-2 self-stretch">
+          <ResourceChip icon={Cpu}        label="CPU"    value={`${compose.cpu} vCPU`}  color="text-blue-400" />
           <ResourceChip icon={MemoryStick} label="RAM"   value={ram}                    color="text-purple-400" />
-          <ResourceChip icon={HardDrive}  label="SSD"   value={`${compose.hdd} GB`}    color="text-amber-400" />
+          <ResourceChip icon={HardDrive}  label="SSD"    value={`${compose.hdd} GB`}    color="text-amber-400" />
           <ResourceChip
             icon={ServerIcon}
             label="Nodes"
@@ -239,6 +244,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
         {deployedAt && (
           <InfoRow icon={GitCommit} label="Deployed" value={deployedAt} />
         )}
+        <InfoRow icon={MapPin} label="Region" value={regionLabel} />
       </div>
     </div>
   );

@@ -373,7 +373,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
             title={
               <span className="flex items-center gap-1.5">
                 <Settings2 className="w-3.5 h-3.5 text-primary" />
-                Orbit Settings
+                Deploy Options
               </span>
             }
             expanded={orbitOpen}
