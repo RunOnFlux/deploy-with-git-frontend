@@ -16,7 +16,7 @@ import worldTopo from 'world-atlas/countries-50m.json';
 import {
   WebGLRenderer, Scene, Group, Mesh, LineSegments,
   OrthographicCamera, SphereGeometry, BufferGeometry,
-  ShaderMaterial, Float32BufferAttribute,
+  ShaderMaterial, Float32BufferAttribute, AdditiveBlending,
 } from 'three';
 
 // Pre-process GeoJSON once at module load (geometry never changes)
@@ -86,7 +86,7 @@ function WireframeGlobe({ paused }) {
         clustersRef.current = cells.map(({ lon, lat, count }) => ({
           lon: lon + (Math.random() - 0.5),
           lat: lat + (Math.random() - 0.5),
-          h: 15 + Math.sqrt(count / maxCount) * 45,
+          h: 22.5 + Math.sqrt(count / maxCount) * 67.5,
         }));
       })
       .catch(() => {});
@@ -203,13 +203,14 @@ function WireframeGlobe({ paused }) {
       }),
     ));
 
-    // 4. Density bars — gradient white (base) → light-blue (tip).
+    // 4. Density bars — gradient blue (base) → transparent (tip), additive blending.
     //    No worldZ discard here: the opaque sphere writes depth, so depth-testing
     //    naturally hides bar segments behind the sphere surface while still
     //    showing tips that protrude above the silhouette at the limb.
     const barsMat = new ShaderMaterial({
       transparent: true,
       depthWrite:  false,
+      blending:    AdditiveBlending,
       vertexShader: `
         attribute float aT;
         varying float vT;
@@ -221,8 +222,8 @@ function WireframeGlobe({ paused }) {
       fragmentShader: `
         varying float vT;
         void main() {
-          vec3 base = vec3(1.0, 1.0, 1.0);
-          vec3 tip  = vec3(0.47, 0.78, 1.0);
+          vec3 base = vec3(0.38, 0.65, 1.0);
+          vec3 tip  = vec3(0.62, 0.82, 1.0);
           gl_FragColor = vec4(mix(tip, base, vT), vT * 0.9);
         }
       `,
