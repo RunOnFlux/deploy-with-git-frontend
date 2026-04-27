@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Rocket, Zap, DollarSign, HelpCircle, BookOpen, ExternalLink, LogIn, LayoutDashboard } from 'lucide-react';
+import { Zap, DollarSign, HelpCircle, BookOpen, ExternalLink, LogIn, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../auth/LoginModal';
 
@@ -33,9 +33,8 @@ export default function Navbar({ onLoginSuccess }) {
       >
         <div className="w-full px-6 sm:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Rocket className="w-5 h-5 text-primary" />
-            <span className="font-heading font-bold text-text text-lg tracking-tight">Orbit</span>
+          <div className="flex items-center shrink-0">
+            <img src="/orbit-logo.svg" alt="Orbit" className="h-8 w-auto" />
           </div>
 
           {/* Nav links - hidden on small screens */}
