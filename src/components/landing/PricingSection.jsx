@@ -5,6 +5,7 @@ import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Info, Lock } from 'l
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
 import BokehBackground, { BOKEH_PRICING } from './BokehBackground';
+import LoginModal from '../auth/LoginModal';
 
 const PLAN_COLORS = {
   free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400',   glow: 'hover:shadow-slate-500/20',  btnGrad: 'from-slate-500 to-slate-400',   btnShadow: 'hover:shadow-slate-500/40'  },
@@ -51,6 +52,8 @@ export default function PricingSection({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState('annual');
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
 
   const activePeriod = PERIODS.find((p) => p.id === period);
   const isAnnual = activePeriod.months === 12;
@@ -64,7 +67,8 @@ export default function PricingSection({ onLoginSuccess }) {
     if (isAuthenticated) {
       navigate(`/dashboard/deploy?plan=${planId}`);
     } else {
-      navigate(`/deploy?plan=${planId}`);
+      setPendingPlan(planId);
+      setLoginOpen(true);
     }
   }
 
@@ -275,6 +279,16 @@ export default function PricingSection({ onLoginSuccess }) {
           </div>
         </div>
       </section>
+
+      <LoginModal
+        isOpen={loginOpen}
+        onClose={() => { setLoginOpen(false); setPendingPlan(null); }}
+        onSuccess={() => {
+          setLoginOpen(false);
+          onLoginSuccess?.();
+          if (pendingPlan) navigate(`/dashboard/deploy?plan=${pendingPlan}`);
+        }}
+      />
     </>
   );
 }

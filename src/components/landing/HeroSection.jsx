@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, GitBranch } from 'lucide-react';
+import { ArrowRight, GitBranch, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LoginModal from '../auth/LoginModal';
 import { useAuth } from '../../context/AuthContext';
@@ -505,7 +505,7 @@ export default function HeroSection({ onLoginSuccess }) {
               href="#how-it-works"
               className="btn-terminal px-5 py-3 w-full sm:w-auto justify-center"
             >
-              <span className="prompt">$</span>
+              <BookOpen className="w-4 h-4" />
               <span>how-it-works</span>
             </a>
           </motion.div>
@@ -527,8 +527,8 @@ export default function HeroSection({ onLoginSuccess }) {
                            text-xs text-indigo-200 transition-all duration-200
                            hover:border-indigo-400/60 hover:text-white"
               >
-                Deploy over 100 frameworks.{' '}
-                <span>view all framework guides →</span>
+                Deploy Over 100 Frameworks.{' '}
+                <span>View Framework Guides →</span>
               </a>
             </div>
             <div className="relative">
