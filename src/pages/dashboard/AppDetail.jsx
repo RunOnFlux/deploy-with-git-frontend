@@ -68,8 +68,8 @@ export default function AppDetail() {
         <title>{appName} — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Link to="/dashboard/deployments" className="text-text-muted hover:text-text transition-colors">
               <ArrowLeft className="w-5 h-5" />

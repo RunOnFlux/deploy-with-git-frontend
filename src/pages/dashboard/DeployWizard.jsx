@@ -27,7 +27,7 @@ const STEPS = [
 
 function WizardProgress({ current }) {
   return (
-    <div className="flex items-center mb-8">
+    <div className="flex items-center mb-4">
       {/* Step indicators */}
       <div className="flex items-center flex-1">
         {STEPS.map((s, i) => {
@@ -184,7 +184,7 @@ export default function DeployWizard() {
         <title>New Deployment — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8">
+      <div className="p-6">
         <Link
           to="/dashboard/deployments"
           className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text transition-colors mb-6"

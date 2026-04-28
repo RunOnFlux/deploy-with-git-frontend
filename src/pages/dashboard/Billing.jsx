@@ -155,9 +155,9 @@ export default function Billing() {
         <title>Billing — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8">
+      <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <div>
             <h1 className="font-heading text-2xl font-bold text-text">Billing</h1>
             <p className="text-text-secondary text-sm mt-0.5">

@@ -1,4 +1,4 @@
-import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid } from 'lucide-react';
+import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock } from 'lucide-react';
 import { PLANS } from '../../services/deployService';
 
 const PLAN_COLORS = {
@@ -277,20 +277,22 @@ export default function Step1Plan({ plan, onChange }) {
 
       {/* Disclaimer */}
       <div className="mt-6 p-4 bg-surface-hover rounded-xl border border-border space-y-2">
-        <p className="text-xs text-text-muted leading-relaxed">
-          <span className="text-text-secondary font-semibold">*</span> Restrictions may apply to prevent abuse.
+        <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />
+          Restrictions may apply to prevent abuse.
         </p>
-        <p className="text-xs text-text-muted leading-relaxed">
-          <span className="text-text-secondary font-semibold">*</span> The Free plan is automatically renewed
+        <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />
+          The Free plan is automatically renewed
           as long as you have only one Git app running. Additional Git apps are charged $0.99/month each.
         </p>
         <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
-          <span className="shrink-0 mt-0.5">ℹ️</span>
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />
           The Free plan runs on a single instance. Brief downtime may occur if the hosting node restarts.
           For high-availability apps, Standard or Pro plans are recommended.
         </p>
         <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
-          <span className="shrink-0 mt-0.5">🔒</span>
+          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />
           Private GitHub repositories are deployed as Enterprise apps (+$1.33/mo on Free,
           +$2.66/mo on Standard, Pro, and Custom).
         </p>

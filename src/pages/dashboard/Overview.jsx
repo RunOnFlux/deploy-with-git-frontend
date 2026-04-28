@@ -20,9 +20,9 @@ export default function Overview() {
         <title>Overview — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8">
+      <div className="p-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="font-heading text-2xl font-bold text-text">
               Welcome back, {displayName}

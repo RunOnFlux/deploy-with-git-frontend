@@ -143,9 +143,9 @@ export default function Support() {
         <title>Support — Orbit</title>
       </Helmet>
 
-      <div className="p-6 lg:p-8">
+      <div className="p-6">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="font-heading text-2xl font-bold text-text">Support</h1>
           <p className="text-text-secondary text-sm mt-0.5">
             Get help with your Orbit deployments.
