@@ -354,6 +354,7 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
     const fetchOptions = {
       method: method.toUpperCase(),
       headers,
+      signal: AbortSignal.timeout(30000),
       ...(data ? { body: JSON.stringify(data) } : {}),
     };
 

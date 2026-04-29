@@ -21,7 +21,9 @@ function parseEnvs(envs = []) {
  * Strips any embedded credentials from the URL before returning.
  */
 export function extractGitInfo(compose = []) {
-  const envs = parseEnvs(compose[0]?.envs);
+  // The Flux API stores env vars under `environmentParameters` in the app spec.
+  // `envs` is an older/alternative field — try both.
+  const envs = parseEnvs(compose[0]?.environmentParameters ?? compose[0]?.envs ?? []);
   const rawUrl = envs.GIT_REPO || envs.GIT_REPO_URL || envs.REPO_URL || '';
   const gitBranch = envs.GIT_BRANCH || envs.BRANCH || 'main';
   const appPort = envs.APP_PORT || envs.PORT || null;

@@ -25,8 +25,8 @@ const STATUS_CONFIG = {
     className: 'bg-surface-hover text-text-muted border-border',
   },
   unknown: {
-    label: 'Unknown',
-    dot: 'bg-text-muted',
+    label: 'Deploying',
+    dot: 'bg-text-muted animate-pulse',
     className: 'bg-surface-hover text-text-muted border-border',
   },
 };

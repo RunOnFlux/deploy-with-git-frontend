@@ -22,8 +22,8 @@ const ACTION_BUTTONS = [
 ];
 
 const LOG_TABS = [
-  { id: 'app', label: 'App Logs',   icon: Terminal },
   { id: 'build', label: 'Build Logs', icon: Wrench  },
+  { id: 'app', label: 'Container Logs', icon: Terminal },
 ];
 
 function mapRunningStatus(runningstatus) {
@@ -47,7 +47,7 @@ function variantClass(variant) {
 export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, branch }) {
   const { zelidauth } = useAuth();
   const [logsOpen, setLogsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('app');
+  const [activeTab, setActiveTab] = useState('build');
   const [loadingAction, setLoadingAction] = useState(null);
   const [actionResult, setActionResult] = useState(null); // { type: 'success'|'error', msg }
   const [confirmAction, setConfirmAction] = useState(null); // id of action awaiting confirmation

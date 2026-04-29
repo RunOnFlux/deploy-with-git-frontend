@@ -57,15 +57,26 @@ export async function fetchNodeStatuses(appName) {
 
 /**
  * Proxy a request to a specific Flux node through the BFF (avoids CORS).
+ * Retries up to 3 times with exponential backoff on network/5xx failures.
  */
-async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '') {
-  const resp = await axiosInstance.post('/node-proxy', {
-    nodeBase,
-    path,
-    method,
-    zelidauth,
-  });
-  return resp.data;
+async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '', retries = 3) {
+  const payload = { nodeBase, path, method, zelidauth };
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await axiosInstance.post('/node-proxy', payload);
+      return resp.data;
+    } catch (err) {
+      lastErr = err;
+      const status = err?.response?.status;
+      // Don't retry on 4xx client errors
+      if (status >= 400 && status < 500) throw err;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * 2 ** attempt)); // 1s, 2s, 4s
+      }
+    }
+  }
+  throw lastErr;
 }
 
 /**
@@ -137,13 +148,20 @@ export async function fetchOrbitStatus(appName, port) {
   return resp.json();
 }
 
+/** Strip any trailing ":port" from an IP string (e.g. "1.2.3.4:16157" → "1.2.3.4"). */
+function stripPort(ip) {
+  if (!ip) return ip;
+  const idx = ip.lastIndexOf(':');
+  return idx !== -1 ? ip.slice(0, idx) : ip;
+}
+
 /**
  * Fetch Orbit status for a specific node via BFF proxy.
  * Bypasses CORS — goes to http://<nodeIp>:<mgmtPort>/status
  */
 export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
   const resp = await axiosInstance.post('/orbit-node-status', {
-    nodeIp,
+    nodeIp: stripPort(nodeIp),
     mgmtPort,
     path: '/status',
   });
@@ -156,7 +174,7 @@ export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
  */
 export async function fetchNodeOrbitLogs(nodeIp, mgmtPort, releaseId) {
   const resp = await axiosInstance.post('/orbit-node-status', {
-    nodeIp,
+    nodeIp: stripPort(nodeIp),
     mgmtPort,
     path: `/logs/${encodeURIComponent(releaseId)}`,
   });
@@ -185,7 +203,7 @@ export function getSpecEnvValue(spec, ...keys) {
  */
 export async function triggerOrbitDeploy(nodeIp, mgmtPort, webhookSecret, branch, hardRedeploy = false) {
   const resp = await axiosInstance.post('/orbit-deploy', {
-    nodeIp,
+    nodeIp: stripPort(nodeIp),
     mgmtPort,
     webhookSecret,
     branch: branch || 'main',
