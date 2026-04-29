@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import {
   RotateCcw, Play, Square, PauseCircle, PlayCircle, Trash2,
   ChevronDown, ChevronUp, Loader2, AlertCircle, CheckCircle2, Terminal, Wrench, GitCommit,
-  RefreshCcw, GitMerge, Zap,
+  RefreshCcw, GitMerge, Zap, ScrollText,
 } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import LogsPanel from './LogsPanel';
@@ -22,8 +22,9 @@ const ACTION_BUTTONS = [
 ];
 
 const LOG_TABS = [
-  { id: 'build', label: 'Build Logs', icon: Wrench  },
-  { id: 'app', label: 'Container Logs', icon: Terminal },
+  { id: 'build',      label: 'Build Logs',     icon: Wrench      },
+  { id: 'orbit-app',  label: 'App Logs',        icon: ScrollText  },
+  { id: 'app',        label: 'Container Logs',  icon: Terminal    },
 ];
 
 function mapRunningStatus(runningstatus) {
@@ -50,6 +51,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
   const [activeTab, setActiveTab] = useState('build');
   const [loadingAction, setLoadingAction] = useState(null);
   const [actionResult, setActionResult] = useState(null); // { type: 'success'|'error', msg }
+  const [progressMsg, setProgressMsg] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // id of action awaiting confirmation
 
   const CONFIRM_REQUIRED = new Set(['remove', 'redeploy', 'hard-redeploy', 'restart']);
@@ -81,9 +83,10 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
     setConfirmAction(null);
     setLoadingAction(actionId);
     setActionResult(null);
+    setProgressMsg(null);
 
     try {
-      const result = await performNodeAction(nodeBase, actionId, appName, zaStr);
+      const result = await performNodeAction(nodeBase, actionId, appName, zaStr, setProgressMsg);
       if (result?.status === 'success') {
         const msg = result.data || `${actionId} successful`;
         toast.success(msg);
@@ -95,6 +98,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
       setActionResult({ type: 'error', msg: err.message });
     } finally {
       setLoadingAction(null);
+      setProgressMsg(null);
     }
   }
 
@@ -162,7 +166,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
           onClick={() => runDeploy()}
           disabled={!!loadingAction || !mgmtPort || !webhookSecret}
           title={!webhookSecret ? 'WEBHOOK_SECRET not configured for this app' : 'Pull latest commit and build if changed'}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
         >
           {loadingAction === 'redeploy-orbit' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -187,7 +191,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
                 onClick={() => runAction(id)}
                 disabled={!!loadingAction}
                 title={isConfirm ? `Click again to confirm` : label}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
               >
                 {isLoading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -199,7 +203,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
               {isConfirm && (
                 <button
                   onClick={() => setConfirmAction(null)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border text-text-muted hover:bg-surface-hover hover:text-text"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border border-border text-text-muted hover:bg-surface-hover hover:text-text"
                 >
                   Cancel
                 </button>
@@ -209,18 +213,22 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
         })}
       </div>
 
-      {/* ── Action result ── */}
-      {actionResult && (
+      {/* ── Action result / progress ── */}
+      {(progressMsg || actionResult) && (
         <div className={`mx-4 mb-3 flex items-start gap-2 p-2.5 rounded-lg text-xs ${
-          actionResult.type === 'success'
-            ? 'bg-accent/10 border border-accent/20 text-accent'
-            : 'bg-danger/10 border border-danger/20 text-danger'
+          progressMsg
+            ? 'bg-surface-hover border border-border text-text-muted'
+            : actionResult.type === 'success'
+              ? 'bg-accent/10 border border-accent/20 text-accent'
+              : 'bg-danger/10 border border-danger/20 text-danger'
         }`}>
-          {actionResult.type === 'success'
-            ? <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            : <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          {progressMsg
+            ? <Loader2 className="w-3.5 h-3.5 mt-0.5 shrink-0 animate-spin" />
+            : actionResult.type === 'success'
+              ? <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              : <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           }
-          <span className="break-all">{String(actionResult.msg)}</span>
+          <span className="break-all">{progressMsg ?? String(actionResult.msg)}</span>
         </div>
       )}
 

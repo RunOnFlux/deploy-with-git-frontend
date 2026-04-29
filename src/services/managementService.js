@@ -8,9 +8,14 @@ export const FLUX_NODE_PORT = 16127;
 /**
  * Build the per-node API base URL from a node's IP.
  * Format: https://<ip-dashed>-<port>.node.api.runonflux.io
+ * If `ip` contains an embedded port (e.g. "1.2.3.4:16157"), that port is used.
+ * Otherwise falls back to the explicit `port` param (default 16127).
  */
 export function nodeBaseUrl(ip, port = FLUX_NODE_PORT) {
-  return `https://${ip.replace(/\./g, '-')}-${port}.node.api.runonflux.io`;
+  const colonIdx = ip.lastIndexOf(':');
+  const cleanIp = colonIdx !== -1 ? ip.slice(0, colonIdx) : ip;
+  const resolvedPort = colonIdx !== -1 ? ip.slice(colonIdx + 1) : port;
+  return `https://${cleanIp.replace(/\./g, '-')}-${resolvedPort}.node.api.runonflux.io`;
 }
 
 /**
@@ -57,33 +62,39 @@ export async function fetchNodeStatuses(appName) {
 
 /**
  * Proxy a request to a specific Flux node through the BFF (avoids CORS).
- * Retries up to 3 times with exponential backoff on network/5xx failures.
+ * Used for read-only calls (logs, status queries) — axios buffers the streamed response.
  */
-async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '', retries = 3) {
-  const payload = { nodeBase, path, method, zelidauth };
-  let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const resp = await axiosInstance.post('/node-proxy', payload);
-      return resp.data;
-    } catch (err) {
-      lastErr = err;
-      const status = err?.response?.status;
-      // Don't retry on 4xx client errors
-      if (status >= 400 && status < 500) throw err;
-      if (attempt < retries) {
-        await new Promise(r => setTimeout(r, 1000 * 2 ** attempt)); // 1s, 2s, 4s
+async function nodeRequest(nodeBase, path, method = 'GET', zelidauth = '') {
+  const resp = await axiosInstance.post('/node-proxy', { nodeBase, path, method, zelidauth }, { timeout: 90_000 });
+  return resp.data;
+}
+
+/**
+ * Parse concatenated JSON objects from a text buffer.
+ * Returns [ parsedObjects[], remainingBuffer ] — remainder holds any incomplete object.
+ */
+function extractJsonObjects(buffer) {
+  const messages = [];
+  let depth = 0, objStart = -1, lastEnd = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    if (buffer[i] === '{') { if (depth === 0) objStart = i; depth++; }
+    else if (buffer[i] === '}') {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        try { messages.push(JSON.parse(buffer.slice(objStart, i + 1))); } catch {}
+        lastEnd = i + 1;
+        objStart = -1;
       }
     }
   }
-  throw lastErr;
+  return [messages, buffer.slice(lastEnd)];
 }
 
 /**
  * Per-node action paths — all are GET requests on the node's Flux daemon API.
  */
 export const NODE_ACTIONS = {
-  redeploy:       (app) => `/apps/redeploy/${encodeURIComponent(app)}/false`,
+  redeploy:        (app) => `/apps/redeploy/${encodeURIComponent(app)}/false`,
   'hard-redeploy': (app) => `/apps/redeploy/${encodeURIComponent(app)}/true`,
   restart:  (app) => `/apps/apprestart/${encodeURIComponent(app)}`,
   start:    (app) => `/apps/appstart/${encodeURIComponent(app)}`,
@@ -95,11 +106,49 @@ export const NODE_ACTIONS = {
 
 /**
  * Perform an action on a specific node.
+ * Uses native fetch with a streaming reader so the caller receives live progress
+ * messages via `onProgress(statusText)` as Flux sends them.
+ * Never retried — a timed-out mutation may have already executed on the node.
  */
-export async function performNodeAction(nodeBase, action, appName, zelidauth) {
+export async function performNodeAction(nodeBase, action, appName, zelidauth, onProgress) {
   const path = NODE_ACTIONS[action]?.(appName);
   if (!path) throw new Error(`Unknown action: ${action}`);
-  return nodeRequest(nodeBase, path, 'GET', zelidauth);
+
+  const resp = await fetch('/api/node-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nodeBase, path, method: 'GET', zelidauth }),
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  if (resp.status >= 400 && resp.status < 500) {
+    const text = await resp.text();
+    throw new Error(text || `HTTP ${resp.status}`);
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const messages = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const [newMsgs, remainder] = extractJsonObjects(buffer);
+    buffer = remainder;
+    for (const msg of newMsgs) {
+      messages.push(msg);
+      const text = msg.status ?? msg.data;
+      if (text) onProgress?.(text);
+    }
+  }
+
+  if (messages.length === 0) return { status: 'error', data: 'No response from node' };
+  const errMsg = messages.find(m => /error|fail/i.test(m.status ?? ''));
+  if (errMsg) return { status: 'error', data: errMsg.status };
+  const last = messages[messages.length - 1];
+  return { status: 'success', data: last?.status ?? 'Operation completed', messages };
 }
 
 /**

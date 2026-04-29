@@ -174,7 +174,97 @@ function BuildLogsPanel({ appName, mgmtPort }) {
   );
 }
 
-// ── App-logs sub-panel ────────────────────────────────────────────────────────
+// ── Orbit app-logs sub-panel ─────────────────────────────────────────────────
+
+function OrbitAppLogsPanel({ appName, mgmtPort }) {
+  const [lines, setLines] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const bottomRef = useRef(null);
+
+  const base = `https://${appName}_${mgmtPort}.app.runonflux.io`;
+
+  useEffect(() => {
+    if (!mgmtPort) { setError('Management port not available'); setLoading(false); return; }
+    const ctrl = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    fetch(`${base}/applogs?tail=100&format=json`, { signal: ctrl.signal })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then(data => {
+        if (ctrl.signal.aborted) return;
+        // Response may be { lines: [...] }, { logs: [...] }, or a plain array
+        const raw = Array.isArray(data) ? data : (data.lines ?? data.logs ?? []);
+        setLines(raw.filter(Boolean).map(stripAnsi));
+        setLastUpdated(new Date());
+      })
+      .catch(err => { if (err.name !== 'AbortError') setError(err.message); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+
+    return () => ctrl.abort();
+  }, [base, mgmtPort, refreshKey]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
+
+  function downloadLogs() {
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${appName}-applogs-${Date.now()}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-surface-hover shrink-0">
+        <div className="flex items-center gap-2">
+          {loading && <RefreshCw className="w-3 h-3 text-text-muted animate-spin" />}
+          {lastUpdated && !loading && (
+            <span className="text-xs text-text-muted">Updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+          {error && <span className="text-xs text-danger truncate max-w-xs" title={error}>{error}</span>}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+          {lines.length > 0 && (
+            <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto bg-[#0d1117] font-mono text-xs leading-relaxed p-3 log-output">
+        {loading && lines.length === 0 ? (
+          <span className="text-gray-500 log-muted">Loading logs…</span>
+        ) : lines.length === 0 ? (
+          <span className="text-gray-500 log-muted">No app log output yet.</span>
+        ) : (
+          <>
+            {lines.map((line, i) => (
+              <div key={i} className={`whitespace-pre-wrap break-all ${
+                /error|fail|fatal/i.test(line) ? 'text-red-400 log-error'
+                  : /warn/i.test(line) ? 'text-yellow-400 log-warn'
+                  : /success|done|ready|started|complete/i.test(line) ? 'text-green-400 log-success'
+                  : 'text-gray-300 log-default'
+              }`}>{line}</div>
+            ))}
+            <div ref={bottomRef} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Container-logs sub-panel (Flux node API) ─────────────────────────────────
 
 function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
   const [lines, setLines] = useState([]);
@@ -285,7 +375,9 @@ export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, active
     <div className="flex h-64">
       {activeTab === 'build'
         ? <BuildLogsPanel appName={appName} mgmtPort={mgmtPort} />
-        : <AppLogsPanel nodeIp={nodeIp} nodePort={nodePort} appName={appName} zelidauth={zelidauth} />
+        : activeTab === 'orbit-app'
+          ? <OrbitAppLogsPanel appName={appName} mgmtPort={mgmtPort} />
+          : <AppLogsPanel nodeIp={nodeIp} nodePort={nodePort} appName={appName} zelidauth={zelidauth} />
       }
     </div>
   );

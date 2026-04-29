@@ -331,6 +331,8 @@ app.post('/api/sso/sign', express.json(), async (req, res) => {
  * Body: { nodeBase, path, method, zelidauth, data }
  *
  * SSRF protection: validates nodeBase matches the node.api.runonflux.io pattern.
+ * Streams the upstream response body back to the client — supports both single-JSON
+ * and Flux's concatenated-JSON streaming ops (redeploy, restart, etc.).
  */
 const NODE_BASE_PATTERN = /^https:\/\/[\d-]+-\d+\.node\.api\.runonflux\.io$/;
 
@@ -354,13 +356,18 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
     const fetchOptions = {
       method: method.toUpperCase(),
       headers,
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(90_000),
       ...(data ? { body: JSON.stringify(data) } : {}),
     };
 
     const upstream = await fetch(targetUrl, fetchOptions);
-    const text = await upstream.text();
-    res.status(upstream.status).send(text);
+    // Pipe the response body stream directly — client handles parsing.
+    // This supports both single-JSON and Flux's concatenated-JSON streaming ops.
+    res.status(upstream.status);
+    const ct = upstream.headers.get('content-type');
+    res.setHeader('Content-Type', ct || 'application/json');
+    const { Readable } = await import('node:stream');
+    Readable.fromWeb(upstream.body).pipe(res);
   } catch (err) {
     console.error(`node-proxy error [${targetUrl}]:`, err.message);
     res.status(502).json({ status: 'error', data: 'Node request failed' });

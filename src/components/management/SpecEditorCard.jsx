@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../utils/firebase';
@@ -355,11 +355,11 @@ export default function SpecEditorCard({ spec, onSaved }) {
               />
               <p className="text-xs text-text-muted mt-1">
                 Add a <code className="bg-surface-hover px-1 rounded">CNAME</code> record pointing{' '}
-                <code className="bg-surface-hover px-1 rounded">yourdomain.com</code> →{' '}
+                <code className="bg-surface-hover px-1 rounded">yourdomain.com</code> to{' '}
                 <code className="bg-surface-hover px-1 rounded select-all">
                   {spec?.name}.app.runonflux.io
                 </code>{' '}
-                before saving.
+                before applying changes.
               </p>
             </div>
           </div>
@@ -502,7 +502,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
       <button
         onClick={handleSave}
         disabled={isSaving || !isDirty()}
-        className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border text-text-secondary hover:bg-surface-hover hover:text-text transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
       >
         {isSaving ? (
           <>
@@ -510,7 +510,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
             {phaseLabel[savePhase]}
           </>
         ) : (
-          'Save Changes'
+          <><Check className="w-4 h-4" />Apply Changes</>
         )}
       </button>
     </div>
