@@ -72,7 +72,7 @@ function WizardProgress({ current }) {
 
 export default function DeployWizard() {
   const wizard = useDeployWizard();
-  const { state, next, back, setPlan, setRepo, setConfig, setTerms, ensurePorts, setRegistration, setVerifiedSpec } = wizard;
+  const { state, next, back, setPlan, setRepo, setConfig, setTerms, ensurePorts, setRegistration, setVerifiedSpec, setEligibleForFree } = wizard;
   const { step, plan, repo, config, termsAccepted } = state;
   const [searchParams] = useSearchParams();
 
@@ -226,6 +226,7 @@ export default function DeployWizard() {
               ports={state.ports || ensurePorts()}
               termsAccepted={termsAccepted}
               onTermsChange={setTerms}
+              onEligibilityChecked={setEligibleForFree}
             />
           )}
           {step === 5 && (
@@ -246,6 +247,7 @@ export default function DeployWizard() {
               verifiedSpec={state.verifiedSpec}
               plan={plan}
               registration={state.registration}
+              eligibleForFree={state.eligibleForFree}
               onBack={back}
             />
           )}

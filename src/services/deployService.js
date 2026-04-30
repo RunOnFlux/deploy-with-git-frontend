@@ -131,7 +131,7 @@ export function validateAppName(name) {
  */
 export async function checkAppNameAvailable(name) {
   try {
-    const resp = await fetch(`/api/flux/apps/getappspecifics/${encodeURIComponent(name)}`);
+    const resp = await fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(name)}`);
     const json = await resp.json();
     // If the app exists, data will be non-null
     return json.status !== 'success' || !json.data || !json.data.name;
@@ -743,7 +743,7 @@ export function pollDeployment(appName, registrationHash, callbacks) {
 
     try {
       if (phase === 1) {
-        const resp = await fetch(`/api/flux/apps/getappspecifics/${encodeURIComponent(appName)}`);
+        const resp = await fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(appName)}`);
         const json = await resp.json();
         if (json.status === 'success' && json.data?.hash === registrationHash) {
           phase = 2;

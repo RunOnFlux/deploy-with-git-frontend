@@ -32,7 +32,7 @@ const POLLING_LABELS = {
   '86400': '24 hours',
 };
 
-export default function Step4Review({ plan, repo, config, ports, termsAccepted, onTermsChange }) {
+export default function Step4Review({ plan, repo, config, ports, termsAccepted, onTermsChange, onEligibilityChecked }) {
   const { user } = useAuth();
   const zelid = user?.zelid;
 
@@ -59,9 +59,10 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     }
   }
 
-  // Check if user already deployed an Orbit app with the same repo+branch+subdir
+  // Check if user already has any running Orbit app → not eligible for free tier
   useEffect(() => {
-    if (!zelid || !repo.url) {
+    if (!zelid) {
+      onEligibilityChecked?.(true);
       setDupCheckStatus('done');
       return;
     }
@@ -75,35 +76,26 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         );
         const json = await resp.json();
         if (json.status !== 'success' || !Array.isArray(json.data)) {
+          onEligibilityChecked?.(true); // fail open
           setDupCheckStatus('done');
           return;
         }
 
-        const normalizedTarget = normalizeRepoUrl(repo.url);
+        const hasOrbitApp = json.data.some((app) => {
+          if (!app.compose || !Array.isArray(app.compose)) return false;
+          return app.compose[0]?.repotag === 'runonflux/orbit:latest';
+        });
 
-        for (const app of json.data) {
-          if (!app.compose || !Array.isArray(app.compose)) continue;
-          const comp = app.compose[0];
-          if (comp?.repotag !== 'runonflux/orbit:latest') continue;
-
-          const envParams = comp.environmentParameters || [];
-          const gitRepoParam = envParams.find((e) => typeof e === 'string' && e.startsWith('GIT_REPO_URL='));
-          if (!gitRepoParam) continue;
-
-          const existingUrl = normalizeRepoUrl(gitRepoParam.replace('GIT_REPO_URL=', ''));
-          if (existingUrl === normalizedTarget) {
-            setHasDuplicate(true);
-            setExistingAppName(app.name);
-            break;
-          }
-        }
+        setHasDuplicate(hasOrbitApp);
+        if (hasOrbitApp) setExistingAppName(json.data.find((app) => app.compose?.[0]?.repotag === 'runonflux/orbit:latest')?.name ?? null);
+        onEligibilityChecked?.(!hasOrbitApp);
       } catch {
-        // fail open — don't block the user
+        onEligibilityChecked?.(true); // fail open
       } finally {
         setDupCheckStatus('done');
       }
     })();
-  }, [zelid, repo.url]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zelid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -127,8 +119,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <div>
             <p className="font-medium">Not eligible for first month free</p>
             <p className="text-xs text-amber-300/80 mt-1">
-              You already have an Orbit app (<code className="font-mono">{existingAppName}</code>) deploying from this repository.
-              Paid plans will be charged immediately.
+              You already have a running Orbit app (<code className="font-mono">{existingAppName}</code>).
+              Only one free Orbit app is allowed per account. Paid plans will be charged immediately.
             </p>
           </div>
         </div>

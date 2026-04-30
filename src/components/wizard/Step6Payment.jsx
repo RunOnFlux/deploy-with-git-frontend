@@ -12,7 +12,7 @@ function getFluxNodeUrl(zelidauth) {
   return (typeof sticky === 'string' && sticky.startsWith('http')) ? sticky : 'https://api.runonflux.io';
 }
 
-export default function Step6Payment({ verifiedSpec, plan, registration, onBack }) {
+export default function Step6Payment({ verifiedSpec, plan, registration, eligibleForFree = true, onBack }) {
   const { zelidauth } = useAuth();
   const [priceUsd, setPriceUsd] = useState(null);
   const [priceFlux, setPriceFlux] = useState(null);
@@ -24,7 +24,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, onBack 
   const [paid, setPaid] = useState(false);
   const wsRef = useRef(null);
 
-  const isFree = plan?.priceMonthly === 0 || plan?.id === 'free';
+  const isFree = (plan?.priceMonthly === 0 || plan?.id === 'free') && eligibleForFree;
   const appName = registration?.appName || verifiedSpec?.name;
   const txid = registration?.txid;
 

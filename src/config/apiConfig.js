@@ -10,7 +10,7 @@ export const apiConfig = {
       zelid: '/zelid/zelid',
       // App management
       permanentMessages: '/apps/permanentmessages',
-      appSpecifics: '/apps/getappspecifics',
+      appSpecifics: '/apps/appspecifications',
       appLocation: '/apps/getapplocation',
       appInstallingLocation: '/apps/getappinstallinglocation',
       appHashes: '/apps/getapphashes',

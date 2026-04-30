@@ -78,6 +78,9 @@ const INITIAL_STATE = {
     txid: null,
   },
 
+  // Free tier eligibility (set in Step4 after checking permanent messages)
+  eligibleForFree: true,
+
   // Per-step errors
   errors: {},
 };
@@ -137,6 +140,9 @@ function reducer(state, action) {
       const { [action.step]: _removed, ...rest } = state.errors;
       return { ...state, errors: rest };
 
+    case 'SET_ELIGIBLE_FOR_FREE':
+      return { ...state, eligibleForFree: action.payload };
+
     case 'SET_TERMS':
       return { ...state, termsAccepted: action.payload };
 
@@ -167,6 +173,7 @@ export function useDeployWizard() {
   const setPayment = useCallback((data) => dispatch({ type: 'SET_PAYMENT', payload: data }), []);
   const setError = useCallback((step, message) => dispatch({ type: 'SET_ERROR', step, message }), []);
   const clearError = useCallback((step) => dispatch({ type: 'CLEAR_ERROR', step }), []);
+  const setEligibleForFree = useCallback((v) => dispatch({ type: 'SET_ELIGIBLE_FOR_FREE', payload: v }), []);
   const setTerms = useCallback((v) => dispatch({ type: 'SET_TERMS', payload: v }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
@@ -196,6 +203,7 @@ export function useDeployWizard() {
     setPayment,
     setError,
     clearError,
+    setEligibleForFree,
     setTerms,
     reset,
     ensurePorts,
