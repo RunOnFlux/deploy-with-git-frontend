@@ -350,14 +350,16 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
   const targetUrl = `${nodeBase}${nodePath.startsWith('/') ? nodePath : `/${nodePath}`}`;
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
+    // Flux nodes expect application/x-www-form-urlencoded (not JSON)
+    const bodyStr = data ? new URLSearchParams(data).toString() : null;
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     if (zelidauth) headers['zelidauth'] = zelidauth;
 
     const fetchOptions = {
       method: method.toUpperCase(),
       headers,
       signal: AbortSignal.timeout(90_000),
-      ...(data ? { body: JSON.stringify(data) } : {}),
+      ...(bodyStr ? { body: bodyStr } : {}),
     };
 
     const upstream = await fetch(targetUrl, fetchOptions);

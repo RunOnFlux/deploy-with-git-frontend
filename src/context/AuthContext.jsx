@@ -66,9 +66,17 @@ export function AuthProvider({ children }) {
 
   const zelidFetchInFlight = useRef(false);
 
+  /** Persist sticky backend to sessionStorage so services can read it without context */
+  function applyStickyBackend(za) {
+    if (za?._stickyBackend) {
+      sessionStorage.setItem('stickyBackendDNS', za._stickyBackend);
+    }
+  }
+
   function handleLogout() {
     authService.logout();
     clearWalletSession();
+    sessionStorage.removeItem('stickyBackendDNS');
     setUser(null);
     setZelidauth(null);
     setLoginType(null);
@@ -87,6 +95,7 @@ export function AuthProvider({ children }) {
             Date.now() - session.zelidauth._issuedAt > ZELIDAUTH_TTL_MS;
 
           if (!sessionExpired && !tokenExpired) {
+            applyStickyBackend(session.zelidauth);
             setZelidauth(session.zelidauth);
             setLoginType(session.loginType);
             setUser(walletUser(session.zelidauth.zelid, session.loginType));
@@ -119,6 +128,7 @@ export function AuthProvider({ children }) {
 
       try {
         const za = await authService.storeZelidAuth(firebaseUser);
+        applyStickyBackend(za);
         setZelidauth(za);
       } catch (err) {
         console.error('Failed to obtain zelidauth:', err);
@@ -135,6 +145,7 @@ export function AuthProvider({ children }) {
     if (!za) return;
     const lt = za._loginType || 'zelcore';
     const zaWithMeta = { ...za, _issuedAt: za._issuedAt ?? Date.now() };
+    applyStickyBackend(zaWithMeta);
     setZelidauth(zaWithMeta);
     setLoginType(lt);
     setUser(walletUser(za.zelid, lt));

@@ -21,7 +21,7 @@ export const apiConfig = {
       testAppInstall: '/apps/testappinstall',
       deploymentInformation: '/apps/deploymentinformation',
       calculatePrice: '/apps/calculatefiatandfluxprice',
-      getAppPublicKey: '/apps/getapppublickey',
+      getAppPublicKey: '/apps/getpublickey',
       // Log polling
       appLogPolling: '/apps/applogpolling',
     },

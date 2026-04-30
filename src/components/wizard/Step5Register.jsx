@@ -15,7 +15,7 @@ import {
   buildPrivateRepoUrl,
   redactSpecCredentials,
 } from '../../services/deployService';
-import { encryptSpec, isWebCryptoAvailable } from '../../services/enterpriseCrypto';
+import { encryptSpec } from '../../services/enterpriseCrypto';
 import qs from 'qs';
 import { CheckCircle2, XCircle, Loader2, Terminal, Rocket } from 'lucide-react';
 
@@ -45,14 +45,19 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
   const [buildLogsComplete, setBuildLogsComplete] = useState(false);
   const [logsOpen, setLogsOpen] = useState(true);
   const streamRef = useRef(null);
+  const deployStartedRef = useRef(false);
   // Pre-encryption spec (credentials redacted) for price calculation in Step6
   const specForPricingRef = useRef(null);
 
   // Cancel stream on unmount
   useEffect(() => () => streamRef.current?.abort(), []);
 
-  // Auto-start deploying when step mounts
-  useEffect(() => { handleDeploy(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-start deploying when step mounts — guard prevents Strict Mode double-fire
+  useEffect(() => {
+    if (deployStartedRef.current) return;
+    deployStartedRef.current = true;
+    handleDeploy();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function fail(msg) {
     setError(msg);
@@ -108,15 +113,14 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       // 3b. Encrypt spec for enterprise/private apps
       if (isEnterprise) {
-        if (!isWebCryptoAvailable()) {
-          fail('Enterprise encryption requires a secure context (HTTPS or localhost). Please access the app over HTTPS.');
-          return;
-        }
         setPhase('encrypt');
         try {
           normalizedSpec = await encryptSpec(normalizedSpec, zelidauth);
         } catch (err) {
-          fail(`Encryption failed: ${err.message}`);
+          const isTimeout = err.name === 'TimeoutError' || err.name === 'AbortError';
+          fail(isTimeout
+            ? 'Enterprise key request timed out. The Flux network\'s getpublickey endpoint is currently unavailable — try again later or contact support.'
+            : `Encryption failed: ${err.message}`);
           return;
         }
       }

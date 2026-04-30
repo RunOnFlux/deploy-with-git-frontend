@@ -16,6 +16,11 @@ export function isWebCryptoAvailable() {
 
 function requireWebCrypto() {
   if (!isWebCryptoAvailable()) {
+    // In dev builds allow plain-HTTP access so enterprise flows can be tested
+    // over a non-HTTPS IP. The browser's native crypto will still throw if
+    // SubtleCrypto is truly unavailable.
+    if (import.meta.env.DEV) return;
+
     const secure =
       window.location.protocol === 'https:' ||
       ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -120,13 +125,23 @@ export async function encryptSpec(spec, zelidauth) {
     loginPhrase: zelidauth.loginPhrase,
   });
 
-  const resp = await fetch('/api/flux/apps/getapppublickey', {
+  const stickyBackend = zelidauth._stickyBackend;
+  if (!stickyBackend) {
+    throw new Error('Sticky backend not available — please log out and log in again before publishing an enterprise app.');
+  }
+
+  const resp = await fetch('/api/node-proxy', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+    headers: { 'Content-Type': 'application/json' },
+    // 15s timeout — the getpublickey RPC is known to hang on some nodes
+    signal: AbortSignal.timeout(15_000),
+    body: JSON.stringify({
+      nodeBase: stickyBackend,
+      path: '/apps/getpublickey',
+      method: 'POST',
       zelidauth: zaStr,
-    },
-    body: JSON.stringify({ name: spec.name, owner: spec.owner }),
+      data: { name: spec.name, owner: spec.owner },
+    }),
   });
 
   if (!resp.ok) {
