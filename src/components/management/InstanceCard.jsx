@@ -45,7 +45,7 @@ function variantClass(variant) {
   }
 }
 
-export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, branch }) {
+export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, branch, apiKey }) {
   const { zelidauth } = useAuth();
   const [logsOpen, setLogsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('build');
@@ -60,10 +60,10 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
   // Fetch per-node orbit status once on mount
   useEffect(() => {
     if (!node.ip || !mgmtPort) return;
-    fetchNodeOrbitStatus(node.ip, mgmtPort)
+    fetchNodeOrbitStatus(node.ip, mgmtPort, apiKey)
       .then(setOrbitStatus)
       .catch(() => {});
-  }, [node.ip, mgmtPort]);
+  }, [node.ip, mgmtPort, apiKey]);
 
   const nodeBase = nodeBaseUrl(node.ip, node.port);
   const zaStr = zelidauth
@@ -106,7 +106,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
     setLoadingAction('redeploy-orbit');
     setActionResult(null);
     try {
-      const result = await triggerOrbitDeploy(node.ip, mgmtPort, webhookSecret, branch, false);
+      const result = await triggerOrbitDeploy(node.ip, mgmtPort, webhookSecret, branch, false, apiKey);
       if (result?.status === 'ok') {
         toast.success('Pull & Build triggered — checking for new commits.');
         setActionResult({ type: 'success', msg: 'Pull & Build triggered — checking for new commits.' });
@@ -261,6 +261,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
             zelidauth={zaStr}
             activeTab={activeTab}
             mgmtPort={mgmtPort}
+            apiKey={apiKey}
           />
         </div>
       )}

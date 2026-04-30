@@ -138,6 +138,7 @@ export default function AppDetail() {
                   mgmtPort={getMgmtPort(spec)}
                   webhookSecret={getSpecEnvValue(spec, 'WEBHOOK_SECRET')}
                   branch={getSpecEnvValue(spec, 'GIT_BRANCH', 'BRANCH') || 'main'}
+                  apiKey={getSpecEnvValue(spec, 'API_KEY') || undefined}
                 />
               ))}
             </div>

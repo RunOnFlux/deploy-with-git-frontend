@@ -371,10 +371,21 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
     const ct = upstream.headers.get('content-type');
     res.setHeader('Content-Type', ct || 'application/json');
     const { Readable } = await import('node:stream');
-    Readable.fromWeb(upstream.body).pipe(res);
+    const readable = Readable.fromWeb(upstream.body);
+    // Must handle 'error' on the readable — otherwise ECONNRESET from the
+    // upstream node becomes an uncaught exception and crashes the process.
+    readable.on('error', (streamErr) => {
+      console.error(`node-proxy stream error [${targetUrl}]:`, streamErr.message);
+      if (!res.writableEnded) res.end();
+    });
+    // If the client disconnects, stop reading from the upstream.
+    res.on('error', () => readable.destroy());
+    readable.pipe(res);
   } catch (err) {
     console.error(`node-proxy error [${targetUrl}]:`, err.message);
-    res.status(502).json({ status: 'error', data: 'Node request failed' });
+    if (!res.headersSent) {
+      res.status(502).json({ status: 'error', data: 'Node request failed' });
+    }
   }
 });
 
@@ -385,11 +396,11 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
  *
  * Allowed paths: /status  or  /logs/<releaseId>
  */
-const VALID_ORBIT_PATH = /^\/status$|^\/logs\/[a-zA-Z0-9_-]{1,80}$/;
+const VALID_ORBIT_PATH = /^\/status$|^\/logs\/[a-zA-Z0-9_-]{1,80}$|^\/applogs$/;
 const VALID_IPV4 = /^(\d{1,3}\.){3}\d{1,3}$/;
 
 app.post('/api/orbit-node-status', express.json(), async (req, res) => {
-  const { nodeIp, mgmtPort, path: statusPath = '/status' } = req.body || {};
+  const { nodeIp, mgmtPort, path: statusPath = '/status', query, apiKey } = req.body || {};
 
   if (!nodeIp || !VALID_IPV4.test(nodeIp)) {
     return res.status(400).json({ error: 'Invalid nodeIp' });
@@ -402,10 +413,14 @@ app.post('/api/orbit-node-status', express.json(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid path' });
   }
 
-  const targetUrl = `http://${nodeIp}:${port}${statusPath}`;
+  // query must be a safe alphanumeric query string (no injection vectors)
+  const qs = typeof query === 'string' && /^[a-zA-Z0-9=&%_.+-]{0,200}$/.test(query) ? query : '';
+  const targetUrl = `http://${nodeIp}:${port}${statusPath}${qs ? `?${qs}` : ''}`;
   try {
+    const headers = { Accept: 'application/json, text/plain, */*' };
+    if (apiKey && typeof apiKey === 'string') headers['X-API-Key'] = apiKey;
     const upstream = await fetch(targetUrl, {
-      headers: { Accept: 'application/json, text/plain, */*' },
+      headers,
       signal: AbortSignal.timeout(10000),
     });
     const contentType = upstream.headers.get('content-type') || '';
@@ -429,7 +444,7 @@ app.post('/api/orbit-node-status', express.json(), async (req, res) => {
  * Body: { nodeIp, mgmtPort, webhookSecret, branch, hardRedeploy }
  */
 app.post('/api/orbit-deploy', express.json(), async (req, res) => {
-  const { nodeIp, mgmtPort, webhookSecret, branch = 'main', hardRedeploy = false } = req.body || {};
+  const { nodeIp, mgmtPort, webhookSecret, branch = 'main', hardRedeploy = false, apiKey } = req.body || {};
 
   if (!nodeIp || !VALID_IPV4.test(nodeIp)) {
     return res.status(400).json({ error: 'Invalid nodeIp' });
@@ -454,6 +469,7 @@ app.post('/api/orbit-deploy', express.json(), async (req, res) => {
     'X-GitHub-Event': 'push',
   };
 
+  if (apiKey && typeof apiKey === 'string') headers['X-API-Key'] = apiKey;
   if (webhookSecret) {
     const sig = 'sha256=' + crypto.createHmac('sha256', webhookSecret).update(payload).digest('hex');
     headers['X-Hub-Signature-256'] = sig;
@@ -543,9 +559,18 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// Safety net — keep the process alive if a stream/handler throws unexpectedly.
+// Individual handlers are still responsible for proper error responses.
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception (server kept alive):', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection (server kept alive):', reason?.message ?? reason);
+});
+
 const server = createServer(app);
 server.listen(PORT, () => {
-  console.log(`🚀 Orbit BFF running on http://localhost:${PORT}`);
+  console.log(`\uD83D\uDE80 Orbit BFF running on http://localhost:${PORT}`);
 });
 
 export default app;

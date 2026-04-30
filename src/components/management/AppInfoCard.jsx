@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
-import { fetchOrbitStatus, getMgmtPort } from '../../services/managementService';
+import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -112,11 +112,13 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
 
   useEffect(() => {
     const port = getMgmtPort(spec);
-    if (!appName || !port) return;
-    fetchOrbitStatus(appName, port)
+    const nodeIp = nodeStatuses?.[0]?.ip;
+    if (!port || !nodeIp) return;
+    const apiKey = getSpecEnvValue(spec, 'API_KEY') || undefined;
+    fetchNodeOrbitStatus(nodeIp, port, apiKey)
       .then(setOrbitStatus)
       .catch(() => {}); // non-critical
-  }, [appName, spec]);
+  }, [spec, nodeStatuses]);
 
     if (!spec) {
     return (

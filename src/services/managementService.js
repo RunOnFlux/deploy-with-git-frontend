@@ -208,11 +208,12 @@ function stripPort(ip) {
  * Fetch Orbit status for a specific node via BFF proxy.
  * Bypasses CORS — goes to http://<nodeIp>:<mgmtPort>/status
  */
-export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
+export async function fetchNodeOrbitStatus(nodeIp, mgmtPort, apiKey) {
   const resp = await axiosInstance.post('/orbit-node-status', {
     nodeIp: stripPort(nodeIp),
     mgmtPort,
     path: '/status',
+    ...(apiKey ? { apiKey } : {}),
   });
   return resp.data;
 }
@@ -221,14 +222,31 @@ export async function fetchNodeOrbitStatus(nodeIp, mgmtPort) {
  * Fetch build logs for a specific release from a node via BFF proxy.
  * Returns plain-text log output.
  */
-export async function fetchNodeOrbitLogs(nodeIp, mgmtPort, releaseId) {
+export async function fetchNodeOrbitLogs(nodeIp, mgmtPort, releaseId, apiKey) {
   const resp = await axiosInstance.post('/orbit-node-status', {
     nodeIp: stripPort(nodeIp),
     mgmtPort,
     path: `/logs/${encodeURIComponent(releaseId)}`,
+    ...(apiKey ? { apiKey } : {}),
   });
   // axios response: if text/plain BFF sends it as a string in resp.data
   return typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data, null, 2);
+}
+
+/**
+ * Fetch Orbit app logs (/applogs) for a specific node via BFF proxy.
+ * Returns an array of log line strings.
+ */
+export async function fetchNodeOrbitAppLogs(nodeIp, mgmtPort, apiKey) {
+  const resp = await axiosInstance.post('/orbit-node-status', {
+    nodeIp: stripPort(nodeIp),
+    mgmtPort,
+    path: '/applogs',
+    query: 'tail=100&format=json',
+    ...(apiKey ? { apiKey } : {}),
+  });
+  const data = resp.data;
+  return Array.isArray(data) ? data : (data?.lines ?? data?.logs ?? []);
 }
 
 /**
@@ -250,13 +268,14 @@ export function getSpecEnvValue(spec, ...keys) {
  * Trigger an Orbit redeploy on a specific node via the BFF.
  * Posts a synthetic push payload to that node's webhook server.
  */
-export async function triggerOrbitDeploy(nodeIp, mgmtPort, webhookSecret, branch, hardRedeploy = false) {
+export async function triggerOrbitDeploy(nodeIp, mgmtPort, webhookSecret, branch, hardRedeploy = false, apiKey = null) {
   const resp = await axiosInstance.post('/orbit-deploy', {
     nodeIp: stripPort(nodeIp),
     mgmtPort,
     webhookSecret,
     branch: branch || 'main',
     hardRedeploy,
+    ...(apiKey ? { apiKey } : {}),
   });
   return resp.data;
 }

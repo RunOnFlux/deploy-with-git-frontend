@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Download } from 'lucide-react';
-import { fetchAppLogPolling, nodeBaseUrl, containerName } from '../../services/managementService';
+import { fetchAppLogPolling, nodeBaseUrl, containerName, fetchNodeOrbitStatus, fetchNodeOrbitLogs, fetchNodeOrbitAppLogs } from '../../services/managementService';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -15,7 +15,7 @@ function fmtDate(iso) {
 
 // ── Build-mode sub-panel ──────────────────────────────────────────────────────
 
-function BuildLogsPanel({ appName, mgmtPort }) {
+function BuildLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
   const [releases, setReleases] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [currentRelease, setCurrentRelease] = useState(null);
@@ -26,40 +26,37 @@ function BuildLogsPanel({ appName, mgmtPort }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const bottomRef = useRef(null);
 
-  const base = `https://${appName}_${mgmtPort}.app.runonflux.io`;
-
   // Fetch /status once → populate release list
   useEffect(() => {
-    if (!mgmtPort) { setStatusError('Management port not available'); setLoading(false); return; }
-    const ctrl = new AbortController();
-    fetch(`${base}/status`, { signal: ctrl.signal })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    if (!mgmtPort || !nodeIp) { setStatusError('Management port not available'); setLoading(false); return; }
+    let cancelled = false;
+    fetchNodeOrbitStatus(nodeIp, mgmtPort, apiKey)
       .then(data => {
+        if (cancelled) return;
         setReleases(data.releases ?? []);
         const cur = data.current_release ?? data.releases?.[0]?.id ?? null;
         setCurrentRelease(cur);
         setSelectedId(cur);
       })
-      .catch(err => { if (err.name !== 'AbortError') setStatusError(err.message); });
-    return () => ctrl.abort();
-  }, [base, mgmtPort]);
+      .catch(err => { if (!cancelled) setStatusError(err.message); });
+    return () => { cancelled = true; };
+  }, [nodeIp, mgmtPort, apiKey]);
 
   // Fetch logs whenever selected release or refreshKey changes
   useEffect(() => {
     if (!selectedId) return;
-    const ctrl = new AbortController();
+    let cancelled = false;
     setLoading(true);
     setLines([]);
     setError(null);
 
-    fetch(`${base}/logs/${encodeURIComponent(selectedId)}`, { signal: ctrl.signal })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
-      .then(text => { if (!ctrl.signal.aborted) setLines(text.split('\n').filter(Boolean).map(stripAnsi)); })
-      .catch(err => { if (err.name !== 'AbortError') setError(err.message); })
-      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    fetchNodeOrbitLogs(nodeIp, mgmtPort, selectedId, apiKey)
+      .then(text => { if (!cancelled) setLines(text.split('\n').filter(Boolean).map(stripAnsi)); })
+      .catch(err => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => ctrl.abort();
-  }, [selectedId, refreshKey, base]);
+    return () => { cancelled = true; };
+  }, [selectedId, refreshKey, nodeIp, mgmtPort, apiKey]);
 
   // Auto-scroll
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
@@ -176,7 +173,7 @@ function BuildLogsPanel({ appName, mgmtPort }) {
 
 // ── Orbit app-logs sub-panel ─────────────────────────────────────────────────
 
-function OrbitAppLogsPanel({ appName, mgmtPort }) {
+function OrbitAppLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
   const [lines, setLines] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,28 +181,24 @@ function OrbitAppLogsPanel({ appName, mgmtPort }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const bottomRef = useRef(null);
 
-  const base = `https://${appName}_${mgmtPort}.app.runonflux.io`;
-
   useEffect(() => {
-    if (!mgmtPort) { setError('Management port not available'); setLoading(false); return; }
-    const ctrl = new AbortController();
+    if (!mgmtPort || !nodeIp) { setError('Management port not available'); setLoading(false); return; }
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetch(`${base}/applogs?tail=100&format=json`, { signal: ctrl.signal })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    fetchNodeOrbitAppLogs(nodeIp, mgmtPort, apiKey)
       .then(data => {
-        if (ctrl.signal.aborted) return;
-        // Response may be { lines: [...] }, { logs: [...] }, or a plain array
-        const raw = Array.isArray(data) ? data : (data.lines ?? data.logs ?? []);
+        if (cancelled) return;
+        const raw = Array.isArray(data) ? data : (data?.lines ?? data?.logs ?? []);
         setLines(raw.filter(Boolean).map(stripAnsi));
         setLastUpdated(new Date());
       })
-      .catch(err => { if (err.name !== 'AbortError') setError(err.message); })
-      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+      .catch(err => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => ctrl.abort();
-  }, [base, mgmtPort, refreshKey]);
+    return () => { cancelled = true; };
+  }, [nodeIp, mgmtPort, apiKey, refreshKey]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
@@ -370,13 +363,13 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
 
 // ── Public component ──────────────────────────────────────────────────────────
 
-export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, activeTab, mgmtPort }) {
+export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, activeTab, mgmtPort, apiKey }) {
   return (
     <div className="flex h-64">
       {activeTab === 'build'
-        ? <BuildLogsPanel appName={appName} mgmtPort={mgmtPort} />
+        ? <BuildLogsPanel appName={appName} mgmtPort={mgmtPort} nodeIp={nodeIp} apiKey={apiKey} />
         : activeTab === 'orbit-app'
-          ? <OrbitAppLogsPanel appName={appName} mgmtPort={mgmtPort} />
+          ? <OrbitAppLogsPanel appName={appName} mgmtPort={mgmtPort} nodeIp={nodeIp} apiKey={apiKey} />
           : <AppLogsPanel nodeIp={nodeIp} nodePort={nodePort} appName={appName} zelidauth={zelidauth} />
       }
     </div>
