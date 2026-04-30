@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../utils/firebase';
@@ -11,8 +11,10 @@ import {
   signWithSSO,
   signWithSSP,
   signWithZelCore,
+  pollUpdate,
 } from '../../services/deployService';
 import { encryptSpec } from '../../services/enterpriseCrypto';
+import { redeployAllInstances } from '../../services/managementService';
 import Step6Payment from '../wizard/Step6Payment';
 
 // Keys that are completely hidden — never shown, always preserved as-is
@@ -109,7 +111,7 @@ function PasswordInput({ value, onChange, placeholder, disabled }) {
   );
 }
 
-export default function SpecEditorCard({ spec, onSaved }) {
+export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
   const { zelidauth, loginType } = useAuth();
 
   // ── Local editable state ───────────────────────────────────────────────
@@ -129,9 +131,15 @@ export default function SpecEditorCard({ spec, onSaved }) {
   // Save flow state
   const [savePhase, setSavePhase]     = useState(null);
   const [saveError, setSaveError]     = useState(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   // If paid update: show payment step with { txid, verifiedSpec, price }
   const [paymentContext, setPaymentContext] = useState(null);
+  // After successful registration: blockchain polling + redeploy prompt
+  // { hash, polling: 'waiting'|'confirmed'|'timeout', redeploying: bool, redeployResult }
+  const [updateContext, setUpdateContext] = useState(null);
+  const cancelPollRef = useRef(null);
+
+  // Cancel polling on unmount
+  useEffect(() => () => { cancelPollRef.current?.(); }, []);
 
   // ── Populate state from spec ─────────────────────────────────────────
   useEffect(() => {
@@ -183,28 +191,24 @@ export default function SpecEditorCard({ spec, onSaved }) {
   // ── Helpers ───────────────────────────────────────────────────────────
   function updateOrbit(key, value) {
     setOrbitSettings((s) => ({ ...s, [key]: value }));
-    setSaveSuccess(false);
   }
 
   function addRow() {
     setUserEnvRows((rows) => [...rows, { key: '', value: '' }]);
-    setSaveSuccess(false);
   }
   function updateRow(idx, field, val) {
     setUserEnvRows((rows) => rows.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
-    setSaveSuccess(false);
   }
   function removeRow(idx) {
     setUserEnvRows((rows) => rows.filter((_, i) => i !== idx));
-    setSaveSuccess(false);
   }
 
   // ── Save / re-register ───────────────────────────────────────────────
   async function handleSave() {
     if (!spec || !zelidauth) return;
     setSaveError(null);
-    setSaveSuccess(false);
-    setUpdatePrice(null);
+    setUpdateContext(null);
+    cancelPollRef.current?.();
 
     // Rebuild env params: hidden first, then orbit settings, then user vars
     const orbitRows = Object.entries(orbitSettings)
@@ -291,12 +295,33 @@ export default function SpecEditorCard({ spec, onSaved }) {
     }
 
     setSavePhase(null);
-    setSaveSuccess(true);
     if (price?.flux > 0) {
       setPaymentContext({ txid: result, verifiedSpec, price });
     } else {
-      toast.success('Settings saved — changes will propagate to nodes in a few minutes.');
-      onSaved?.();
+      startUpdatePolling(result);
+    }
+  }
+
+  function startUpdatePolling(updateHash) {
+    setUpdateContext({ hash: updateHash, polling: 'waiting', redeploying: false, redeployResult: null });
+    cancelPollRef.current = pollUpdate(spec.name, updateHash, {
+      onSuccess: () => {
+        setUpdateContext((c) => ({ ...c, polling: 'confirmed' }));
+        onSaved?.();
+      },
+      onError: () => {
+        setUpdateContext((c) => ({ ...c, polling: 'timeout' }));
+      },
+    });
+  }
+
+  async function handleRedeployAll() {
+    setUpdateContext((c) => ({ ...c, redeploying: true, redeployResult: null }));
+    try {
+      const result = await redeployAllInstances(spec.name, nodeStatuses, zelidauth);
+      setUpdateContext((c) => ({ ...c, redeploying: false, redeployResult: result }));
+    } catch {
+      setUpdateContext((c) => ({ ...c, redeploying: false, redeployResult: { ok: 0, failed: nodeStatuses.length } }));
     }
   }
 
@@ -317,7 +342,11 @@ export default function SpecEditorCard({ spec, onSaved }) {
           registration={{ appName: paymentContext.verifiedSpec?.name, txid: paymentContext.txid }}
           priceOverride={paymentContext.price}
           subtitle="Your app has been updated. Complete payment to apply changes to the network."
-          onBack={() => setPaymentContext(null)}
+          onBack={() => {
+            setPaymentContext(null);
+            // Payment was completed (user pressed "I've paid") — start polling
+            startUpdatePolling(paymentContext.txid);
+          }}
         />
       </div>
     );
@@ -352,7 +381,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
               <input
                 className="input w-full text-sm"
                 value={description}
-                onChange={(e) => { setDescription(e.target.value); setSaveSuccess(false); }}
+                onChange={(e) => { setDescription(e.target.value); }}
                 placeholder="Short description of your app"
                 disabled={isSaving}
               />
@@ -362,7 +391,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
               <input
                 className="input w-full text-sm font-mono"
                 value={customDomain}
-                onChange={(e) => { setCustomDomain(e.target.value); setSaveSuccess(false); }}
+                onChange={(e) => { setCustomDomain(e.target.value); }}
                 placeholder="yourdomain.com"
                 disabled={isSaving}
               />
@@ -505,10 +534,57 @@ export default function SpecEditorCard({ spec, onSaved }) {
         </div>
       )}
 
-      {saveSuccess && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20 mb-3 text-sm text-accent">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          Update submitted. Changes will propagate to nodes in a few minutes.
+      {/* ── Update tracker ── shown after successful registration */}
+      {updateContext && (
+        <div className="rounded-lg border border-border overflow-hidden mb-3">
+          {/* Blockchain confirmation row */}
+          <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-hover border-b border-border/50">
+            {updateContext.polling === 'confirmed' ? (
+              <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
+            ) : updateContext.polling === 'timeout' ? (
+              <AlertCircle className="w-4 h-4 text-warning shrink-0" />
+            ) : (
+              <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+            )}
+            <span className="text-sm text-text">
+              {updateContext.polling === 'confirmed'
+                ? 'Update confirmed on blockchain'
+                : updateContext.polling === 'timeout'
+                  ? 'Confirmation timed out — check back in a few minutes'
+                  : 'Waiting for blockchain confirmation…'}
+            </span>
+          </div>
+
+          {/* Redeploy row — shown once confirmed */}
+          {updateContext.polling === 'confirmed' && (
+            <div className="px-3 py-3">
+              <p className="text-xs text-text-muted mb-2.5">
+                Update is live on-chain. Redeploy all running instances to apply the new spec immediately.
+              </p>
+              {updateContext.redeployResult ? (
+                <div className={`flex items-center gap-2 text-sm ${updateContext.redeployResult.failed === 0 ? 'text-accent' : 'text-warning'}`}>
+                  {updateContext.redeployResult.failed === 0
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    : <AlertCircle className="w-4 h-4 shrink-0" />}
+                  {updateContext.redeployResult.failed === 0
+                    ? `Redeployed ${updateContext.redeployResult.ok} instance${updateContext.redeployResult.ok !== 1 ? 's' : ''} successfully`
+                    : `${updateContext.redeployResult.ok} succeeded, ${updateContext.redeployResult.failed} failed`}
+                </div>
+              ) : (
+                <button
+                  onClick={handleRedeployAll}
+                  disabled={updateContext.redeploying || nodeStatuses.length === 0}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updateContext.redeploying ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Redeploying…</>
+                  ) : (
+                    <><RefreshCw className="w-3.5 h-3.5" />Redeploy all instances ({nodeStatuses.length})</>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

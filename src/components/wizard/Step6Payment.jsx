@@ -55,8 +55,15 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
     popupRef.current?.close();
   }, []);
 
-  // Free plan or after payment confirmed → show deployment tracker
-  if (isFree || paid) {
+  // Update flow: once paid, hand control back to parent (SpecEditorCard shows its own tracker)
+  useEffect(() => {
+    if (paid && onBack) onBack();
+  // onBack identity is stable (inline arrow in SpecEditorCard); paid only flips once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paid]);
+
+  // Free plan or after payment confirmed → show deployment tracker (wizard flow only)
+  if (isFree || (paid && !onBack)) {
     return (
       <DeploymentTracker
         appName={appName}
