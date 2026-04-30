@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink, Globe } from 'lucide-react';
 import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import StatusBadge from './StatusBadge';
-import { fetchOrbitStatus } from '../../services/managementService';
+import { fetchNodeOrbitStatus, getSpecEnvValue } from '../../services/managementService';
 
 function Skel({ className }) {
   return <div className={`animate-pulse rounded bg-surface-hover ${className}`} />;
@@ -78,11 +78,15 @@ export default function AppCard({ app, compact = false }) {
 
   // mgmt port is the second port in the first compose service
   const mgmtPort = app.compose?.[0]?.ports?.[1] ?? null;
+  // API_KEY from env params — needed for authenticated management endpoints
+  const apiKey = getSpecEnvValue(app, 'API_KEY') || undefined;
+  // Use the first running node IP attached by useAppsWithStatus
+  const nodeIp = app.nodeIp ?? null;
 
   const { data: orbitStatus, isLoading: statusLoading } = useQuery({
-    queryKey: ['orbitStatus', app.name, mgmtPort],
-    queryFn: () => fetchOrbitStatus(app.name, mgmtPort),
-    enabled: !!mgmtPort,
+    queryKey: ['orbitStatus', app.name, mgmtPort, nodeIp],
+    queryFn: () => fetchNodeOrbitStatus(nodeIp, mgmtPort, apiKey),
+    enabled: !!mgmtPort && !!nodeIp,
     staleTime: 60_000,
     retry: false,
   });

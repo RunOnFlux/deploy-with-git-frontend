@@ -46,13 +46,32 @@ export function useAppsWithStatus() {
     })),
   });
 
+  const locationQueries = useQueries({
+    queries: apps.map((app) => ({
+      queryKey: ['appLocation', app.name],
+      queryFn: async () => {
+        const { default: axiosInstance } = await import('../services/axiosInstance');
+        const resp = await axiosInstance.get(
+          `/flux/apps/location/${encodeURIComponent(app.name)}`,
+          { headers: { 'x-apicache-bypass': true } },
+        );
+        return resp.data?.data ?? [];
+      },
+      staleTime: 30_000,
+      refetchInterval: 30_000,
+    })),
+  });
+
   const appsWithStatus = apps.map((app, i) => {
     const q = statusQueries[i];
-    // isPending = no data yet (covers both first-fetch and disabled state)
+    const lq = locationQueries[i];
     const statusLoading = !q || q.isPending;
+    const nodes = lq?.data ?? [];
+    const nodeIp = nodes.find(n => Boolean(n.runningSince))?.ip ?? nodes[0]?.ip ?? null;
     return {
       ...app,
       status: statusLoading ? 'loading' : (q.data ?? 'unknown'),
+      nodeIp,
     };
   });
 
