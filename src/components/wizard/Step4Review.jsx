@@ -82,8 +82,12 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         }
 
         const hasOrbitApp = json.data.some((app) => {
-          if (!app.compose || !Array.isArray(app.compose)) return false;
-          return app.compose[0]?.repotag === 'runonflux/orbit:latest';
+          // Non-enterprise: check repotag on compose[0]
+          if (app.compose?.length > 0) {
+            return app.compose[0]?.repotag === 'runonflux/orbit:latest';
+          }
+          // Enterprise: compose is empty, but enterprise blob means it IS an orbit app
+          return !!(app.version >= 8 && app.enterprise);
         });
 
         setHasDuplicate(hasOrbitApp);

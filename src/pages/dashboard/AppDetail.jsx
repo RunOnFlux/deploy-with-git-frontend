@@ -2,15 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import AppInfoCard from '../../components/management/AppInfoCard';
 import SpecEditorCard from '../../components/management/SpecEditorCard';
 import InstanceCard from '../../components/management/InstanceCard';
 import { fetchAppSpec, fetchNodeStatuses, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
+import { decryptEnterpriseSpec } from '../../services/enterpriseCrypto';
 
 const POLL_INTERVAL_MS = 30_000;
 
 export default function AppDetail() {
   const { appName } = useParams();
+  const { zelidauth } = useAuth();
 
   const [spec, setSpec] = useState(null);
   const [nodeStatuses, setNodeStatuses] = useState([]);
@@ -21,7 +24,11 @@ export default function AppDetail() {
 
   const loadSpec = useCallback(async () => {
     try {
-      const s = await fetchAppSpec(appName);
+      let s = await fetchAppSpec(appName);
+      // Enterprise apps have compose: [] — decrypt to restore compose/contacts
+      if (s?.enterprise && zelidauth) {
+        s = await decryptEnterpriseSpec(s, zelidauth);
+      }
       setSpec(s);
       setSpecError(null);
     } catch (err) {
@@ -29,7 +36,7 @@ export default function AppDetail() {
     } finally {
       setSpecLoading(false);
     }
-  }, [appName]);
+  }, [appName, zelidauth]);
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -98,7 +105,7 @@ export default function AppDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <AppInfoCard spec={spec} nodeStatuses={nodeStatuses} appName={appName} />
-          <SpecEditorCard spec={spec} onSaved={handleSaved} />
+          <SpecEditorCard spec={spec} nodeStatuses={nodeStatuses} onSaved={handleSaved} />
         </div>
 
         <div>

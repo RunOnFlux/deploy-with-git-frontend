@@ -12,6 +12,7 @@ import {
   signWithSSP,
   signWithZelCore,
 } from '../../services/deployService';
+import { encryptSpec } from '../../services/enterpriseCrypto';
 import Step6Payment from '../wizard/Step6Payment';
 
 // Keys that are completely hidden — never shown, always preserved as-is
@@ -30,6 +31,7 @@ const ORBIT_SETTINGS_DEFS = [
   { key: 'RUN_COMMAND',      label: 'Run Command',      type: 'text'    },
   { key: 'PROJECT_PATH',     label: 'Project Path',     type: 'text'    },
   { key: 'WEBHOOK_SECRET',   label: 'Webhook Secret',   type: 'password' },
+  { key: 'API_KEY',          label: 'API Key',          type: 'password' },
 ];
 
 const ALL_ORBIT_KEYS = new Set(
@@ -128,8 +130,7 @@ export default function SpecEditorCard({ spec, onSaved }) {
   const [savePhase, setSavePhase]     = useState(null);
   const [saveError, setSaveError]     = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [updatePrice, setUpdatePrice] = useState(null); // { flux, usd } | null
-  // If paid update: show payment step with { txid, verifiedSpec }
+  // If paid update: show payment step with { txid, verifiedSpec, price }
   const [paymentContext, setPaymentContext] = useState(null);
 
   // ── Populate state from spec ─────────────────────────────────────────
@@ -227,23 +228,35 @@ export default function SpecEditorCard({ spec, onSaved }) {
     };
 
     setSavePhase('verifying');
+    let specToVerify = updatedSpec;
+    // Enterprise apps: re-encrypt before submitting so the blockchain stores
+    // compose/contacts inside the encrypted enterprise blob (not in plain text).
+    if (spec.isEnterprise || spec._wasEnterprise) {
+      try {
+        specToVerify = await encryptSpec(updatedSpec, zelidauth);
+      } catch (err) {
+        setSaveError(`Enterprise encryption failed: ${err.message}`);
+        setSavePhase(null);
+        return;
+      }
+    }
     let verifiedSpec;
     try {
-      verifiedSpec = await verifyUpdateSpec(updatedSpec);
+      verifiedSpec = await verifyUpdateSpec(specToVerify);
     } catch (err) {
       setSaveError(`Verification failed: ${err.message}`);
       setSavePhase(null);
       return;
     }
 
-    // Calculate price (best-effort; don't block on failure)
-    let price = { flux: 0, usd: 0 };
+    // Calculate price — if flux > 0 the update requires payment.
+    // Default to null on error so we don't silently skip a payment that may be owed.
+    let price = null;
     try {
       price = await calculatePrice(verifiedSpec, zelidauth);
     } catch {
-      // ignore price calculation errors — proceed with unknown price
+      // Non-fatal: treat as unknown price (will not show payment screen)
     }
-    setUpdatePrice(price);
 
     setSavePhase('signing');
     const timestamp   = Date.now();
@@ -279,8 +292,8 @@ export default function SpecEditorCard({ spec, onSaved }) {
 
     setSavePhase(null);
     setSaveSuccess(true);
-    if (price.flux > 0) {
-      setPaymentContext({ txid: result, verifiedSpec });
+    if (price?.flux > 0) {
+      setPaymentContext({ txid: result, verifiedSpec, price });
     } else {
       toast.success('Settings saved — changes will propagate to nodes in a few minutes.');
       onSaved?.();
@@ -294,8 +307,6 @@ export default function SpecEditorCard({ spec, onSaved }) {
     registering: 'Registering update…',
   };
 
-  const isFree = !updatePrice || updatePrice.flux === 0;
-
   // After a paid update is submitted, show the full payment step
   if (paymentContext) {
     return (
@@ -304,6 +315,8 @@ export default function SpecEditorCard({ spec, onSaved }) {
           verifiedSpec={paymentContext.verifiedSpec}
           plan={null}
           registration={{ appName: paymentContext.verifiedSpec?.name, txid: paymentContext.txid }}
+          priceOverride={paymentContext.price}
+          subtitle="Your app has been updated. Complete payment to apply changes to the network."
           onBack={() => setPaymentContext(null)}
         />
       </div>

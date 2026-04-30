@@ -51,6 +51,7 @@ export function parseAppData(msg) {
   const compose = msg.compose ?? [];
   const first = compose[0] ?? {};
   const { gitRepo, gitBranch, appPort } = extractGitInfo(compose);
+  const isEnterprise = !!(msg.version >= 8 && msg.enterprise);
 
   return {
     name: msg.name,
@@ -60,7 +61,7 @@ export function parseAppData(msg) {
     height: msg.height ?? 0,
     expire: msg.expire ?? 0,
     instances: msg.instances ?? first.instances ?? 1,
-    repotag: first.repotag ?? '',
+    repotag: first.repotag ?? (isEnterprise ? 'runonflux/orbit:latest' : ''),
     gitRepo,
     gitBranch,
     appPort,
@@ -69,6 +70,7 @@ export function parseAppData(msg) {
     hdd: first.hdd ?? 0,      // GB
     ports: first.ports ?? [],
     compose,
+    isEnterprise,
   };
 }
 
@@ -90,10 +92,28 @@ export async function fetchApps(zelid) {
   const messages = resp.data?.data ?? [];
 
   const orbitApps = messages.filter((msg) =>
-    msg.compose?.some((s) => s.repotag?.includes('runonflux/orbit')),
+    msg.compose?.some((s) => s.repotag?.includes('runonflux/orbit'))
+    // Enterprise apps have compose: [] — include them if enterprise blob is present
+    || (msg.version >= 8 && msg.enterprise),
   );
 
   return orbitApps.map(parseAppData);
+}
+
+/**
+ * Fetch raw on-chain specs for a zelid without running parseAppData.
+ * Used by the hook when it needs to decrypt enterprise apps before parsing.
+ */
+export async function fetchAppsRaw(zelid) {
+  const resp = await axiosInstance.get(`/flux/apps/globalappsspecifications?owner=${zelid}`, {
+    headers: { 'x-apicache-bypass': true },
+  });
+  const messages = resp.data?.data ?? [];
+
+  return messages.filter((msg) =>
+    msg.compose?.some((s) => s.repotag?.includes('runonflux/orbit'))
+    || (msg.version >= 8 && msg.enterprise),
+  );
 }
 
 /**

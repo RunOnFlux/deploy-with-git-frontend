@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, Copy, Check, ExternalLink, Terminal, Clock } from 'lucide-react';
 import { getPaymentAddress, pollDeployment } from '../../services/deployService';
 
 const DEPLOY_PHASES = [
   { label: 'Waiting for blockchain confirmation' },
   { label: 'Confirmed on blockchain' },
-  { label: 'Installing on nodes' },
   { label: 'Deployment complete!' },
 ];
 
@@ -36,6 +36,7 @@ export default function DeploymentTracker({
   const [logsOpen, setLogsOpen] = useState(true);
   const stopPollRef = useRef(null);
   const logsEndRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,8 +54,11 @@ export default function DeploymentTracker({
       // Advance past the completed phase so it shows as ✅, not spinning
       onPhase: (p) => setDeployPhase(p + 1),
       onSuccess: () => {
-        // All phases done
         setDeployPhase(DEPLOY_PHASES.length);
+        // Navigate to the manage page after a brief pause so the user sees the success state
+        setTimeout(() => {
+          navigate(`/dashboard/deployments/${encodeURIComponent(appName)}`);
+        }, 2500);
       },
       onError: (err) => {
         setDeployError(err.message);

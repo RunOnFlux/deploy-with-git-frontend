@@ -68,6 +68,8 @@ app.all('/api/flux/*splat', async (req, res) => {
     const headers = {};
     if (req.headers['content-type']) headers['Content-Type'] = req.headers['content-type'];
     if (req.headers['zelidauth']) headers['zelidauth'] = req.headers['zelidauth'];
+    if (req.headers['enterprise-key']) headers['enterprise-key'] = req.headers['enterprise-key'];
+    if (req.headers['x-apicache-bypass']) headers['x-apicache-bypass'] = req.headers['x-apicache-bypass'];
 
     const fetchOptions = {
       method: req.method,

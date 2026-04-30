@@ -173,3 +173,99 @@ export async function encryptSpec(spec, zelidauth) {
     compose: [],
   };
 }
+
+// ── Decryption ────────────────────────────────────────────────────────────────
+
+/**
+ * AES-GCM decrypt a payload re-encrypted by the Flux node.
+ * The node returns: nonce(12B) | ciphertext+tag (no RSA key prefix).
+ */
+async function decryptWithAes(base64NonceCiphertext, aesKey) {
+  requireWebCrypto();
+  const buf = base64ToUint8Array(base64NonceCiphertext);
+  const nonce = buf.slice(0, 12);
+  const ciphertextTag = buf.slice(12);
+  const aesCryptoKey = await window.crypto.subtle.importKey(
+    'raw', aesKey, 'AES-GCM', false, ['decrypt'],
+  );
+  const plainBuf = await window.crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: nonce },
+    aesCryptoKey,
+    ciphertextTag,
+  );
+  return new TextDecoder().decode(plainBuf);
+}
+
+/**
+ * Decrypt an enterprise spec:
+ * 1. GET /apps/getpublickey  → RSA public key
+ * 2. Generate ephemeral AES key, RSA-encrypt it
+ * 3. GET /apps/appspecifications/<name>/true  with enterprise-key header
+ *    → node re-encrypts payload with our AES key
+ * 4. Decrypt with our AES key → JSON { contacts, compose }
+ * 5. Return spec with compose/contacts restored, enterprise: null
+ *
+ * Fails open — returns the original spec on any error.
+ */
+export async function decryptEnterpriseSpec(spec, zelidauth) {
+  if (!spec?.enterprise) return spec;
+  if (!isWebCryptoAvailable()) return spec;
+
+  const zaStr = qs.stringify({
+    zelid: zelidauth.zelid,
+    signature: zelidauth.signature,
+    loginPhrase: zelidauth.loginPhrase,
+  });
+
+  try {
+    // 1. Get RSA public key — same approach as encryptSpec: node-proxy sends
+    //    application/x-www-form-urlencoded to the sticky node (what the API expects)
+    const stickyBackend = zelidauth._stickyBackend;
+    if (!stickyBackend) return spec;
+
+    const pkResp = await fetch('/api/node-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15_000),
+      body: JSON.stringify({
+        nodeBase: stickyBackend,
+        path: '/apps/getpublickey',
+        method: 'POST',
+        zelidauth: zaStr,
+        data: { name: spec.name, owner: spec.owner },
+      }),
+    });
+    const pkJson = await pkResp.json();
+    if (pkJson.status !== 'success' || !pkJson.data) return spec;
+
+    const pubKeyB64 = pkJson.data.trim().replace(/\s+/g, '');
+    const rsaPubKey = await importRsaPublicKey(pubKeyB64);
+
+    // 2. Generate ephemeral AES key and RSA-encrypt it
+    const aesKey = window.crypto.getRandomValues(new Uint8Array(32));
+    const encryptedEnterpriseKey = await encryptAesKeyWithRsaKey(aesKey, rsaPubKey);
+
+    // 3. Fetch re-encrypted spec — node receives enterprise-key, decrypts with its private key,
+    //    re-encrypts the enterprise payload with our AES key, returns it.
+    //    The /api/flux/* proxy now forwards the enterprise-key header.
+    const specResp = await fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(spec.name)}/true`, {
+      headers: {
+        zelidauth: zaStr,
+        'enterprise-key': encryptedEnterpriseKey,
+        'x-apicache-bypass': 'true',
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    const specJson = await specResp.json();
+    if (specJson.status !== 'success' || !specJson.data?.enterprise) return spec;
+
+    // 4. Decrypt with our AES key → { contacts, compose }
+    const plain = await decryptWithAes(specJson.data.enterprise, aesKey);
+    const extraFields = JSON.parse(plain);
+
+    return { ...spec, ...extraFields, enterprise: null, _wasEnterprise: true };
+  } catch {
+    // Fail open — unencrypted display is better than a crash
+    return spec;
+  }
+}

@@ -222,15 +222,13 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
     webhookSecret, apiKey,
   } = config;
 
-  // Core env vars — only add GIT_BRANCH if not the default branch
+  // Core env vars
   const envParams = [
     `GIT_REPO_URL=${repo.url}`,
     `APP_PORT=${port}`,
   ];
   const branch = repo.branch || 'main';
-  if (branch !== 'main' && branch !== 'master') {
-    envParams.push(`GIT_BRANCH=${branch}`);
-  }
+  envParams.push(`GIT_BRANCH=${branch}`);
   if (repo.subdirectory) {
     envParams.push(`PROJECT_PATH=${repo.subdirectory}`);
   }
@@ -730,7 +728,7 @@ export function pollDeployment(appName, registrationHash, callbacks) {
   const POLL_INTERVAL_MS = 10_000;
   const TIMEOUT_MS = 30 * 60 * 1000;
   const startTime = Date.now();
-  let phase = 1;
+  let phase = 1; // 1 = waiting for blockchain, 2 = waiting for deployment
   let timer = null;
   let active = true;
 
@@ -747,33 +745,16 @@ export function pollDeployment(appName, registrationHash, callbacks) {
         const json = await resp.json();
         if (json.status === 'success' && json.data?.hash === registrationHash) {
           phase = 2;
-          onPhase?.(1, 'Blockchain confirmed — waiting for installation to begin');
+          onPhase?.(1, 'Blockchain confirmed — waiting for nodes to deploy');
         }
       }
 
       if (phase === 2) {
-        const resp = await fetch(`/api/flux/apps/getappinstallinglocation/${encodeURIComponent(appName)}`);
-        const json = await resp.json();
-        const locs = json.data || [];
-        if (locs.length > 0) {
-          phase = 3;
-          onPhase?.(2, `Installing on ${locs.length} node(s)…`);
-        } else {
-          // App may have finished installing already — check phase 3
-          const resp3 = await fetch(`/api/flux/apps/getapplocation/${encodeURIComponent(appName)}`);
-          const json3 = await resp3.json();
-          if ((json3.data || []).length > 0) {
-            onSuccess?.(appName);
-            return;
-          }
-        }
-      }
-
-      if (phase === 3) {
-        const resp = await fetch(`/api/flux/apps/getapplocation/${encodeURIComponent(appName)}`);
+        // /apps/location returns running instances once deployment is complete
+        const resp = await fetch(`/api/flux/apps/location/${encodeURIComponent(appName)}`);
         const json = await resp.json();
         if ((json.data || []).length > 0) {
-          onPhase?.(3, 'Deployment complete!');
+          onPhase?.(2, 'Deployment complete!');
           onSuccess?.(appName);
           return;
         }
@@ -787,6 +768,50 @@ export function pollDeployment(appName, registrationHash, callbacks) {
 
   poll();
 
+  return () => {
+    active = false;
+    if (timer) clearTimeout(timer);
+  };
+}
+
+/**
+ * Poll the blockchain until an app update is confirmed (hash changes).
+ * Unlike pollDeployment there's no node-deployment phase — instances are already
+ * running and will pick up the new spec automatically.
+ *
+ * @param {string} appName
+ * @param {string} updateHash  - the txid / hash returned by updateApp
+ * @param {{ onSuccess: () => void, onError: (err: Error) => void }} callbacks
+ * @returns {() => void}  cancel function
+ */
+export function pollUpdate(appName, updateHash, callbacks) {
+  const { onSuccess, onError } = callbacks;
+  const POLL_INTERVAL_MS = 10_000;
+  const TIMEOUT_MS = 20 * 60 * 1000; // 20 min
+  const startTime = Date.now();
+  let timer = null;
+  let active = true;
+
+  async function poll() {
+    if (!active) return;
+    if (Date.now() - startTime > TIMEOUT_MS) {
+      onError?.(new Error('Update confirmation timed out after 20 minutes'));
+      return;
+    }
+    try {
+      const resp = await fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(appName)}`);
+      const json = await resp.json();
+      if (json.status === 'success' && json.data?.hash === updateHash) {
+        onSuccess?.();
+        return;
+      }
+    } catch {
+      // transient — keep polling
+    }
+    if (active) timer = setTimeout(poll, POLL_INTERVAL_MS);
+  }
+
+  poll();
   return () => {
     active = false;
     if (timer) clearTimeout(timer);

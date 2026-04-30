@@ -247,6 +247,7 @@ export default function DeployWizard() {
               verifiedSpec={state.verifiedSpec}
               plan={plan}
               registration={state.registration}
+              billingPeriod={config.billingPeriod}
               eligibleForFree={state.eligibleForFree}
               onBack={back}
             />

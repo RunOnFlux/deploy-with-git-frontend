@@ -2,17 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { calculatePrice, getPaymentAddress } from '../../services/deployService';
 import DeploymentTracker from './DeploymentTracker';
-import { CreditCard, Loader2, XCircle, ArrowRight } from 'lucide-react';
-import qs from 'qs';
+import { CreditCard, Loader2, XCircle, ArrowRight, ExternalLink } from 'lucide-react';
 
 const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
 
-function getFluxNodeUrl(zelidauth) {
-  const sticky = sessionStorage.getItem('stickyBackendDNS') || zelidauth?._stickyBackend;
-  return (typeof sticky === 'string' && sticky.startsWith('http')) ? sticky : 'https://api.runonflux.io';
-}
-
-export default function Step6Payment({ verifiedSpec, plan, registration, eligibleForFree = true, onBack }) {
+export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, eligibleForFree = true, subtitle, onBack }) {
   const { zelidauth } = useAuth();
   const [priceUsd, setPriceUsd] = useState(null);
   const [priceFlux, setPriceFlux] = useState(null);
@@ -22,6 +16,9 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
   const [status, setStatus] = useState('idle'); // idle | pending | error
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
+  const [stripeInitiated, setStripeInitiated] = useState(false); // popup opened, waiting for user
+  const [blockedUrl, setBlockedUrl] = useState(null); // popup was blocked
+  const popupRef = useRef(null);
   const wsRef = useRef(null);
 
   const isFree = (plan?.priceMonthly === 0 || plan?.id === 'free') && eligibleForFree;
@@ -52,10 +49,13 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cleanup WebSocket on unmount
-  useEffect(() => () => wsRef.current?.close(), []);
+  // Cleanup on unmount
+  useEffect(() => () => {
+    wsRef.current?.close();
+    popupRef.current?.close();
+  }, []);
 
-  // Free plan or after payment → show deployment tracker
+  // Free plan or after payment confirmed → show deployment tracker
   if (isFree || paid) {
     return (
       <DeploymentTracker
@@ -70,18 +70,73 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
     );
   }
 
+  // Stripe popup opened — waiting for user to complete or cancel
+  if (stripeInitiated) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5 mb-1">
+          <CreditCard className="w-5 h-5 text-primary" />
+          <h2 className="font-heading text-xl font-bold text-text">Complete Payment</h2>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-surface">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+            <p className="text-sm font-medium text-text">Stripe checkout opened in a new window</p>
+          </div>
+          <p className="text-xs text-text-muted mb-4">
+            Complete the payment in the Stripe window, then click <strong>I&apos;ve paid</strong> to start deployment monitoring.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setStripeInitiated(false); setPaid(true); }}
+              className="btn-primary flex-1"
+            >
+              I&apos;ve paid — continue
+            </button>
+            <button
+              type="button"
+              onClick={() => { popupRef.current?.close(); popupRef.current = null; setBlockedUrl(null); setStripeInitiated(false); }}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+        {blockedUrl && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400">
+            <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              Popup blocked.{' '}
+              <a href={blockedUrl} target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-1">
+                Open Stripe checkout <ExternalLink className="w-3 h-3" />
+              </a>
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   async function handleStripe() {
     if (!zelidauth) { setError('Not authenticated.'); setStatus('error'); return; }
 
     // Open popup synchronously before async fetch to avoid popup blockers
     const popup = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+    popupRef.current = popup;
     if (popup) {
       popup.document.write('<p style="font-family:sans-serif;padding:2rem;color:#aaa">Redirecting to Stripe checkout…</p>');
     }
 
     setStatus('pending');
     try {
-      const resp = await fetch(`${PAYMENT_BRIDGE_URL}/api/v1/stripe/checkout/create`, {
+      // Multi-month billing → subscription endpoint; single month → one-time checkout
+      const months = billingPeriod?.months ?? 1;
+      const endpoint = months > 1
+        ? `${PAYMENT_BRIDGE_URL}/api/v1/stripe/subscription/create`
+        : `${PAYMENT_BRIDGE_URL}/api/v1/stripe/checkout/create`;
+
+      const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,9 +149,10 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
             hash: txid,
             price: parseFloat((priceUsd ?? 0).toFixed(2)),
             productName: appName,
+            ...(months > 1 ? { period: months } : {}),
             success_url: `${window.location.origin}/successcheckout`,
             cancel_url: window.location.origin,
-            kpi: { origin: 'FluxOS', marketplace: true, registration: true },
+            kpi: { origin: 'Orbit', marketplace: true, registration: true },
           },
         }),
       });
@@ -104,16 +160,18 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
       if (!resp.ok || json.status === 'error') throw new Error(json.data?.message || json.message || 'Checkout failed');
       const checkoutUrl = json.data;
       if (!checkoutUrl) throw new Error('No checkout URL returned');
+
       if (popup && !popup.closed) {
         popup.location.href = checkoutUrl;
       } else {
-        window.open(checkoutUrl, '_blank');
+        // Popup was blocked — store URL for manual open
+        setBlockedUrl(checkoutUrl);
       }
-      // After opening Stripe checkout, show deployment tracker (payment will complete externally)
       setStatus('idle');
-      setPaid(true);
+      setStripeInitiated(true);
     } catch (err) {
       if (popup && !popup.closed) popup.close();
+      popupRef.current = null;
       setError(err.message);
       setStatus('error');
     }
@@ -124,49 +182,20 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
       setError('Payment details not loaded yet. Please wait.');
       return;
     }
-    setStatus('pending');
-    try {
-      const nodeUrl = getFluxNodeUrl(zelidauth);
-
-      // 1. Get a payment ID from the Flux backend
-      const prResp = await fetch(`${nodeUrl}/payment/paymentrequest`);
-      const prJson = await prResp.json();
-      if (prJson.status !== 'success' || !prJson.data?.paymentId) {
-        throw new Error(prJson.data?.message || 'Failed to get payment request ID');
-      }
-      const paymentId = prJson.data.paymentId;
-      const callbackUrl = encodeURIComponent(`${nodeUrl}/payment/verifypayment?paymentid=${paymentId}`);
-
-      // 2. Open WebSocket to listen for payment confirmation
-      const wsUrl = nodeUrl.replace(/^https?:\/\//, 'wss://') + `/ws/payment/${paymentId}`;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-      ws.onmessage = (event) => {
-        try {
-          const parsed = qs.parse(event.data);
-          const st = parsed.status;
-          if (st === 'success' && parsed.data?.txid) { ws.close(); setPaid(true); }
-          else if (st === 'error') { ws.close(); setError(parsed.data?.message || 'ZelCore payment failed'); setStatus('error'); }
-        } catch {}
-      };
-      ws.onerror = () => { setError('Payment confirmation connection failed. Check your wallet for the transaction.'); setStatus('error'); };
-
-      // 3. Open ZelCore via anchor click (avoids navigating the page away)
-      const protocol = `zel:?action=pay&coin=zelcash&address=${paymentAddress}&amount=${priceFlux}&message=${encodeURIComponent(txid)}&callback=${callbackUrl}`;
-      if (window.zelcore && typeof window.zelcore.protocol === 'function') {
-        window.zelcore.protocol(protocol);
-      } else {
-        const a = document.createElement('a');
-        a.href = protocol;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
-    } catch (err) {
-      setError(err.message || 'ZelCore payment failed');
-      setStatus('error');
+    // Open ZelCore deep link — no server call needed.
+    // Blockchain polling in DeploymentTracker will confirm the payment.
+    const protocol = `zel:?action=pay&coin=zelcash&address=${encodeURIComponent(paymentAddress)}&amount=${priceFlux}&message=${encodeURIComponent(txid)}`;
+    if (window.zelcore && typeof window.zelcore.protocol === 'function') {
+      window.zelcore.protocol(protocol);
+    } else {
+      const a = document.createElement('a');
+      a.href = protocol;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
+    setPaid(true);
   }
 
   async function handleSSP() {
@@ -203,7 +232,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
         <h2 className="font-heading text-xl font-bold text-text">Payment</h2>
       </div>
       <p className="text-sm text-text-secondary mb-6">
-        Your app has been registered. Complete payment to activate deployment.
+        {subtitle ?? 'Your app has been registered. Complete payment to activate deployment.'}
       </p>
 
       {/* Price summary */}
@@ -216,7 +245,9 @@ export default function Step6Payment({ verifiedSpec, plan, registration, eligibl
           </div>
           <div className="text-xs text-text-muted text-right">
             <p>{plan?.label || plan?.name || 'Standard'} plan</p>
-            <p className="text-green-400 mt-0.5">First month free</p>
+            {billingPeriod?.months > 1
+              ? <p className="text-primary mt-0.5">{billingPeriod.months} months</p>
+              : <p className="mt-0.5">1 month</p>}
           </div>
         </div>
       )}

@@ -1,9 +1,12 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
-import { fetchApps, fetchAppStatus } from '../services/appsService';
+import { fetchAppsRaw, parseAppData, fetchAppStatus } from '../services/appsService';
+import { decryptEnterpriseSpec } from '../services/enterpriseCrypto';
 
 /**
  * Fetch the list of Orbit apps for the current user.
+ * Enterprise apps (compose: []) are decrypted before parseAppData runs so that
+ * cpu/ram/repo fields are populated correctly.
  * Disabled in dev-mock mode (zelid starts with 'dev_').
  */
 export function useApps() {
@@ -13,7 +16,13 @@ export function useApps() {
 
   const { data: apps = [], isLoading, error, refetch } = useQuery({
     queryKey: ['apps', zelid],
-    queryFn: () => fetchApps(zelid),
+    queryFn: async () => {
+      const rawApps = await fetchAppsRaw(zelid);
+      const decrypted = await Promise.all(
+        rawApps.map((a) => (a.enterprise && zelidauth ? decryptEnterpriseSpec(a, zelidauth) : a)),
+      );
+      return decrypted.map(parseAppData);
+    },
     enabled: !!zelid && !isDevMock,
     staleTime: 5 * 60 * 1000,
   });

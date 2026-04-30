@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -21,14 +21,31 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const DeployGateway = lazy(() => import('./pages/DeployGateway'));
 
 function StripeSuccessPage() {
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((n) => {
+        if (n <= 1) {
+          clearInterval(interval);
+          window.close();
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center max-w-sm px-6">
         <div className="text-5xl mb-4">✅</div>
         <h1 className="text-xl font-bold text-text mb-2">Payment successful!</h1>
-        <p className="text-text-muted text-sm mb-6">
+        <p className="text-text-muted text-sm mb-2">
           Your payment has been processed. You can close this tab and return to your deployment.
         </p>
+        <p className="text-text-muted text-xs mb-6">Closing automatically in {countdown}s…</p>
         <button
           onClick={() => window.close()}
           className="btn-primary"
