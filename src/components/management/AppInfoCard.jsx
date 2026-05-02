@@ -216,6 +216,11 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
   const commit = orbitStatus?.last_deployment?.commit;
   const commitFull = orbitStatus?.last_deployment?.commit_full;
   const buildStatus = orbitStatus?.last_deployment?.build_status;
+  const commitMessage = (() => {
+    if (!commitFull || !orbitStatus?.releases) return null;
+    const rel = orbitStatus.releases.find((r) => r.commit === commitFull || r.commit?.startsWith(commitFull));
+    return rel?.commit_message ?? rel?.message ?? null;
+  })();
   const deployedAt = orbitStatus?.last_deployment?.updated_at
     ? new Date(orbitStatus.last_deployment.updated_at).toLocaleString()
     : null;
@@ -284,13 +289,30 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
         <InfoRow icon={getRepoIcon(gitRepo)} label="Repo" value={gitRepo} link={gitRepo || undefined} />
         <InfoRow icon={GitBranch} label="Branch" value={gitBranch} mono />
         {commit ? (
-          <InfoRow
-            icon={GitCommit}
-            label="Commit"
-            value={`${commit}${buildStatus ? ` · ${buildStatus}` : ''}`}
-            mono
-            link={commitFull && gitRepo ? `${gitRepo.replace(/\.git$/, '')}/commit/${commitFull}` : undefined}
-          />
+          <div className="flex items-start gap-3 py-2.5 border-b border-border/50">
+            <GitCommit className="w-4 h-4 text-text-muted mt-0.5 shrink-0" />
+            <span className="text-xs text-text-muted w-24 shrink-0">Commit</span>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              {commitFull && gitRepo ? (
+                <a
+                  href={`${gitRepo.replace(/\.git$/, '')}/commit/${commitFull}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-mono text-primary hover:underline shrink-0"
+                >
+                  {commit}
+                </a>
+              ) : (
+                <span className="text-sm font-mono text-text shrink-0">{commit}</span>
+              )}
+              {commitMessage && (
+                <>
+                  <span className="text-text-muted shrink-0">·</span>
+                  <span className="text-sm text-text-secondary truncate" title={commitMessage}>"{commitMessage}"</span>
+                </>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-3 py-2.5">
             <GitCommit className="w-4 h-4 text-text-muted shrink-0" />

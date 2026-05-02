@@ -83,18 +83,13 @@ export default function AppCard({ app, compact = false }) {
   // Use the first running node IP attached by useAppsWithStatus
   const nodeIp = app.nodeIp ?? null;
 
-  const { data: orbitStatus, isLoading: statusLoading } = useQuery({
+  const { data: orbitStatus } = useQuery({
     queryKey: ['orbitStatus', app.name, mgmtPort, nodeIp],
     queryFn: () => fetchNodeOrbitStatus(nodeIp, mgmtPort, apiKey),
     enabled: !!mgmtPort && !!nodeIp,
     staleTime: 60_000,
     retry: false,
   });
-
-  // Show skeleton until status resolves (only when we expect a status response)
-  if (mgmtPort && statusLoading) {
-    return <AppCardSkeleton compact={compact} />;
-  }
 
   const commit = orbitStatus?.last_deployment?.commit;
   const commitFull = orbitStatus?.last_deployment?.commit_full;
