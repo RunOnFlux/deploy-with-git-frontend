@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin, Clock } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
+import { fetchCurrentBlock } from '../../services/appsService';
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -107,8 +108,32 @@ function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
   );
 }
 
+const BLOCKS_PER_MONTH = 88000;
+const BLOCKS_PER_DAY = BLOCKS_PER_MONTH / 30;
+
+function formatBlocksRemaining(blocks) {
+  if (blocks <= 0) return { label: 'Expired', color: 'text-danger' };
+  const totalMonths = Math.floor(blocks / BLOCKS_PER_MONTH);
+  const remainingBlocks = blocks % BLOCKS_PER_MONTH;
+  const days = Math.round(remainingBlocks / BLOCKS_PER_DAY);
+  let label;
+  if (totalMonths > 0) {
+    label = days > 0 ? `${totalMonths}mo ${days}d` : `${totalMonths}mo`;
+  } else {
+    label = `${days}d`;
+  }
+  const totalDays = totalMonths * 30 + days;
+  const color = totalDays <= 7 ? 'text-danger' : totalDays <= 30 ? 'text-warning' : 'text-accent';
+  return { label, color };
+}
+
 export default function AppInfoCard({ spec, nodeStatuses, appName }) {
   const [orbitStatus, setOrbitStatus] = useState(null);
+  const [currentBlock, setCurrentBlock] = useState(null);
+
+  useEffect(() => {
+    fetchCurrentBlock().then((b) => { if (b != null) setCurrentBlock(b); });
+  }, []);
 
   useEffect(() => {
     const port = getMgmtPort(spec);
@@ -217,6 +242,13 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
             value={`${running}/${spec.instances ?? 3}`}
             color={running === 0 ? 'text-danger' : running < (spec.instances ?? 3) ? 'text-warning' : 'text-accent'}
           />
+          {(() => {
+            if (!currentBlock || !spec?.height || !spec?.expire) return null;
+            const expireBlock = spec.height + spec.expire;
+            const blocksRemaining = expireBlock - currentBlock;
+            const { label, color } = formatBlocksRemaining(blocksRemaining);
+            return <ResourceChip icon={Clock} label="Expires" value={label} color={color} />;
+          })()}
         </div>
       </div>
       )}
