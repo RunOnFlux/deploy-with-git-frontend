@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw, Upload, Clipboard, X, SlidersHorizontal, KeyRound } from 'lucide-react';
+import { parseEnvText } from '../../utils/envParser';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../utils/firebase';
@@ -70,6 +71,101 @@ function orbitDefFor(key) {
   );
 }
 
+function EnvImporter({ onImport, disabled }) {
+  const [dragging, setDragging] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const fileRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  function flash(type, message) {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback(null), 3500);
+  }
+
+  function applyParsed({ pairs, format, error }) {
+    if (error) return flash('error', error);
+    if (!pairs.length) return flash('error', 'No variables found');
+    onImport(pairs);
+    flash('success', `Imported ${pairs.length} variable${pairs.length !== 1 ? 's' : ''} from ${format.toUpperCase()}`);
+  }
+
+  function handleText(text) { applyParsed(parseEnvText(text)); }
+  async function handleFile(file) { handleText(await file.text()); }
+
+  function onDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }
+
+  async function pasteClipboard() {
+    try {
+      handleText(await navigator.clipboard.readText());
+    } catch {
+      setShowPasteArea(true);
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }
+
+  function submitPasteArea() {
+    if (!pasteText.trim()) return;
+    handleText(pasteText);
+    setPasteText('');
+    setShowPasteArea(false);
+  }
+
+  return (
+    <div className="mb-3">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => !disabled && fileRef.current?.click()}
+        className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-xs cursor-pointer transition-colors ${
+          disabled ? 'opacity-40 cursor-not-allowed' :
+          dragging ? 'border-primary bg-primary/5 text-primary'
+                   : 'border-border text-text-muted hover:border-primary/50 hover:text-text-secondary hover:bg-surface-hover'
+        }`}
+      >
+        <Upload className="w-3.5 h-3.5 shrink-0" />
+        <span>Drop <code className="font-mono">.env</code>, JSON or YAML — or click to browse</span>
+        <input ref={fileRef} type="file" accept=".env,.json,.yaml,.yml,text/plain,application/json" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <button type="button" onClick={pasteClipboard} disabled={disabled}
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors disabled:opacity-40">
+          <Clipboard className="w-3.5 h-3.5" /> Paste from clipboard
+        </button>
+        {feedback && (
+          <span className={`flex items-center gap-1 text-xs ${feedback.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+            {feedback.type === 'success' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+            {feedback.message}
+          </span>
+        )}
+      </div>
+      {showPasteArea && (
+        <div className="mt-2 rounded-lg border border-border bg-surface p-3 space-y-2">
+          <p className="text-xs text-text-muted">Paste your <code className="font-mono">.env</code>, JSON or YAML below:</p>
+          <textarea ref={textareaRef} value={pasteText} onChange={(e) => setPasteText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitPasteArea(); }}
+            placeholder={'KEY=value\nANOTHER_KEY=value'} rows={5}
+            className="w-full input-base font-mono text-xs resize-none" />
+          <div className="flex gap-2">
+            <button type="button" onClick={submitPasteArea}
+              className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Import</button>
+            <button type="button" onClick={() => { setShowPasteArea(false); setPasteText(''); }}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs text-text-muted hover:text-text transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionHeader({ title, expanded, onToggle }) {
   return (
     <button
@@ -126,7 +222,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
   // Sections collapse state
   const [settingsOpen, setSettingsOpen]   = useState(true);
   const [orbitOpen, setOrbitOpen]         = useState(false);
-  const [userEnvOpen, setUserEnvOpen]     = useState(true);
+  const [userEnvOpen, setUserEnvOpen]     = useState(false);
 
   // Save flow state
   const [savePhase, setSavePhase]     = useState(null);
@@ -372,7 +468,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
       {/* ── General section ── */}
       <div className="border border-border rounded-lg mb-3 overflow-hidden">
         <div className="px-3 bg-surface-hover">
-          <SectionHeader title="General" expanded={settingsOpen} onToggle={() => setSettingsOpen((v) => !v)} />
+          <SectionHeader
+            title={
+              <span className="flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+                General
+              </span>
+            }
+            expanded={settingsOpen} onToggle={() => setSettingsOpen((v) => !v)} />
         </div>
         {settingsOpen && (
           <div className="px-3 py-3 space-y-3">
@@ -476,13 +579,29 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
       <div className="border border-border rounded-lg mb-4 overflow-hidden">
         <div className="px-3 bg-surface-hover">
           <SectionHeader
-            title={`Environment Variables (${userEnvRows.length})`}
+            title={
+              <span className="flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-primary" />
+                {`Environment Variables (${userEnvRows.length})`}
+              </span>
+            }
             expanded={userEnvOpen}
             onToggle={() => setUserEnvOpen((v) => !v)}
           />
         </div>
         {userEnvOpen && (
           <div className="px-3 py-3">
+            <EnvImporter onImport={(pairs) => {
+              setUserEnvRows((prev) => {
+                const next = [...prev];
+                for (const { key, value } of pairs) {
+                  const existing = next.findIndex((r) => r.key === key);
+                  if (existing >= 0) next[existing] = { key, value };
+                  else next.push({ key, value });
+                }
+                return next;
+              });
+            }} disabled={isSaving} />
             {userEnvRows.length === 0 && (
               <p className="text-xs text-text-muted mb-3">No custom environment variables yet.</p>
             )}

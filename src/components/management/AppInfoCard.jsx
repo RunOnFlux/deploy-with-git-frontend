@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin, Clock, ShieldCheck } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin, Clock, ShieldCheck, CalendarClock } from 'lucide-react';
+import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import StatusBadge from '../dashboard/StatusBadge';
 import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 import { fetchCurrentBlock } from '../../services/appsService';
@@ -106,6 +107,22 @@ function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
       <span className="text-xs font-semibold text-text ml-auto whitespace-nowrap">{value}</span>
     </div>
   );
+}
+
+const REPO_ICONS = {
+  'github.com': FaGithub,
+  'gitlab.com': FaGitlab,
+  'bitbucket.org': FaBitbucket,
+};
+
+function getRepoIcon(url) {
+  if (!url) return Globe;
+  try {
+    const host = new URL(url).hostname.replace('www.', '');
+    return REPO_ICONS[host] ?? Globe;
+  } catch {
+    return Globe;
+  }
 }
 
 // 1 block ≈ 2 minutes → 720 blocks/day
@@ -264,7 +281,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
         {liveUrl && (
           <InfoRow icon={Globe} label="Live URL" value={liveUrl} link={liveUrl} copyable />
         )}
-        <InfoRow icon={GitBranch} label="Repo" value={gitRepo} link={gitRepo || undefined} />
+        <InfoRow icon={getRepoIcon(gitRepo)} label="Repo" value={gitRepo} link={gitRepo || undefined} />
         <InfoRow icon={GitBranch} label="Branch" value={gitBranch} mono />
         {commit ? (
           <InfoRow
@@ -282,7 +299,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
           </div>
         )}
         {deployedAt && (
-          <InfoRow icon={GitCommit} label="Deployed" value={deployedAt} />
+          <InfoRow icon={CalendarClock} label="Deployed" value={deployedAt} />
         )}
         <InfoRow icon={MapPin} label="Region" value={regionLabel} />
       </div>
