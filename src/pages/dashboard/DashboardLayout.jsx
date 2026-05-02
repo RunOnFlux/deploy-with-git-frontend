@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket } from 'lucide-react';
 import OrbitSpinner from '../../components/common/OrbitSpinner';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/deployments', label: 'Deployments', icon: LayoutDashboard },
+  { to: '/dashboard/deployments', label: 'Deployments', icon: Rocket },
   { to: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { to: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];

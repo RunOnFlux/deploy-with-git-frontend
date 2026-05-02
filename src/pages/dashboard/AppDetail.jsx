@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Server } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AppInfoCard from '../../components/management/AppInfoCard';
 import SpecEditorCard from '../../components/management/SpecEditorCard';
 import InstanceCard from '../../components/management/InstanceCard';
+import { PageHeader } from '../../components/dashboard';
 import { fetchAppSpec, fetchNodeStatuses, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 import { decryptEnterpriseSpec } from '../../services/enterpriseCrypto';
 
@@ -76,26 +77,22 @@ export default function AppDetail() {
       </Helmet>
 
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard/deployments" className="text-text-muted hover:text-text transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="font-heading text-2xl font-bold text-text">{appName}</h1>
-              <p className="text-text-secondary text-sm mt-0.5">App Management</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 text-sm text-text-muted hover:text-text transition-colors disabled:opacity-40"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
+        <PageHeader
+          icon={Server}
+          title={appName}
+          subtitle="App Management"
+          backTo="/dashboard/deployments"
+          actions={
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          }
+        />
 
         {specError && (
           <div className="mb-6 p-4 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">

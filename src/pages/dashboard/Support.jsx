@@ -3,9 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import {
   Send, CheckCircle, AlertCircle, TicketCheck,
   Mail, Tag, FileText, MessageSquare, ChevronDown,
-  BookOpen, MessageCircle, Github, ExternalLink,
+  BookOpen, MessageCircle, Github, ExternalLink, HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { PageHeader } from '../../components/dashboard';
 
 const ISSUE_TYPES = [
   'General question',
@@ -144,13 +145,11 @@ export default function Support() {
       </Helmet>
 
       <div className="p-6">
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="font-heading text-2xl font-bold text-text">Support</h1>
-          <p className="text-text-secondary text-sm mt-0.5">
-            Get help with your Orbit deployments.
-          </p>
-        </div>
+        <PageHeader
+          icon={HelpCircle}
+          title="Support"
+          subtitle="Get help with your Orbit deployments."
+        />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Ticket form */}

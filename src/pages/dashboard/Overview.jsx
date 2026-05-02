@@ -1,9 +1,9 @@
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { Rocket, Activity, Globe, Plus, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Activity, Globe, Plus, RefreshCw, Rocket } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppsWithStatus } from '../../hooks/useApps';
-import { AppCard } from '../../components/dashboard';
+import { AppCard, PageHeader } from '../../components/dashboard';
 
 export default function Overview() {
   const { user } = useAuth();
@@ -21,25 +21,21 @@ export default function Overview() {
       </Helmet>
 
       <div className="p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-text">
-              Welcome back, {displayName}
-            </h1>
-            <p className="text-text-secondary text-sm mt-1">
-              Here&apos;s an overview of your Orbit deployments.
-            </p>
-          </div>
-          <button
-            onClick={refresh}
-            disabled={loading}
-            className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
+        <PageHeader
+          icon={LayoutDashboard}
+          title={`Welcome back, ${displayName}`}
+          subtitle="Here's an overview of your Orbit deployments."
+          actions={
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          }
+        />
 
         {/* Stat cards — only shown once apps are loaded and at least one exists */}
         {!loading && apps.length > 0 && (

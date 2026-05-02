@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Plus, Search, RefreshCw, Rocket } from 'lucide-react';
 import { useAppsWithStatus } from '../../hooks/useApps';
-import { AppCard } from '../../components/dashboard';
+import { AppCard, PageHeader } from '../../components/dashboard';
 
 export default function Deployments() {
   const { apps, loading, refresh } = useAppsWithStatus();
@@ -22,25 +22,28 @@ export default function Deployments() {
       </Helmet>
 
       <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h1 className="font-heading text-2xl font-bold text-text">Deployments</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={refresh}
-              disabled={loading}
-              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
-              title="Refresh"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <Link to="/dashboard/deploy" className="btn-primary">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Deployment</span>
-              <span className="sm:hidden">New</span>
-            </Link>
-          </div>
-        </div>
+        <PageHeader
+          icon={Rocket}
+          title="Deployments"
+          subtitle={apps.length > 0 ? `${apps.length} app${apps.length !== 1 ? 's' : ''}` : undefined}
+          actions={
+            <>
+              <button
+                onClick={refresh}
+                disabled={loading}
+                className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <Link to="/dashboard/deploy" className="btn-primary">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">New Deployment</span>
+                <span className="sm:hidden">New</span>
+              </Link>
+            </>
+          }
+        />
 
         {/* Search */}
         {apps.length > 0 && (

@@ -9,6 +9,7 @@ import {
 import { useApps } from '../../hooks/useApps';
 import { fetchCurrentBlock } from '../../services/appsService';
 import { PLANS, BILLING_PERIODS } from '../../services/deployService';
+import { PageHeader } from '../../components/dashboard';
 
 // Flux blocks are ~2 minutes each (post-halving era)
 const BLOCKS_PER_DAY = 720;
@@ -156,15 +157,11 @@ export default function Billing() {
       </Helmet>
 
       <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-text">Billing</h1>
-            <p className="text-text-secondary text-sm mt-0.5">
-              Subscription status for your deployed apps.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={CreditCard}
+          title="Billing"
+          subtitle="Subscription status for your deployed apps."
+          actions={
             <button
               onClick={() => { refresh(); fetchCurrentBlock().then(setCurrentBlock); }}
               disabled={loading}
@@ -173,12 +170,8 @@ export default function Billing() {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <Link to="/dashboard/deploy" className="btn-primary">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Deployment</span>
-            </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* Expiring-soon alert */}
         {expiringSoon.length > 0 && (
