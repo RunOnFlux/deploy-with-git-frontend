@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin, Clock } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, Globe, GitBranch, GitCommit, ExternalLink, Loader2, Server as ServerIcon, Monitor, Copy, MapPin, Clock, ShieldCheck } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 import { fetchCurrentBlock } from '../../services/appsService';
@@ -209,7 +209,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
     const allowed = (spec.geolocation ?? [])
       .filter((g) => g.startsWith('a='))
       .map((g) => g.slice(2).toUpperCase());
-    return allowed.length ? allowed.join(', ') : 'Global';
+    return allowed.length ? allowed.join(', ') : 'Worldwide';
   })();
 
   return (
@@ -219,7 +219,14 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
           <h2 className="font-heading font-bold text-xl text-text">{spec.name}</h2>
           {spec.description && <p className="text-sm text-text-secondary mt-0.5">{spec.description}</p>}
         </div>
-        <StatusBadge status={overallStatus} />
+        <div className="flex items-center gap-2">
+          {spec.isEnterprise && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
+              <ShieldCheck className="w-3 h-3" /> Enterprise
+            </span>
+          )}
+          <StatusBadge status={overallStatus} />
+        </div>
       </div>
 
       {/* Preview + resource chips side by side */}
