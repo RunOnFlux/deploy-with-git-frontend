@@ -108,21 +108,20 @@ function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
   );
 }
 
-const BLOCKS_PER_MONTH = 88000;
-const BLOCKS_PER_DAY = BLOCKS_PER_MONTH / 30;
+// 1 block ≈ 2 minutes → 720 blocks/day
+const BLOCKS_PER_DAY = 720;
 
 function formatBlocksRemaining(blocks) {
   if (blocks <= 0) return { label: 'Expired', color: 'text-danger' };
-  const totalMonths = Math.floor(blocks / BLOCKS_PER_MONTH);
-  const remainingBlocks = blocks % BLOCKS_PER_MONTH;
-  const days = Math.round(remainingBlocks / BLOCKS_PER_DAY);
+  const totalDays = Math.floor(blocks / BLOCKS_PER_DAY);
+  const months = Math.floor(totalDays / 30);
+  const days = totalDays % 30;
   let label;
-  if (totalMonths > 0) {
-    label = days > 0 ? `${totalMonths}mo ${days}d` : `${totalMonths}mo`;
+  if (months > 0) {
+    label = days > 0 ? `${months}mo ${days}d` : `${months}mo`;
   } else {
-    label = `${days}d`;
+    label = `${totalDays}d`;
   }
-  const totalDays = totalMonths * 30 + days;
   const color = totalDays <= 7 ? 'text-danger' : totalDays <= 30 ? 'text-warning' : 'text-accent';
   return { label, color };
 }
