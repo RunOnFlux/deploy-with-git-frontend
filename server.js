@@ -272,6 +272,7 @@ async function verifyFirebaseToken(idToken) {
 function deriveFluxKeypair(uid) {
   const secret = process.env.SSO_SIGNING_SECRET;
   if (!secret) throw new Error('SSO_SIGNING_SECRET not configured');
+  if (!uid) throw new Error('uid is undefined — check Firebase token claims (uid vs user_id)');
   const privateKey = crypto.createHmac('sha256', secret).update(uid).digest();
   if (!ecc.isPrivate(privateKey)) throw new Error('Derived key is invalid');
   const publicKey = Buffer.from(ecc.pointFromScalar(privateKey));
@@ -291,7 +292,8 @@ app.post('/api/sso/zelid', express.json(), async (req, res) => {
     if (!idToken) return res.status(401).json({ status: 'error', message: 'Missing token' });
 
     const payload = await verifyFirebaseToken(idToken);
-    const { address } = deriveFluxKeypair(payload.uid);
+    const uid = payload.uid || payload.user_id || payload.sub;
+    const { address } = deriveFluxKeypair(uid);
     res.json({ status: 'success', zelid: address });
   } catch (err) {
     console.error('SSO zelid error:', err.message);
@@ -315,9 +317,30 @@ app.post('/api/sso/sign', express.json(), async (req, res) => {
     if (!message) return res.status(400).json({ status: 'error', message: 'Missing message' });
 
     const payload = await verifyFirebaseToken(idToken);
-    const { privateKey, address } = deriveFluxKeypair(payload.uid);
+    const uid = payload.uid || payload.user_id || payload.sub;
+    const { privateKey, address } = deriveFluxKeypair(uid);
 
-    const sigBuf = bitcoinMessage.sign(message, privateKey, true);
+    // bitcoinMessage.sign expects a Buffer/Uint8Array for the private key
+    // and the message as a string. Validate both before calling.
+    if (!Buffer.isBuffer(privateKey) && !(privateKey instanceof Uint8Array)) {
+      throw new Error('Derived private key is not a Buffer');
+    }
+    if (typeof message !== 'string') {
+      throw new Error(`message must be a string, got ${typeof message}`);
+    }
+
+    const keyBuf = Buffer.isBuffer(privateKey) ? privateKey : Buffer.from(privateKey);
+    // bitcoinjs-message passes extraEntropy directly to secp256k1 as { data: extraEntropy }.
+    // secp256k1 rejects undefined/null — must pass a real 32-byte Buffer or omit the option.
+    // We use a signer object so bitcoinjs-message never calls secp256k1.sign with options.
+    const secp256k1 = require('secp256k1');
+    const signer = {
+      sign: (hash) => {
+        const { signature, recovery } = secp256k1.sign(hash, keyBuf);
+        return { signature: Buffer.from(signature), recovery };
+      },
+    };
+    const sigBuf = bitcoinMessage.sign(message, signer, true);
     const signature = sigBuf.toString('base64');
 
     res.json({ status: 'success', zelid: address, signature });
