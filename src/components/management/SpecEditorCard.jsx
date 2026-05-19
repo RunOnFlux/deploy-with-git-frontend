@@ -131,7 +131,7 @@ function EnvImporter({ onImport, disabled }) {
         }`}
       >
         <Upload className="w-3.5 h-3.5 shrink-0" />
-        <span>Drop <code className="font-mono">.env</code>, JSON or YAML — or click to browse</span>
+        <span>Drop <code className="font-mono">.env</code>, JSON or YAML, or click to browse</span>
         <input ref={fileRef} type="file" accept=".env,.json,.yaml,.yml,text/plain,application/json" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
       </div>
@@ -669,7 +669,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
               {updateContext.polling === 'confirmed'
                 ? 'Update confirmed on blockchain'
                 : updateContext.polling === 'timeout'
-                  ? 'Confirmation timed out — check back in a few minutes'
+                  ? 'Confirmation timed out. Check back in a few minutes.'
                   : 'Waiting for blockchain confirmation…'}
             </span>
           </div>

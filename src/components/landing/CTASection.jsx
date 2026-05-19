@@ -1,25 +1,24 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import LoginModal from '../auth/LoginModal';
 import BokehBackground, { BOKEH_CTA } from './BokehBackground';
 
 export default function CTASection({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
+  const navigate = useNavigate();
 
   function handleCTA() {
     if (isAuthenticated) {
       window.location.href = '/dashboard';
     } else {
-      setLoginOpen(true);
+      navigate('/login');
     }
   }
 
   return (
     <>
-      <section className="relative py-16 px-6 overflow-hidden">
+      <section className="relative py-20 lg:py-28 px-6 overflow-hidden">
         <BokehBackground orbs={BOKEH_CTA} />
         <div className="max-w-4xl mx-auto">
           <motion.div
@@ -50,15 +49,6 @@ export default function CTASection({ onLoginSuccess }) {
           </motion.div>
         </div>
       </section>
-
-      <LoginModal
-        isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={() => {
-          setLoginOpen(false);
-          onLoginSuccess?.();
-        }}
-      />
     </>
   );
 }

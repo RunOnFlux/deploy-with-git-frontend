@@ -519,11 +519,28 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
       const apiPath = path ? `contents/${path}` : 'contents';
       const url = `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/${apiPath}?ref=${encodeURIComponent(branch)}`;
       const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) return [];
+      if (!resp.ok) {
+        console.warn(`[listDirectories] GitHub API returned ${resp.status} for ${url}`);
+        return [];
+      }
       const items = await resp.json();
-      return Array.isArray(items)
-        ? items.filter((i) => i.type === 'dir').map((i) => i.name)
-        : [];
+      if (!Array.isArray(items)) {
+        console.warn('[listDirectories] GitHub API did not return an array');
+        return [];
+      }
+      
+      // Filter directories and return with "/" prefix
+      const dirs = items
+        .filter((i) => i.type === 'dir')
+        .map((i) => i.name)
+        .filter((name) => {
+          // Filter out common non-app directories
+          const ignoreDirs = ['.git', '.github', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
+          return !ignoreDirs.includes(name) && !name.startsWith('.');
+        })
+        .map((name) => `/${name}`);
+      
+      return dirs;
     }
 
     if (parsed.provider === 'gitlab.com') {
@@ -531,11 +548,26 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
       const pathParam = path ? `&path=${encodeURIComponent(path)}` : '';
       const url = `https://gitlab.com/api/v4/projects/${enc}/repository/tree?ref=${encodeURIComponent(branch)}${pathParam}`;
       const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) return [];
+      if (!resp.ok) {
+        console.warn(`[listDirectories] GitLab API returned ${resp.status}`);
+        return [];
+      }
       const items = await resp.json();
-      return Array.isArray(items)
-        ? items.filter((i) => i.type === 'tree').map((i) => i.name)
-        : [];
+      if (!Array.isArray(items)) {
+        console.warn('[listDirectories] GitLab API did not return an array');
+        return [];
+      }
+      
+      const dirs = items
+        .filter((i) => i.type === 'tree')
+        .map((i) => i.name)
+        .filter((name) => {
+          const ignoreDirs = ['.git', '.github', '.gitlab', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
+          return !ignoreDirs.includes(name) && !name.startsWith('.');
+        })
+        .map((name) => `/${name}`);
+      
+      return dirs;
     }
 
     if (parsed.provider === 'bitbucket.org') {
@@ -544,17 +576,27 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
         : encodeURIComponent(branch);
       const url = `https://api.bitbucket.org/2.0/repositories/${parsed.owner}/${parsed.repo}/src/${pathSeg}/?pagelen=100`;
       const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) return [];
+      if (!resp.ok) {
+        console.warn(`[listDirectories] Bitbucket API returned ${resp.status}`);
+        return [];
+      }
       const data = await resp.json();
-      return (data.values || [])
+      const dirs = (data.values || [])
         .filter((i) => i.type === 'commit_directory')
         .map((i) => {
           const parts = i.path.split('/');
           return parts[parts.length - 1];
-        });
+        })
+        .filter((name) => {
+          const ignoreDirs = ['.git', '.github', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
+          return !ignoreDirs.includes(name) && !name.startsWith('.');
+        })
+        .map((name) => `/${name}`);
+      
+      return dirs;
     }
-  } catch {
-    // ignore — return empty
+  } catch (err) {
+    console.warn('[listDirectories] Error fetching directories:', err.message);
   }
   return [];
 }

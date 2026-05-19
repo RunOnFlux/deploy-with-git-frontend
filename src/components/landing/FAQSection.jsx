@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: 'Can I use a custom domain?',
-    a: 'Yes — custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
+    a: 'Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
   },
 ];
 
@@ -69,7 +69,7 @@ function FAQItem({ q, a }) {
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="relative py-16 px-6 bg-surface/40 overflow-hidden">
+    <section id="faq" className="relative py-20 lg:py-28 px-6 bg-surface/40 overflow-hidden">
       <BokehBackground orbs={BOKEH_FAQ} />
       <div className="max-w-2xl mx-auto">
         <motion.div

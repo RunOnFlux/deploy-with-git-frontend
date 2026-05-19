@@ -1,622 +1,657 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, GitBranch, BookOpen } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  FolderOpen,
+  GitBranch,
+  Info,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  XCircle,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import LoginModal from '../auth/LoginModal';
-import { useAuth } from '../../context/AuthContext';
+import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import {
-  SiNextdotjs, SiReact, SiDjango, SiFastapi, SiNestjs, SiVuedotjs,
-  SiRemix, SiAstro, SiRubyonrails, SiLaravel, SiGo, SiRust,
-  SiSpring, SiSvelte, SiFlask, SiNuxt, SiHono, SiBlazor,
-} from 'react-icons/si';
+  buildAuthHeaders,
+  checkCompatibility,
+  checkRepoAccess,
+  fetchBranches,
+  listDirectories,
+  parseRepoUrl,
+  testPrivateAuth,
+} from '../../services/repoIntelligenceService';
+import DashboardPreview from './DashboardPreview';
 
-import { geoGraticule } from 'd3-geo';
-import { feature } from 'topojson-client';
-import worldTopo from 'world-atlas/countries-50m.json';
-import {
-  WebGLRenderer, Scene, Group, Mesh, LineSegments,
-  OrthographicCamera, SphereGeometry, BufferGeometry,
-  ShaderMaterial, Float32BufferAttribute, AdditiveBlending,
-} from 'three';
+const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
-// Pre-process GeoJSON once at module load (geometry never changes)
-const COUNTRIES = feature(worldTopo, worldTopo.objects.countries);
-const GRATICULE = geoGraticule().step([20, 20])();
+const PROVIDER_ICONS = {
+  'github.com': FaGithub,
+  'gitlab.com': FaGitlab,
+  'bitbucket.org': FaBitbucket,
+};
 
-// ---------------------------------------------------------------------------
-// Helpers — convert GeoJSON → flat Float32 vertex arrays for Three.js
-// ---------------------------------------------------------------------------
-function lonLatToVec3(lon, lat, r) {
-  const phi   = (90 - lat) * Math.PI / 180;
-  const theta = lon * Math.PI / 180;
-  return [
-    r * Math.sin(phi) * Math.sin(theta),  // x: lon=90°E → +X (East = right)
-    r * Math.cos(phi),                     // y: north pole → +Y
-    r * Math.sin(phi) * Math.cos(theta),  // z: lon=0° → +Z (faces camera)
-  ];
-}
+const PROVIDER_LABELS = {
+  'github.com': { label: 'GitHub', color: 'text-white bg-[#24292e]', tokenUrl: 'https://github.com/settings/tokens/new?scopes=repo&description=Orbit+Deploy' },
+  'gitlab.com': { label: 'GitLab', color: 'text-white bg-orange-600', tokenUrl: 'https://gitlab.com/-/profile/personal_access_tokens' },
+  'bitbucket.org': { label: 'Bitbucket', color: 'text-white bg-blue-600', tokenUrl: 'https://bitbucket.org/account/settings/app-passwords/new' },
+};
 
-function pushRing(ring, r, out) {
-  for (let i = 0; i < ring.length - 1; i++) {
-    if (Math.abs(ring[i + 1][0] - ring[i][0]) > 180) continue; // skip antimeridian seam
-    out.push(...lonLatToVec3(ring[i][0],     ring[i][1],     r));
-    out.push(...lonLatToVec3(ring[i + 1][0], ring[i + 1][1], r));
-  }
-}
+export default function HeroSection() {
+  const navigate = useNavigate();
 
-function geojsonToPositions(geojson, r) {
-  const pos  = [];
-  const geoms = geojson.features ? geojson.features.map(f => f.geometry) : [geojson];
-  for (const g of geoms) {
-    if (!g) continue;
-    if      (g.type === 'LineString')      pushRing(g.coordinates, r, pos);
-    else if (g.type === 'MultiLineString') g.coordinates.forEach(c => pushRing(c, r, pos));
-    else if (g.type === 'Polygon')         g.coordinates.forEach(c => pushRing(c, r, pos));
-    else if (g.type === 'MultiPolygon')    g.coordinates.forEach(p => p.forEach(c => pushRing(c, r, pos)));
-  }
-  return pos;
-}
+  const [repoUrl, setRepoUrl] = useState('');
+  const [repoStatus, setRepoStatus] = useState('idle');
+  const [compatibilityStatus, setCompatibilityStatus] = useState('idle');
+  const [compatibilityMessage, setCompatibilityMessage] = useState('');
+  
+  const [branches, setBranches] = useState([]);
+  const [branch, setBranch] = useState('main');
+  const [branchOpen, setBranchOpen] = useState(false);
+  
+  const [directories, setDirectories] = useState([]);
+  const [subdirectory, setSubdirectory] = useState('');
+  const [subdirOpen, setSubdirOpen] = useState(false);
+  const [dirLoading, setDirLoading] = useState(false);
 
-// ---------------------------------------------------------------------------
-// Wireframe Earth Globe — WebGL via Three.js, d3-geo geometry data
-// ---------------------------------------------------------------------------
-function WireframeGlobe({ paused }) {
-  const canvasRef   = useRef(null);
-  const clustersRef = useRef([]);
+  const [username, setUsername] = useState('');
+  const [token, setToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [authTestStatus, setAuthTestStatus] = useState('idle');
+  const [authTestError, setAuthTestError] = useState('');
 
-  // Fetch live Flux node geolocations → density-binned clusters
-  useEffect(() => {
-    let alive = true;
-    fetch('https://stats.runonflux.io/fluxinfo?projection=geolocation')
-      .then(r => r.json())
-      .then(({ data }) => {
-        if (!alive) return;
-        const BIN = 1, bins = new Map();
-        for (const n of data) {
-          const g = n.geolocation;
-          if (g?.lat == null || g?.lon == null) continue;
-          const bLon = Math.round(g.lon / BIN) * BIN;
-          const bLat = Math.round(g.lat / BIN) * BIN;
-          const key  = `${bLon},${bLat}`;
-          bins.set(key, bins.get(key) ?? { lon: bLon, lat: bLat, count: 0 });
-          bins.get(key).count++;
-        }
-        const cells    = Array.from(bins.values());
-        const maxCount = Math.max(...cells.map(c => c.count));
-        clustersRef.current = cells.map(({ lon, lat, count }) => ({
-          lon: lon + (Math.random() - 0.5),
-          lat: lat + (Math.random() - 0.5),
-          h: 22.5 + Math.sqrt(count / maxCount) * 67.5,
-        }));
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
+  const debounceRef = useRef(null);
+  const requestGenRef = useRef(0);
+  const branchDropdownRef = useRef(null);
+  const subdirDropdownRef = useRef(null);
+  
+  const parsed = useMemo(() => parseRepoUrl(repoUrl.trim()), [repoUrl]);
+  const provider = parsed ? PROVIDER_LABELS[parsed.provider] : null;
 
-  // Build and animate the Three.js WebGL scene
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || paused) return;
+  async function runCompatibilityChecks(parsedRepo, authHeaders = {}, gen) {
+    setCompatibilityStatus('checking');
 
-    const SIZE   = 900;
-    const RADIUS = SIZE * 0.43;
-    const dpr    = Math.min(window.devicePixelRatio || 1, 2);
+    const branchesResult = await fetchBranches(parsedRepo, authHeaders);
+    if (requestGenRef.current !== gen) return;
+    
+    if (branchesResult.length > 0) {
+      setBranches(branchesResult);
+      const defaultBranch = branchesResult.find((b) => b.isDefault);
+      const selectedBranch = defaultBranch?.name || branchesResult[0]?.name || 'main';
 
-    // Renderer ──────────────────────────────────────────────────────────────
-    const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setSize(SIZE, SIZE);
-    renderer.setPixelRatio(dpr);
-    renderer.setClearColor(0x000000, 0);
+      // Fetch directories before calling setBranch — if setBranch triggers [branch]
+      // effect it increments requestGenRef, which would kill this fn before setDirectories runs.
+      setDirLoading(true);
+      const dirs = await listDirectories(parsedRepo, selectedBranch, '', authHeaders);
+      if (requestGenRef.current !== gen) return;
 
-    // Scene + orthographic camera positioned 10° above the equatorial plane,
-    // always aimed at the globe centre — gives a natural "looking down" perspective.
-    const scene  = new Scene();
-    const half   = SIZE / 2;
-    const camera = new OrthographicCamera(-half, half, half, -half, 1, 2000);
-    const ELEV   = 10 * Math.PI / 180;
-    const DIST   = 1000;
-    camera.position.set(0, DIST * Math.sin(ELEV), DIST * Math.cos(ELEV));
-    camera.lookAt(0, 0, 0);
+      // Batch dirs + branch together so [branch] effect sees populated directories
+      setDirectories(dirs);
+      setDirLoading(false);
+      setBranch(selectedBranch);
 
-    // rotation.y = +30° starts with lon = -30° (30°W, mid-Atlantic) facing the camera
-    const globe = new Group();
-    globe.rotation.y = 30 * Math.PI / 180;
-    scene.add(globe);
+      const compat = await checkCompatibility(parsedRepo, selectedBranch, '', authHeaders);
+      if (requestGenRef.current !== gen) return; // [branch] effect may have taken over
 
-    // Shared GLSL snippet: discard fragments on the back hemisphere.
-    // The interpolated world-space Z of a line vertex goes negative the moment
-    // that part of the geometry is behind the globe centre from the camera (+Z).
-    const BACK_DISCARD = `if (vWorldZ < 0.0) discard;`;
-
-    // Reusable vertex shader that passes world-space Z to the fragment stage
-    const vsWorldZ = `
-      varying float vWorldZ;
-      void main() {
-        vWorldZ = (modelMatrix * vec4(position, 1.0)).z;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      // If root is incompatible but directories exist, show helpful message
+      if (compat.status === 'incompatible' && dirs.length > 0) {
+        setCompatibilityStatus('warning');
+        setCompatibilityMessage(`Multiple projects detected • Select a subdirectory below`);
+      } else {
+        setCompatibilityStatus(compat.status);
+        setCompatibilityMessage(compat.message || '');
       }
-    `;
-
-    // 1. Globe sphere — opaque so it renders in the opaque pass first, writes
-    //    depth cleanly, and lets transparent lines render on top without artifacts.
-    globe.add(new Mesh(
-      new SphereGeometry(RADIUS, 64, 64),
-      new ShaderMaterial({
-        vertexShader: `
-          varying vec3 vNormal;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          varying vec3 vNormal;
-          void main() {
-            vec3 light = normalize(vec3(-0.25, 0.25, 1.0));
-            float d    = clamp(dot(vNormal, light) * 0.5 + 0.5, 0.0, 1.0);
-            vec4 dark  = vec4(0.008, 0.006, 0.045, 1.0);
-            vec4 lite  = vec4(0.055, 0.045, 0.16, 1.0);
-            gl_FragColor = mix(dark, lite, d);
-          }
-        `,
-      }),
-    ));
-
-
-    const LINE_R = RADIUS + 0.5;
-
-    // 2. Graticule grid lines (every 20°) — back hemisphere clipped in shader
-    const gratGeo = new BufferGeometry();
-    gratGeo.setAttribute('position', new Float32BufferAttribute(geojsonToPositions(GRATICULE, LINE_R), 3));
-    globe.add(new LineSegments(
-      gratGeo,
-      new ShaderMaterial({
-        transparent: true,
-        depthWrite:  false,
-        vertexShader: vsWorldZ,
-        fragmentShader: `
-          varying float vWorldZ;
-          void main() {
-            ${BACK_DISCARD}
-            gl_FragColor = vec4(0.353, 0.353, 0.784, 0.18);
-          }
-        `,
-      }),
-    ));
-
-    // 3. Country / continent outlines — same clipping
-    const countryGeo = new BufferGeometry();
-    countryGeo.setAttribute('position', new Float32BufferAttribute(geojsonToPositions(COUNTRIES, LINE_R), 3));
-    globe.add(new LineSegments(
-      countryGeo,
-      new ShaderMaterial({
-        transparent: true,
-        depthWrite:  false,
-        vertexShader: vsWorldZ,
-        fragmentShader: `
-          varying float vWorldZ;
-          void main() {
-            ${BACK_DISCARD}
-            gl_FragColor = vec4(0.549, 0.549, 1.0, 0.75);
-          }
-        `,
-      }),
-    ));
-
-    // 4. Density bars — gradient blue (base) → transparent (tip), additive blending.
-    //    No worldZ discard here: the opaque sphere writes depth, so depth-testing
-    //    naturally hides bar segments behind the sphere surface while still
-    //    showing tips that protrude above the silhouette at the limb.
-    const barsMat = new ShaderMaterial({
-      transparent: true,
-      depthWrite:  false,
-      blending:    AdditiveBlending,
-      vertexShader: `
-        attribute float aT;
-        varying float vT;
-        void main() {
-          vT          = aT;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying float vT;
-        void main() {
-          vec3 base = vec3(0.38, 0.65, 1.0);
-          vec3 tip  = vec3(0.62, 0.82, 1.0);
-          gl_FragColor = vec4(mix(tip, base, vT), vT * 0.9);
-        }
-      `,
-    });
-    const barsGeo  = new BufferGeometry();
-    // Initialise with empty attributes so Three.js doesn't warn on first render
-    barsGeo.setAttribute('position', new Float32BufferAttribute([], 3));
-    barsGeo.setAttribute('aT',       new Float32BufferAttribute([], 1));
-    const barsMesh = new LineSegments(barsGeo, barsMat);
-    barsMesh.renderOrder = 3;
-    globe.add(barsMesh);
-
-    let lastClustersLen = -1;
-    function rebuildBars() {
-      const clusters = clustersRef.current;
-      const pos = [], ts = [];
-      for (const { lon, lat, h } of clusters) {
-        pos.push(...lonLatToVec3(lon, lat, LINE_R));
-        pos.push(...lonLatToVec3(lon, lat, LINE_R + h));
-        ts.push(1.0, 0.0); // base white, tip fades
-      }
-      barsGeo.setAttribute('position', new Float32BufferAttribute(pos, 3));
-      barsGeo.setAttribute('aT',       new Float32BufferAttribute(ts,  1));
-      barsGeo.computeBoundingSphere();
-      lastClustersLen = clusters.length;
+    } else {
+      setBranch('main');
+      setBranches([]);
+      setDirectories([]);
+      setCompatibilityStatus('idle');
+      setCompatibilityMessage('');
     }
-
-    // Animation loop — runs at native display rate (GPU renders cheaply) ───
-    let lastTs  = 0;
-    let visible = true;
-    let raf;
-
-    function animate(ts) {
-      raf = requestAnimationFrame(animate);
-      if (!visible) return;
-      const dt = lastTs ? Math.min(ts - lastTs, 100) : 0; // cap at 100 ms
-      lastTs = ts;
-
-      if (clustersRef.current.length !== lastClustersLen) rebuildBars();
-
-      globe.rotation.y += 0.005 * (dt / 1000); // eastward drift
-      renderer.render(scene, camera);
-    }
-    raf = requestAnimationFrame(animate);
-
-    // Pause when scrolled out of viewport
-    const io = new IntersectionObserver(
-      ([e]) => { visible = e.isIntersecting; },
-      { threshold: 0 },
-    );
-    io.observe(canvas);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      io.disconnect();
-      // Dispose all GPU resources
-      scene.traverse(obj => {
-        obj.geometry?.dispose();
-        const mat = obj.material;
-        if (mat) (Array.isArray(mat) ? mat : [mat]).forEach(m => m.dispose());
-      });
-      renderer.dispose();
-    };
-  }, [paused]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '900px', height: '900px' }}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[53%] opacity-40 pointer-events-none select-none"
-      aria-hidden="true"
-    />
-  );
-}
-
-// Terminal lines — fixed set, card height never changes
-const TERMINAL_LINES = [
-  { prefix: '$',  prefixColor: 'text-accent',   text: ' git push origin main' },
-  { prefix: '',   prefixColor: '',               text: 'Enumerating objects: 5, done.', dim: true },
-  { prefix: '',   prefixColor: '',               text: 'Writing objects: 100% (5/5), 1.2 KiB', dim: true },
-  { prefix: '●',  prefixColor: 'text-primary',   text: ' Orbit detected push → triggering build…' },
-  { prefix: '●',  prefixColor: 'text-primary',   text: ' Framework: ', highlight: '__FRAMEWORK__' },
-  { prefix: '●',  prefixColor: 'text-primary',   text: ' Build complete in 23s' },
-  { prefix: '●',  prefixColor: 'text-primary',   text: ' Deploying to Flux network…' },
-  { prefix: '✓',  prefixColor: 'text-accent',    text: ' Live: ', highlight: '__LIVE__' },
-];
-
-// Frameworks that cycle in the terminal on each loop
-const FRAMEWORK_CYCLE = [
-  { name: 'Next.js 14',  slug: 'my-nextjs-app'  },
-  { name: 'React 18',    slug: 'my-react-app'   },
-  { name: 'Vue 3',       slug: 'my-vue-app'     },
-  { name: 'Django 5',    slug: 'my-django-app'  },
-  { name: 'FastAPI',     slug: 'my-fastapi-app' },
-  { name: 'NestJS',      slug: 'my-nestjs-app'  },
-  { name: 'Svelte 5',    slug: 'my-svelte-app'  },
-  { name: 'Astro 4',     slug: 'my-astro-app'   },
-  { name: 'Laravel 11',  slug: 'my-laravel-app' },
-  { name: 'Go / Gin',    slug: 'my-go-app'      },
-];
-
-const FRAMEWORKS_MARQUEE = [
-  { name: 'Next.js',     color: '#e2e8f0', Icon: SiNextdotjs   },
-  { name: 'React',       color: '#61dafb', Icon: SiReact       },
-  { name: 'Django',      color: '#44b78b', Icon: SiDjango      },
-  { name: 'FastAPI',     color: '#009688', Icon: SiFastapi     },
-  { name: 'NestJS',      color: '#e0234e', Icon: SiNestjs      },
-  { name: 'Vue',         color: '#42d392', Icon: SiVuedotjs    },
-  { name: 'Remix',       color: '#a78bfa', Icon: SiRemix       },
-  { name: 'Astro',       color: '#ff7b35', Icon: SiAstro       },
-  { name: 'Rails',       color: '#cc0000', Icon: SiRubyonrails },
-  { name: 'Laravel',     color: '#ff2d20', Icon: SiLaravel     },
-  { name: 'Gin',         color: '#00acd7', Icon: SiGo          },
-  { name: 'Actix Web',   color: '#f74c00', Icon: SiRust        },
-  { name: 'Spring Boot', color: '#6db33f', Icon: SiSpring      },
-  { name: 'Svelte',      color: '#ff3e00', Icon: SiSvelte      },
-  { name: 'Flask',       color: '#94a3b8', Icon: SiFlask       },
-  { name: 'Nuxt',        color: '#00dc82', Icon: SiNuxt        },
-  { name: 'Hono',        color: '#f97316', Icon: SiHono        },
-  { name: 'Blazor',      color: '#9b72d0', Icon: SiBlazor      },
-];
-const MARQUEE_ITEMS = [...FRAMEWORKS_MARQUEE, ...FRAMEWORKS_MARQUEE];
-
-// Typewriter: reveals lines one by one, then loops
-function useTypewriter(lines, { paused = false } = {}) {
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [loopCount, setLoopCount] = useState(0);
-  const timerRef = useRef(null);
+  }
 
   useEffect(() => {
-    if (paused) {
-      setVisibleCount(lines.length);
+    clearTimeout(debounceRef.current);
+
+    const trimmed = repoUrl.trim();
+    if (!trimmed) {
+      setRepoStatus('idle');
+      setCompatibilityStatus('idle');
+      setCompatibilityMessage('');
+      setBranch('main');
+      setAuthTestStatus('idle');
+      setAuthTestError('');
       return;
     }
 
-    function step(count) {
-      if (count < lines.length) {
-        timerRef.current = setTimeout(() => {
-          setVisibleCount(count + 1);
-          step(count + 1);
-        }, 420);
-      } else {
-        // Pause at end, fade out, then swap framework + restart
-        timerRef.current = setTimeout(() => {
-          setVisibleCount(0); // triggers fade-out (300ms transition)
-          timerRef.current = setTimeout(() => {
-            setLoopCount(c => c + 1); // switch framework only after fade is done
-            step(0);
-          }, 350);
-        }, 3200);
+    if (!trimmed.startsWith('http') || !parsed) {
+      setRepoStatus('invalid');
+      setCompatibilityStatus('idle');
+      setCompatibilityMessage('');
+      setBranch('main');
+      setAuthTestStatus('idle');
+      setAuthTestError('');
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      const gen = ++requestGenRef.current;
+      setRepoStatus('checking');
+      setCompatibilityStatus('idle');
+      setCompatibilityMessage('');
+      setAuthTestStatus('idle');
+      setAuthTestError('');
+
+      const status = await checkRepoAccess(parsed);
+      if (requestGenRef.current !== gen) return;
+      setRepoStatus(status);
+
+      if (status === 'public') {
+        runCompatibilityChecks(parsed, {}, gen);
       }
+    }, 700);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [parsed, repoUrl]);
+
+  async function handlePrivateAuthTest() {
+    if (!parsed) return;
+    setAuthTestStatus('testing');
+    setAuthTestError('');
+
+    const result = await testPrivateAuth(parsed, username.trim(), token.trim());
+    if (!result.success) {
+      setAuthTestStatus('error');
+      setAuthTestError(result.error || 'Authentication failed');
+      setCompatibilityStatus('idle');
+      setCompatibilityMessage('');
+      return;
     }
 
-    step(visibleCount);
-    return () => clearTimeout(timerRef.current);
-  }, [paused]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return { visibleCount, loopCount };
-}
-
-function GradientWord({ children, gradient = 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)' }) {
-  return (
-    <span
-      style={{
-        backgroundImage: gradient,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        color: '#3b82f6',
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-export default function HeroSection({ onLoginSuccess }) {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [loginOpen, setLoginOpen] = useState(false);
-  const reducedMotion = useReducedMotion();
-
-  const { visibleCount: visibleLines, loopCount } = useTypewriter(TERMINAL_LINES, { paused: reducedMotion });
-  const currentFramework = FRAMEWORK_CYCLE[loopCount % FRAMEWORK_CYCLE.length];
-
-  function handleCTA() {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      setLoginOpen(true);
-    }
+    setAuthTestStatus('success');
+    const gen = ++requestGenRef.current;
+    const authHeaders = buildAuthHeaders(parsed, username.trim(), token.trim());
+    runCompatibilityChecks(parsed, authHeaders, gen);
   }
 
+  function handleDeploy() {
+    const finalRepo = repoUrl.trim();
+    const finalBranch = branch || 'main';
+    const finalSubdir = subdirectory || '';
+    const isPrivate = repoStatus === 'inaccessible' && authTestStatus === 'success';
+
+    const prefill = {
+      url: finalRepo,
+      branch: finalBranch,
+      subdirectory: finalSubdir,
+      username: isPrivate ? username.trim() : '',
+      token: isPrivate ? token.trim() : '',
+      isPrivate,
+      repoStatus,
+      authTestStatus: isPrivate ? 'success' : 'idle',
+      compatibilityStatus,
+      compatibilityMessage,
+    };
+
+    sessionStorage.setItem(HERO_PREFILL_KEY, JSON.stringify(prefill));
+
+    const params = new URLSearchParams({
+      plan: 'free',
+      repo: finalRepo,
+      branch: finalBranch,
+    });
+    if (finalSubdir) params.set('subdirectory', finalSubdir);
+
+    navigate(`/deploy?${params.toString()}`);
+  }
+
+  // Re-run compatibility when branch or subdirectory changes
+  useEffect(() => {
+    if (!parsed || repoStatus === 'idle' || branches.length === 0) return;
+    
+    const gen = ++requestGenRef.current;
+    const authHeaders = (repoStatus === 'inaccessible' && authTestStatus === 'success')
+      ? buildAuthHeaders(parsed, username.trim(), token.trim())
+      : {};
+    
+    setCompatibilityStatus('checking');
+    checkCompatibility(parsed, branch, subdirectory, authHeaders)
+      .then((compat) => {
+        if (requestGenRef.current !== gen) return;
+        
+        // If root is incompatible but directories exist and no subdirectory selected, show helpful message
+        if (compat.status === 'incompatible' && directories.length > 0 && !subdirectory) {
+          setCompatibilityStatus('warning');
+          setCompatibilityMessage(`Multiple projects detected • Select a subdirectory below`);
+        } else {
+          setCompatibilityStatus(compat.status);
+          setCompatibilityMessage(compat.message || '');
+        }
+      });
+  }, [branch, subdirectory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function onOutside(e) {
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(e.target)) {
+        setBranchOpen(false);
+      }
+      if (subdirDropdownRef.current && !subdirDropdownRef.current.contains(e.target)) {
+        setSubdirOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
+
+  const compatible = compatibilityStatus === 'compatible' || compatibilityStatus === 'warning';
+  const hasAccess =
+    repoStatus === 'public' ||
+    (repoStatus === 'inaccessible' && authTestStatus === 'success');
+  const canDeploy = Boolean(parsed) && hasAccess && compatible;
+
   return (
-    <>
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20 lg:py-24">
+      {/* Elegant background gradient */}
+      <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-radial from-primary/8 via-primary/4 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-gradient-radial from-accent/6 via-accent/3 to-transparent rounded-full blur-3xl" />
+      </div>
 
-        {/* ── Background ─────────────────────────────────────────────────── */}
-        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
-          {/* Wireframe globe */}
-          <WireframeGlobe paused={reducedMotion} />
-          {/* Primary glow */}
-          <motion.div
-            className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px]"
-            animate={reducedMotion ? {} : { scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          {/* Accent glow */}
-          <div className="absolute top-1/3 left-[15%] w-[260px] h-[260px] bg-accent/6 rounded-full blur-[70px]" />
-          {/* Dot grid */}
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-            }}
-          />
-          {/* Bottom fade to next section */}
-          <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
-        </div>
-
-        {/* ── Content ────────────────────────────────────────────────────── */}
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-5 sm:px-6 text-center pt-16 pb-10">
-
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-indigo-200 text-xs font-medium mb-7"
-          >
-            <GitBranch className="w-3.5 h-3.5" />
-            Git-native deployment for the Flux network
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-heading font-light text-text leading-[1.2] tracking-tight mb-5
-                       text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
-          >
-            Deploy to <GradientWord>Flux</GradientWord>
-            <br />
-            <span className="block mt-3">
-              with <GradientWord gradient="linear-gradient(90deg, #f97316 0%, #ef4444 100%)">Git</GradientWord>
-            </span>
-          </motion.h1>
-
-          {/* Subtext */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-text-secondary leading-relaxed max-w-2xl mx-auto mb-9
-                       text-base sm:text-lg md:text-xl"
-          >
-            Push your code. Orbit handles the rest: builds, deploys, and scales your app
-            across 10,000+ Flux nodes worldwide. Free tier, no credit card required.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8"
-          >
-            <button
-              onClick={handleCTA}
-              className="btn-cta text-sm sm:text-base px-6 py-3 sm:px-8 sm:py-3.5 w-full sm:w-auto"
+      <div className="relative z-10 w-full max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left Column - Form */}
+          <div>
+            {/* Badge */}
+            {/* Heading */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="font-heading font-light text-5xl lg:text-6xl xl:text-7xl text-text leading-[1.1] tracking-tight mb-6"
             >
-              Start Deploying Free
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <a
-              href="#how-it-works"
-              className="btn-terminal px-5 py-3 w-full sm:w-auto justify-center"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>how-it-works</span>
-            </a>
-          </motion.div>
+              Deploy from Git.
+              <br />
+              <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                Live in minutes.
+              </span>
+            </motion.h1>
 
-          {/* Framework logos marquee */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.45 }}
-            className="w-full overflow-hidden"
-            aria-label="Supported frameworks"
-          >
-            <div className="text-center mb-3">
-              <a
-                href="https://github.com/RunOnFlux/deploy-with-git"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-transparent
-                           text-xs text-indigo-200 transition-all duration-200
-                           hover:border-indigo-400/60 hover:text-white"
-              >
-                Deploy Over 100 Frameworks.{' '}
-                <span>View Framework Guides →</span>
-              </a>
-            </div>
-            <div className="relative">
-              <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent" />
-              <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none bg-gradient-to-l from-background to-transparent" />
-              <div className="marquee-track flex" style={{ width: 'max-content' }}>
-                {MARQUEE_ITEMS.map((fw, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-md border border-border/60
-                               bg-surface/50 text-xs font-mono whitespace-nowrap select-none mr-2"
-                    style={{ color: fw.color }}
-                  >
-                    <fw.Icon className="w-4 h-4 flex-shrink-0" style={{ color: fw.color }} />
-                    {fw.name}
-                  </div>
-                ))}
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="text-lg text-text-secondary/70 mb-10 leading-relaxed font-light max-w-xl"
+            >
+              Paste your repository. Automatic framework detection, zero-config builds, and global deployment across 10,000+ Flux nodes.
+            </motion.p>
+
+            {/* Main card */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="relative rounded-2xl border border-border/40 bg-gradient-to-b from-surface/80 to-surface/40 backdrop-blur-2xl shadow-2xl shadow-black/5 p-6 sm:p-8">
+                {/* Subtle top border glow */}
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+            
+                {/* URL Input */}
+                <div className="mb-5">
+                  <div className="relative group">
+                {/* Provider icon on the left */}
+                {parsed?.provider && PROVIDER_ICONS[parsed.provider] && (() => {
+                  const Icon = PROVIDER_ICONS[parsed.provider];
+                  return (
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none z-10">
+                      <Icon className="w-5 h-5" />
+                    </span>
+                  );
+                })()}
+                
+                <input
+                  type="url"
+                  placeholder="https://github.com/username/repository"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  autoComplete="off"
+                  spellCheck="false"
+                  className={`w-full h-16 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-14' : 'pl-6'} pr-6 bg-background/60 border border-border/50 rounded-xl text-text text-base placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/90 focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] font-mono focus:shadow-[0_0_0_3px_rgba(99,102,241,0.06),0_1px_2px_0_rgba(0,0,0,0.05)]`}
+                />
+                
+                {/* Provider badge on the right (removed - icon is enough) */}
+              </div>
+
+              {/* Status message */}
+              <div className="mt-4 flex items-center px-1">
+                {repoStatus === 'idle' && (
+                  <p className="text-sm text-text-muted/50 flex items-center gap-2.5">
+                    <Info className="w-4 h-4" />
+                    GitHub, GitLab, and Bitbucket supported
+                  </p>
+                )}
+
+                {repoStatus === 'invalid' && (
+                  <p className="text-sm text-amber-400/90 flex items-center gap-2.5 font-medium">
+                    <AlertTriangle className="w-4 h-4" />
+                    Please provide a valid HTTPS repository URL
+                  </p>
+                )}
+
+                {repoStatus === 'checking' && (
+                  <p className="text-sm text-text-muted/70 flex items-center gap-2.5">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verifying repository access...
+                  </p>
+                )}
+
+                {repoStatus === 'inaccessible' && authTestStatus !== 'success' && (
+                  <p className="text-sm text-amber-400/90 flex items-center gap-2.5 font-medium">
+                    <Lock className="w-4 h-4" />
+                    Private repository: authentication required
+                  </p>
+                )}
+
+                {repoStatus === 'unknown' && (
+                  <p className="text-sm text-red-400/90 flex items-center gap-2.5">
+                    <XCircle className="w-4 h-4" />
+                    Unable to access repository
+                  </p>
+                )}
               </div>
             </div>
-          </motion.div>
-        </div>
 
-        {/* ── Terminal mockup ─────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, delay: 0.55, ease: 'easeOut' }}
-          className="relative z-10 w-full max-w-xl sm:max-w-2xl mx-auto px-5 sm:px-6 pb-8 -mt-6"
-          aria-hidden="true"
-        >
-          <div
-            className="rounded-2xl border border-border bg-surface/80 backdrop-blur
-                        overflow-hidden shadow-2xl shadow-primary/10"
-          >
-            {/* Chrome bar */}
-            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-border bg-white/[0.025]">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
-              <span className="ml-3 text-xs text-text-muted font-mono">orbit — bash</span>
-            </div>
+            {/* Private auth section */}
+            {repoStatus === 'inaccessible' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.4 }}
+                className="mb-6"
+              >
+                <div className="p-6 border border-amber-500/20 rounded-xl bg-gradient-to-br from-amber-500/5 via-amber-500/3 to-transparent">
+                  <div className="flex items-start gap-3 mb-5">
+                    <ShieldCheck className="w-5 h-5 text-amber-400/80 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-amber-300/80 mb-1 font-medium">
+                        Private Repository Authentication
+                      </p>
+                      <p className="text-xs text-amber-300/60 leading-relaxed">
+                        Provide read-only access credentials to validate and deploy your private repository.
+                        {provider?.tokenUrl && (
+                          <>
+                            {' '}
+                            <a
+                              href={provider.tokenUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline hover:text-amber-200/90 transition-colors font-medium"
+                            >
+                              Generate token →
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
 
-            {/* Fixed-height body prevents layout shift during typewriter */}
-            <div className="p-4 sm:p-5 font-mono text-[11px] sm:text-xs leading-[1.75] h-[150px] sm:h-[166px] overflow-hidden">
-              {TERMINAL_LINES.map((line, i) => (
-                <div
-                  key={i}
-                  className={`transition-opacity duration-300 ${
-                    i < visibleLines ? 'opacity-100' : 'opacity-0'
-                  } ${line.dim ? 'text-text-muted' : 'text-text-secondary'}`}
-                >
-                  {line.prefix && (
-                    <span className={`${line.prefixColor} mr-1`}>{line.prefix}</span>
-                  )}
-                  {line.text}
-                  {line.highlight && (
-                    <span className="text-accent font-semibold">
-                      {line.highlight === '__FRAMEWORK__'
-                        ? currentFramework.name
-                        : line.highlight === '__LIVE__'
-                        ? `${currentFramework.slug}.app.runonflux.io`
-                        : line.highlight}
-                    </span>
-                  )}
-                  {/* Blinking cursor on last visible line */}
-                  {i === visibleLines - 1 && !reducedMotion && (
-                    <motion.span
-                      className="inline-block w-[7px] h-[13px] bg-text-secondary ml-0.5 align-middle"
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ duration: 0.6, repeat: Infinity, repeatType: 'reverse' }}
+                  <div className="space-y-3.5 mb-5">
+                    <input
+                      type="text"
+                      placeholder="Username or email"
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        setAuthTestStatus('idle');
+                        setAuthTestError('');
+                        setCompatibilityStatus('idle');
+                      }}
+                      className="w-full h-12 px-4 bg-background/50 border border-border/40 rounded-lg text-text text-sm placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/80 focus:border-amber-400/25 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgba(251,191,36,0.04),0_1px_2px_0_rgba(0,0,0,0.05)]"
                     />
-                  )}
+                    <div className="relative">
+                      <input
+                        type={showToken ? 'text' : 'password'}
+                        placeholder="Personal access token"
+                        value={token}
+                        onChange={(e) => {
+                          setToken(e.target.value);
+                          setAuthTestStatus('idle');
+                          setAuthTestError('');
+                          setCompatibilityStatus('idle');
+                        }}
+                        className="w-full h-12 px-4 pr-20 bg-background/50 border border-border/40 rounded-lg text-text text-sm placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/80 focus:border-amber-400/25 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgba(251,191,36,0.04),0_1px_2px_0_rgba(0,0,0,0.05)] font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowToken((v) => !v)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/70 hover:text-text text-xs font-medium transition-colors"
+                      >
+                        {showToken ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handlePrivateAuthTest}
+                      disabled={!username.trim() || !token.trim() || authTestStatus === 'testing'}
+                      className="px-5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 hover:border-amber-500/40 text-amber-200 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed outline-none ring-0 focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(251,191,36,0.12)]"
+                    >
+                      {authTestStatus === 'testing' ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Validating...
+                        </span>
+                      ) : (
+                        'Validate Credentials'
+                      )}
+                    </button>
+
+                    {authTestStatus === 'success' && (
+                      <span className="text-sm text-emerald-400 flex items-center gap-2 font-medium">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Authenticated
+                      </span>
+                    )}
+
+                    {authTestStatus === 'error' && (
+                      <span className="text-sm text-red-400/90 flex items-center gap-2 font-medium">
+                        <XCircle className="w-4 h-4" />
+                        {authTestError}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
+              </motion.div>
+            )}
+
+            {/* Branch & Subdirectory selectors (shown when repository is verified) */}
+            {(repoStatus === 'public' || (repoStatus === 'inaccessible' && authTestStatus === 'success')) && branches.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+                className="mb-6 space-y-4"
+              >
+                {/* Branch selector */}
+                <div ref={branchDropdownRef}>
+                  <label className="block text-sm font-medium text-text/80 mb-2 flex items-center gap-1.5">
+                    <GitBranch className="w-3.5 h-3.5" /> Branch
+                  </label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setBranchOpen((v) => !v)}
+                      className="w-full h-12 px-4 bg-background/50 border border-border/40 rounded-lg text-text text-sm text-left flex items-center justify-between outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/80 focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.06),0_1px_2px_0_rgba(0,0,0,0.05)]"
+                    >
+                      <span className="flex items-center gap-2">
+                        <GitBranch className="w-3.5 h-3.5 text-text-muted" />
+                        {branch}
+                        {branches.find((b) => b.name === branch && b.isDefault) && (
+                          <span className="text-xs text-primary">★ default</span>
+                        )}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${branchOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {branchOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-20 top-full mt-2 left-0 right-0 bg-surface/95 backdrop-blur-xl border border-border rounded-lg shadow-2xl max-h-52 overflow-y-auto"
+                        >
+                          {branches.map((b) => (
+                            <button
+                              key={b.name}
+                              type="button"
+                              onClick={() => {
+                                setBranch(b.name);
+                                setBranchOpen(false);
+                              }}
+                              className={`flex items-center justify-between w-full px-4 py-2.5 text-sm hover:bg-surface-hover transition-colors ${b.name === branch ? 'text-primary bg-primary/5' : 'text-text'}`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <GitBranch className="w-3.5 h-3.5 text-text-muted" />
+                                {b.name}
+                              </span>
+                              {b.isDefault && <span className="text-xs text-primary">★</span>}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* Subdirectory combobox (for monorepos) */}
+                {directories.length > 0 && (
+                  <div ref={subdirDropdownRef}>
+                    <label className="block text-sm font-medium text-text/80 mb-2 flex items-center gap-1.5">
+                      <FolderOpen className="w-3.5 h-3.5" /> Subdirectory
+                      <span className="text-text-muted/70 font-normal text-xs">(optional for monorepos)</span>
+                      {dirLoading && <Loader2 className="w-3 h-3 animate-spin text-text-muted" />}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="/ (root) or /apps/web"
+                        value={subdirectory}
+                        onChange={(e) => setSubdirectory(e.target.value)}
+                        onFocus={() => setSubdirOpen(true)}
+                        className="w-full h-12 px-4 pr-10 bg-background/50 border border-border/40 rounded-lg text-text text-sm placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/80 focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.06),0_1px_2px_0_rgba(0,0,0,0.05)] font-mono"
+                      />
+                      <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none transition-transform duration-200 ${subdirOpen ? 'rotate-180' : ''}`} />
+                      
+                      <AnimatePresence>
+                        {subdirOpen && directories.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute z-20 top-full mt-2 left-0 right-0 bg-surface/95 backdrop-blur-xl border border-border rounded-lg shadow-2xl max-h-52 overflow-y-auto"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSubdirectory('');
+                                setSubdirOpen(false);
+                              }}
+                              className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm hover:bg-surface-hover transition-colors ${!subdirectory ? 'text-primary bg-primary/5' : 'text-text'}`}
+                            >
+                              <FolderOpen className="w-3.5 h-3.5 text-text-muted" />
+                              / <span className="text-xs text-text-muted ml-1">(root)</span>
+                            </button>
+                            {directories.map((dir) => (
+                              <button
+                                key={dir}
+                                type="button"
+                                onClick={() => {
+                                  setSubdirectory(dir);
+                                  setSubdirOpen(false);
+                                }}
+                                className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm hover:bg-surface-hover transition-colors ${dir === subdirectory ? 'text-primary bg-primary/5' : 'text-text'}`}
+                              >
+                                <FolderOpen className="w-3.5 h-3.5 text-text-muted" />
+                                {dir}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Compatibility status */}
+            {compatibilityStatus !== 'idle' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mb-6 px-1 flex items-center"
+              >
+                {compatibilityStatus === 'checking' && (
+                  <p className="text-sm text-text-muted/70 flex items-center gap-2.5">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Analyzing repository structure...
+                  </p>
+                )}
+                {compatibilityStatus === 'compatible' && (
+                  <p className="text-sm text-emerald-400 flex items-center gap-2.5 font-medium">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Ready for deployment{compatibilityMessage ? ` • ${compatibilityMessage}` : ''}
+                  </p>
+                )}
+                {compatibilityStatus === 'warning' && (
+                  <p className="text-sm text-amber-400/90 flex items-center gap-2.5 font-medium">
+                    <AlertTriangle className="w-4 h-4" />
+                    {compatibilityMessage || 'Additional configuration required'}
+                  </p>
+                )}
+                {compatibilityStatus === 'incompatible' && directories.length === 0 && (
+                  <p className="text-sm text-red-400/90 flex items-center gap-2.5 font-medium">
+                    <XCircle className="w-4 h-4" />
+                    {compatibilityMessage}
+                  </p>
+                )}
+              </motion.div>
+            )}
+
+            {/* Deploy button */}
+            <button
+              type="button"
+              onClick={handleDeploy}
+              disabled={!canDeploy}
+              className="group relative w-full h-12 overflow-hidden bg-gradient-to-r from-primary via-primary to-accent hover:shadow-2xl hover:shadow-primary/30 text-white font-bold text-base rounded-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center justify-center gap-3 outline-none ring-0 focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(99,102,241,0.25),0_8px_32px_-4px_rgba(99,102,241,0.4)]"
+            >
+              <span className="relative z-10">Deploy to Flux</span>
+              <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            </button>
+
+            <p className="mt-5 text-center text-xs text-text-muted/50 font-light">
+              Secure authentication • Pre-configured deployment settings • Takes 60 seconds
+            </p>
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
 
-      </section>
-
-      <LoginModal
-        isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={() => {
-          setLoginOpen(false);
-          onLoginSuccess?.();
-        }}
-      />
-    </>
+          {/* Right Column - Dashboard Preview */}
+          <div className="hidden lg:block">
+            <DashboardPreview frameless />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

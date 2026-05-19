@@ -1,96 +1,81 @@
 import { useState, useEffect } from 'react';
-import { Zap, DollarSign, HelpCircle, BookOpen, ExternalLink, LogIn, LayoutDashboard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogIn, LayoutDashboard, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import LoginModal from '../auth/LoginModal';
 
 const NAV_LINKS = [
-  { label: 'Features', href: '#features', Icon: Zap         },
-  { label: 'Pricing',  href: '#pricing',  Icon: DollarSign  },
-  { label: 'FAQ',      href: '#faq',      Icon: HelpCircle  },
+  { label: 'Features', href: '#features' },
+  { label: 'Pricing',  href: '#pricing'  },
+  { label: 'FAQ',      href: '#faq'      },
+  { label: 'Guides',   href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
 ];
 
 export default function Navbar({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
 
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 40);
-    }
+    function onScroll() { setScrolled(window.scrollY > 40); }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-colors duration-500 border-b ${
-          scrolled
-            ? 'bg-background/90 backdrop-blur-md border-border/60'
-            : 'bg-transparent border-transparent'
-        }`}
-      >
-        <div className="w-full px-6 sm:px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center shrink-0">
-            <img src="/orbit-logo.svg" alt="Orbit" className="w-auto" style={{ height: '1.5rem' }} />
-          </div>
+    <header
+      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
+        scrolled
+          ? 'bg-background/90 backdrop-blur-md'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="w-full px-6 sm:px-8 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <a href="/" className="flex items-center shrink-0">
+          <img src="/orbit-logo.svg" alt="Orbit" className="w-auto" style={{ height: '1.4rem' }} />
+        </a>
 
-          {/* Nav links - hidden on small screens */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(({ label, href, Icon }) => (
-              <a
-                key={href}
-                href={href}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-secondary hover:text-text rounded-lg
-                           hover:bg-white/5 transition-colors"
-              >
-                <Icon className="w-3.5 h-3.5 opacity-70" />
-                {label}
-              </a>
-            ))}
+        {/* Nav links */}
+        <nav className="hidden md:flex items-center gap-0.5">
+          {NAV_LINKS.map(({ label, href, external }) => (
             <a
-              href="https://github.com/RunOnFlux/deploy-with-git"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm text-text-secondary hover:text-text rounded-lg
-                         hover:bg-white/5 transition-colors"
+              key={href}
+              href={href}
+              target={external ? '_blank' : undefined}
+              rel={external ? 'noopener noreferrer' : undefined}
+              className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-lg hover:bg-white/5 transition-colors"
             >
-              <BookOpen className="w-3.5 h-3.5 opacity-70" />
-              Guides
-              <ExternalLink className="w-3 h-3 opacity-40" />
+              {label}
             </a>
-          </nav>
+          ))}
+        </nav>
 
-          {/* CTA */}
-          <div className="flex items-center gap-3 shrink-0">
-            {isAuthenticated ? (
-              <a href="/dashboard" className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2">
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </a>
-            ) : (
+        {/* CTAs */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated ? (
+            <a href="/dashboard" className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2">
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </a>
+          ) : (
+            <>
               <button
-                onClick={() => setLoginOpen(true)}
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-lg hover:bg-white/5 transition-colors hidden sm:block"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => navigate('/login')}
                 className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2"
               >
-                <LogIn className="w-4 h-4" />
-                Sign In
+                Get started
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
-            )}
-          </div>
+            </>
+          )}
         </div>
-      </header>
-
-      <LoginModal
-        isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={() => {
-          setLoginOpen(false);
-          onLoginSuccess?.();
-        }}
-      />
-    </>
+      </div>
+    </header>
   );
 }

@@ -99,7 +99,7 @@ function EnvImporter({ onImport }) {
         }`}
       >
         <Upload className="w-4 h-4 shrink-0" />
-        <span>Drop <code className="font-mono text-xs">.env</code>, JSON or YAML — or click to browse</span>
+        <span>Drop <code className="font-mono text-xs">.env</code>, JSON or YAML, or click to browse</span>
         <input
           ref={fileRef}
           type="file"
@@ -191,7 +191,7 @@ function EnvVarRow({ envVar, onChange, onRemove }) {
       {isReserved && (
         <p className="text-xs text-red-400 pl-1 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
-          <span><code className="font-mono">{envVar.key}</code> is managed by Orbit — use the dedicated field above instead.</span>
+          <span><code className="font-mono">{envVar.key}</code> is managed by Orbit. Use the dedicated field above instead.</span>
         </p>
       )}
     </div>
@@ -230,7 +230,7 @@ function GeoSelector({ selected, onChange }) {
           </div>
         );
       })}
-      {selected.length === 0 && <p className="text-xs text-text-muted py-1.5">No restriction — deploys globally</p>}
+      {selected.length === 0 && <p className="text-xs text-text-muted py-1.5">No restriction. Deploys globally</p>}
     </div>
   );
 }

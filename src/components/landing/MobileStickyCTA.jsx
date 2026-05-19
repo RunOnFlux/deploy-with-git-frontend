@@ -1,19 +1,16 @@
-import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import LoginModal from '../auth/LoginModal';
 
 export default function MobileStickyCTA({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [loginOpen, setLoginOpen] = useState(false);
 
   function handleCTA() {
     if (isAuthenticated) {
       navigate('/dashboard');
     } else {
-      setLoginOpen(true);
+      navigate('/login');
     }
   }
 
@@ -30,15 +27,6 @@ export default function MobileStickyCTA({ onLoginSuccess }) {
           </button>
         </div>
       </div>
-
-      <LoginModal
-        isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={() => {
-          setLoginOpen(false);
-          onLoginSuccess?.();
-        }}
-      />
     </>
   );
 }

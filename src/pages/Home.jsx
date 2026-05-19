@@ -49,7 +49,7 @@ export default function Home() {
       <MotionConfig reducedMotion="user">
         <div className="bg-background text-text pb-20 sm:pb-0">
           <Navbar onLoginSuccess={handleLoginSuccess} />
-          <HeroSection onLoginSuccess={handleLoginSuccess} />
+          <HeroSection />
           <FrameworkLogosSection />
           <HowItWorksSection />
           <FeaturesSection />

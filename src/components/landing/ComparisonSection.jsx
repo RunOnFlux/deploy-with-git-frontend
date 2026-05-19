@@ -77,7 +77,7 @@ function ValueCell({ value, highlight }) {
 
 export default function ComparisonSection() {
   return (
-    <section className="py-20 px-6">
+    <section className="py-20 lg:py-28 px-6">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

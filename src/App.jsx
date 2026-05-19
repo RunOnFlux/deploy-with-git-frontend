@@ -6,7 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
-import GlobeLoader from './components/common/GlobeLoader';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
@@ -19,6 +19,7 @@ const Billing = lazy(() => import('./pages/dashboard/Billing'));
 const Support = lazy(() => import('./pages/dashboard/Support'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const DeployGateway = lazy(() => import('./pages/DeployGateway'));
+const LoginPage = lazy(() => import('./pages/Login'));
 
 function StripeSuccessPage() {
   const [countdown, setCountdown] = useState(10);
@@ -57,7 +58,7 @@ function StripeSuccessPage() {
   );
 }
 
-const PageLoader = () => <GlobeLoader />;
+const PageLoader = () => <LoadingSpinner />;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +107,7 @@ function App() {
                   <Routes>
                     {/* Public */}
                     <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<LoginPage />} />
                     <Route path="/deploy" element={<DeployGateway />} />
                     <Route path="/successcheckout" element={<StripeSuccessPage />} />
 

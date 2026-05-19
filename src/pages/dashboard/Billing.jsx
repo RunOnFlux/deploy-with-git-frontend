@@ -182,7 +182,7 @@ export default function Billing() {
                 {expiringSoon.length} app{expiringSoon.length > 1 ? 's' : ''} expiring within 14 days
               </p>
               <p className="text-xs text-amber-300/80 mt-0.5">
-                Renew soon to avoid downtime —{' '}
+                Renew soon to avoid downtime:{' '}
                 {expiringSoon.map((a) => a.name).join(', ')}.
               </p>
             </div>

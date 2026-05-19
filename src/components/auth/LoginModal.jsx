@@ -156,16 +156,16 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
       {/* ── Method selection ── */}
       {view === VIEW.CHOOSE && (
-        <div className="flex flex-col gap-3">
-          <div className="text-center mb-2">
-            <h2 className="text-xl font-bold text-text">Sign in to Orbit</h2>
-            <p className="text-sm text-text-secondary mt-1">
-              Deploy your apps to the Flux network
+        <div className="flex flex-col gap-4">
+          <div className="text-center mb-3">
+            <h2 className="text-2xl font-semibold text-text mb-2">Sign in to Orbit</h2>
+            <p className="text-sm text-text-secondary/70">
+              Deploy your apps to the Flux decentralized cloud
             </p>
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-center">
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-center">
               {error}
             </p>
           )}
@@ -180,19 +180,19 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
             variant="secondary"
             fullWidth
             onClick={() => { clearError(); setView(VIEW.EMAIL_LOGIN); }}
-            className="!justify-start pl-16 gap-3"
+            className="!justify-start pl-14 gap-3 !h-12"
           >
-            <EnvelopeIcon className="w-6 h-6 shrink-0" />
+            <EnvelopeIcon className="w-5 h-5 shrink-0" />
             Continue with Email
           </Button>
 
-          <p className="text-center text-xs text-text-muted pt-1">
-            No account?{' '}
+          <p className="text-center text-xs text-text-muted/70 pt-2">
+            Don't have an account?{' '}
             <button
-              className="text-primary hover:underline"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={() => { clearError(); setView(VIEW.EMAIL_REGISTER); }}
             >
-              Create one free
+              Sign up free
             </button>
           </p>
         </div>
@@ -200,22 +200,22 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
 
       {/* ── Email login ── */}
       {view === VIEW.EMAIL_LOGIN && (
-        <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
+        <form onSubmit={handleEmailLogin} className="flex flex-col gap-5">
           <button
             type="button"
             onClick={() => { clearError(); setView(VIEW.CHOOSE); }}
-            className="text-xs text-text-secondary hover:text-text text-left"
+            className="text-sm text-text-secondary hover:text-text text-left transition-colors flex items-center gap-1"
           >
             ← Back
           </button>
 
-          <div>
-            <h2 className="text-xl font-bold text-text">Welcome back</h2>
-            <p className="text-sm text-text-secondary mt-0.5">Sign in with your email</p>
+          <div className="mb-1">
+            <h2 className="text-2xl font-semibold text-text mb-2">Welcome back</h2>
+            <p className="text-sm text-text-secondary/70">Sign in to your Orbit account</p>
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
               {error}
             </p>
           )}
@@ -239,31 +239,31 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={LockClosedIcon}
-              placeholder="Password"
+              placeholder="Enter your password"
               required
             />
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className="absolute right-3 bottom-2.5 text-text-muted hover:text-text transition-colors"
+              className="absolute right-3 bottom-3 text-text-muted hover:text-text transition-colors"
               tabIndex={-1}
             >
               {showPass ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
             </button>
           </div>
 
-          <Button type="submit" fullWidth loading={loading}>
+          <Button type="submit" fullWidth loading={loading} className="!h-12 !text-base">
             Sign in
           </Button>
 
-          <p className="text-center text-xs text-text-muted">
-            No account?{' '}
+          <p className="text-center text-xs text-text-muted/70">
+            Don't have an account?{' '}
             <button
               type="button"
-              className="text-primary hover:underline"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={() => { clearError(); setView(VIEW.EMAIL_REGISTER); }}
             >
-              Create one free
+              Sign up free
             </button>
           </p>
         </form>
@@ -271,24 +271,24 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
 
       {/* ── Email register ── */}
       {view === VIEW.EMAIL_REGISTER && (
-        <form onSubmit={handleEmailRegister} className="flex flex-col gap-4">
+        <form onSubmit={handleEmailRegister} className="flex flex-col gap-5">
           <button
             type="button"
             onClick={() => { clearError(); setView(VIEW.CHOOSE); }}
-            className="text-xs text-text-secondary hover:text-text text-left"
+            className="text-sm text-text-secondary hover:text-text text-left transition-colors flex items-center gap-1"
           >
             ← Back
           </button>
 
-          <div>
-            <h2 className="text-xl font-bold text-text">Create account</h2>
-            <p className="text-sm text-text-secondary mt-0.5">
-              Free forever, no credit card required
+          <div className="mb-1">
+            <h2 className="text-2xl font-semibold text-text mb-2">Create your account</h2>
+            <p className="text-sm text-text-secondary/70">
+              Free forever • No credit card required
             </p>
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
               {error}
             </p>
           )}
@@ -322,7 +322,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={LockClosedIcon}
-              placeholder="At least 8 characters"
+              placeholder="Create a strong password"
               hint="Minimum 8 characters"
               required
               minLength={8}
@@ -330,22 +330,22 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className="absolute right-3 bottom-2.5 text-text-muted hover:text-text transition-colors"
+              className="absolute right-3 bottom-3 text-text-muted hover:text-text transition-colors"
               tabIndex={-1}
             >
               {showPass ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
             </button>
           </div>
 
-          <Button type="submit" fullWidth loading={loading}>
+          <Button type="submit" fullWidth loading={loading} className="!h-12 !text-base">
             Create account
           </Button>
 
-          <p className="text-center text-xs text-text-muted">
-            Already have one?{' '}
+          <p className="text-center text-xs text-text-muted/70">
+            Already have an account?{' '}
             <button
               type="button"
-              className="text-primary hover:underline"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
               onClick={() => { clearError(); setView(VIEW.EMAIL_LOGIN); }}
             >
               Sign in

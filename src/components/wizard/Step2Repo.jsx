@@ -71,6 +71,13 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
     repoStatus === 'public' ||
     (repoStatus === 'inaccessible' && authTestStatus === 'success');
 
+  useEffect(() => {
+    if (repo.authTestStatus === 'success') {
+      setAuthTestStatus('success');
+      setAuthTestError('');
+    }
+  }, [repo.authTestStatus]);
+
   // ── Intelligence pipeline ────────────────────────────────────────────────────
   // Not memoized — generation counter prevents stale results from being applied.
   // branchTouched passed as arg to avoid stale closure.
@@ -201,6 +208,17 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
         const branch = repo.branch || 'main';
         runIntelligence(p, branch, repo.subdirectory || '', {}, gen, repo.branchTouched);
         fetchDirs(p, branch, {});
+      } else if (
+        status === 'inaccessible' &&
+        repo.authTestStatus === 'success' &&
+        repo.token
+      ) {
+        setAuthTestStatus('success');
+        onChangeRef.current({ isPrivate: true });
+        const headers = buildAuthHeaders(p, repo.username, repo.token);
+        const branch = repo.branch || 'main';
+        runIntelligence(p, branch, repo.subdirectory || '', headers, gen, repo.branchTouched);
+        fetchDirs(p, branch, headers);
       }
     }, 800);
 
@@ -304,13 +322,13 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
           )}
           {repoStatus === 'inaccessible' && authTestStatus === 'success' && (
             <span className="flex items-center gap-1.5 text-xs text-primary">
-              <ShieldCheck className="w-3.5 h-3.5" /> Private — Enterprise mode active
+              <ShieldCheck className="w-3.5 h-3.5" /> Private: Enterprise mode active
               {isRunningIntelligence && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
             </span>
           )}
           {repoStatus === 'inaccessible' && authTestStatus !== 'success' && (
             <span className="flex items-center gap-1.5 text-xs text-amber-400">
-              <Lock className="w-3.5 h-3.5" /> Private or inaccessible — enter credentials below
+              <Lock className="w-3.5 h-3.5" /> Private or inaccessible. Enter credentials below.
             </span>
           )}
           {repoStatus === 'unknown' && (
@@ -351,7 +369,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
               </p>
               <p className="flex items-center gap-1 text-primary/90">
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                Private repos use Enterprise mode — app specs and env vars are end-to-end encrypted.
+                Private repos use Enterprise mode. App specs and env vars are end-to-end encrypted.
               </p>
             </div>
           </div>
@@ -537,7 +555,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
               )}
             </div>
             <p className="text-xs text-text-muted mt-1">
-              For monorepos — path to the app within the repo.
+              For monorepos: path to the app within the repo.
             </p>
           </div>
         </>
@@ -606,7 +624,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
         {compatibilityStatus === 'warning' && (
           <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            {compatibilityMessage} — you can still deploy, but you may need to set{' '}
+            {compatibilityMessage}. You can still deploy, but you may need to set{' '}
             <code className="font-mono bg-surface px-1 rounded">RUN_COMMAND</code>.
           </div>
         )}

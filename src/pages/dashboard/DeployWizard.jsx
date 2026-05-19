@@ -15,6 +15,7 @@ import Step6Payment from '../../components/wizard/Step6Payment';
 const PLAN_ALIASES = { free: 'free', standard: 'standard', developer: 'standard', dev: 'standard', pro: 'pro', custom: 'custom' };
 const POLLING_ALIASES = { disabled: 'disabled', '1h': '3600', '2h': '7200', '6h': '21600', '12h': '43200', '24h': '86400' };
 const RUNTIME_ALIASES = { node: 'node', nodejs: 'node', python: 'python', py: 'python', go: 'go', golang: 'go', rust: 'rust', java: 'java', php: 'php', ruby: 'ruby', dotnet: 'dotnet' };
+const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
 const STEPS = [
   { label: 'Plan' },
@@ -79,10 +80,21 @@ export default function DeployWizard() {
   // ── Deep-link prefill from URL query params ────────────────────────────────
   useEffect(() => {
     const get = (key) => searchParams.get(key)?.trim() || '';
+    let heroPrefill = null;
+
+    try {
+      const raw = sessionStorage.getItem(HERO_PREFILL_KEY);
+      if (raw) {
+        heroPrefill = JSON.parse(raw);
+        sessionStorage.removeItem(HERO_PREFILL_KEY);
+      }
+    } catch {
+      sessionStorage.removeItem(HERO_PREFILL_KEY);
+    }
 
     const repoUrl = get('repo') || get('repolink') || get('repository');
     const branch = get('branch');
-    const projectPath = get('projectPath') || get('path');
+    const projectPath = get('projectPath') || get('path') || get('subdirectory');
     const planAlias = (get('plan') || get('tier')).toLowerCase();
     const appPort = get('appPort') || get('port');
     const pollingRaw = (get('pollingInterval') || get('polling')).toLowerCase();
@@ -93,7 +105,7 @@ export default function DeployWizard() {
     const polling = POLLING_ALIASES[pollingRaw] || pollingRaw;
     const runtime = RUNTIME_ALIASES[runtimeRaw];
 
-    const hasAny = repoUrl || planId || appPort || polling || runtime;
+    const hasAny = repoUrl || planId || appPort || polling || runtime || heroPrefill?.url;
     if (!hasAny) return;
 
     if (planId) {
@@ -109,6 +121,22 @@ export default function DeployWizard() {
     if (repoUrl) repoUpdates.url = repoUrl;
     if (branch) { repoUpdates.branch = branch; repoUpdates.branchTouched = true; }
     if (projectPath) repoUpdates.subdirectory = projectPath;
+
+    if (heroPrefill?.url) repoUpdates.url = heroPrefill.url;
+    if (heroPrefill?.branch) {
+      repoUpdates.branch = heroPrefill.branch;
+      repoUpdates.branchTouched = true;
+    }
+    if (heroPrefill?.isPrivate) {
+      repoUpdates.isPrivate = true;
+      repoUpdates.authTestStatus = 'success';
+      repoUpdates.repoStatus = 'inaccessible';
+      if (heroPrefill.username) repoUpdates.username = heroPrefill.username;
+      if (heroPrefill.token) repoUpdates.token = heroPrefill.token;
+    }
+    if (heroPrefill?.compatibilityStatus) repoUpdates.compatibilityStatus = heroPrefill.compatibilityStatus;
+    if (heroPrefill?.compatibilityMessage) repoUpdates.compatibilityMessage = heroPrefill.compatibilityMessage;
+
     if (Object.keys(repoUpdates).length) setRepo(repoUpdates);
 
     const configUpdates = {};
@@ -293,4 +321,3 @@ export default function DeployWizard() {
     </>
   );
 }
-

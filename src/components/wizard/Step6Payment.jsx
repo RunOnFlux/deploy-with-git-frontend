@@ -99,7 +99,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
               onClick={() => { setStripeInitiated(false); setPaid(true); }}
               className="btn-primary flex-1"
             >
-              I&apos;ve paid — continue
+              I've paid, continue
             </button>
             <button
               type="button"

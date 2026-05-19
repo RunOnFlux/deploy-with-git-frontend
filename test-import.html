@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Import</title>
+</head>
+<body>
+  <div id="status">Testing...</div>
+  <script type="module">
+    try {
+      const mod = await import('/src/pages/dashboard/DeployWizard.jsx');
+      document.getElementById('status').textContent = 'SUCCESS: ' + (mod.default ? 'Has default export' : 'No default export');
+      console.log('Module:', mod);
+    } catch (err) {
+      document.getElementById('status').textContent = 'ERROR: ' + err.message;
+      console.error('Import error:', err);
+    }
+  </script>
+</body>
+</html>

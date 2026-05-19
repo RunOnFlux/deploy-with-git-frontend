@@ -337,7 +337,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
       {phase === 'done' && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
-          Test passed — proceeding to payment…
+          Test passed. Proceeding to payment…
         </div>
       )}
 

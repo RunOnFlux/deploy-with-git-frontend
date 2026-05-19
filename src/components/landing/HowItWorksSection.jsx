@@ -1,44 +1,44 @@
 import { motion } from 'framer-motion';
-import { GitBranch, Settings, Globe } from 'lucide-react';
+import { GitBranch, Settings, Rocket } from 'lucide-react';
 
 const steps = [
   {
     icon: GitBranch,
-    step: '01',
-    title: 'Connect your repo',
+    number: '1',
+    title: 'Connect repository',
     description:
-      'Paste a GitHub, GitLab, or any Git URL. Public or private; Orbit supports token-based auth for private repos.',
+      'Paste your GitHub, GitLab, or Bitbucket URL. Public or private repos supported.',
   },
   {
     icon: Settings,
-    step: '02',
-    title: 'Configure your app',
+    number: '2',
+    title: 'Auto-detect & configure',
     description:
-      'Orbit auto-detects your framework and port. Optionally set env vars, choose a geo region, and pick a billing plan.',
+      'Automatic framework detection. Set environment variables and choose your plan.',
   },
   {
-    icon: Globe,
-    step: '03',
-    title: 'Deploy globally',
+    icon: Rocket,
+    number: '3',
+    title: 'Deploy worldwide',
     description:
-      'One click registers your app on the Flux blockchain and deploys it across multiple nodes worldwide. No DevOps required.',
+      'One click deploys to 10,000+ Flux nodes globally. Live URL in minutes.',
   },
 ];
 
 const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.15 } },
+  show: { transition: { staggerChildren: 0.12 } },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-16 px-6">
-      <div className="max-w-5xl mx-auto">
+    <section id="how-it-works" className="py-20 lg:py-28 px-6">
+      <div className="max-w-6xl mx-auto">
         {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -47,11 +47,11 @@ export default function HowItWorksSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
+          <p className="inline-flex items-center gap-2 text-primary/80 text-sm font-medium uppercase tracking-wider mb-4 px-4 py-1.5 rounded-full border border-primary/10 bg-primary/5">
             How it works
           </p>
-          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
-            <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">Push.</span> Build. <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Ship.</span>
+          <h2 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-light text-text leading-tight">
+            Deploy in <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent font-normal">three simple steps</span>
           </h2>
         </motion.div>
 
@@ -61,23 +61,31 @@ export default function HowItWorksSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid md:grid-cols-3 gap-6"
+          className="grid md:grid-cols-3 gap-8 lg:gap-10"
         >
-          {steps.map((s) => (
+          {steps.map((s, idx) => (
             <motion.div
-              key={s.step}
+              key={s.number}
               variants={cardVariants}
-              className="relative p-6 rounded-2xl border border-border bg-surface hover:border-primary/30 transition-colors group"
+              className="relative"
             >
-              {/* Step number */}
-              <span className="absolute top-5 right-5 text-4xl font-bold text-white/5 font-heading select-none">
-                {s.step}
-              </span>
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors">
-                <s.icon className="w-5 h-5 text-primary" />
+              {/* Connector line (not on last item) */}
+              {idx < steps.length - 1 && (
+                <div className="hidden md:block absolute top-12 left-full w-full h-px bg-gradient-to-r from-border to-transparent -z-10" />
+              )}
+              
+              {/* Number badge */}
+              <div className="relative mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center">
+                  <s.icon className="w-7 h-7 text-primary" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shadow-lg shadow-primary/30">
+                  {s.number}
+                </div>
               </div>
-              <h3 className="font-semibold text-text text-lg mb-2">{s.title}</h3>
-              <p className="text-text-secondary text-sm leading-relaxed">{s.description}</p>
+
+              <h3 className="font-semibold text-text text-xl mb-3">{s.title}</h3>
+              <p className="text-text-secondary/70 text-base leading-relaxed">{s.description}</p>
             </motion.div>
           ))}
         </motion.div>

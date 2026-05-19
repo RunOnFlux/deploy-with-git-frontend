@@ -80,25 +80,24 @@ const cardVariants = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="relative py-16 px-6 bg-surface/40 overflow-hidden">
+    <section id="features" className="relative py-20 lg:py-28 px-6 bg-surface/30 overflow-hidden">
       <BokehBackground orbs={BOKEH_FEATURES} />
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          <p className="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1 rounded-full border border-primary/20 bg-primary/8">
+          <p className="inline-flex items-center gap-2 text-primary/80 text-sm font-medium uppercase tracking-wider mb-4 px-4 py-1.5 rounded-full border border-primary/10 bg-primary/5">
             Features
           </p>
-          <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
-            Your Code. <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Our Magic.</span>
+          <h2 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-light text-text mb-5 leading-tight">
+            Everything you need to <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent font-normal">ship fast</span>
           </h2>
-          <p className="text-text-secondary mt-4 max-w-xl mx-auto">
-            Zero Docker headaches. Orbit handles the full build, deploy, and ops pipeline
-            so you can focus on shipping.
+          <p className="text-text-secondary/70 text-lg max-w-2xl mx-auto leading-relaxed">
+            Zero Docker headaches. Orbit handles the full build, deploy, and operations pipeline so you can focus on code.
           </p>
         </motion.div>
 
@@ -107,19 +106,19 @@ export default function FeaturesSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {features.map((f) => (
             <motion.div
               key={f.title}
               variants={cardVariants}
-              className="p-5 rounded-2xl border border-border bg-surface hover:border-primary/30 transition-colors group"
+              className="p-6 rounded-xl border border-border/50 bg-surface/60 backdrop-blur-sm hover:border-primary/20 hover:bg-surface/80 transition-all group"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                <f.icon className="w-[16px] h-[16px] text-primary" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center mb-4 group-hover:from-primary/15 group-hover:to-primary/10 transition-all">
+                <f.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="font-semibold text-text text-sm mb-1">{f.title}</h3>
-              <p className="text-text-secondary text-sm leading-relaxed">{f.description}</p>
+              <h3 className="font-semibold text-text text-base mb-2">{f.title}</h3>
+              <p className="text-text-secondary/70 text-sm leading-relaxed">{f.description}</p>
             </motion.div>
           ))}
         </motion.div>

@@ -108,8 +108,8 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
     try {
       const result = await triggerOrbitDeploy(node.ip, mgmtPort, webhookSecret, branch, false, apiKey);
       if (result?.status === 'ok') {
-        toast.success('Pull & Build triggered — checking for new commits.');
-        setActionResult({ type: 'success', msg: 'Pull & Build triggered — checking for new commits.' });
+        toast.success('Pull & Build triggered. Checking for new commits.');
+        setActionResult({ type: 'success', msg: 'Pull & Build triggered. Checking for new commits.' });
       } else {
         setActionResult({ type: 'error', msg: result?.error || result?.message || 'Pull & Build failed' });
       }

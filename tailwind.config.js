@@ -8,15 +8,15 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#3b82f6',
-          hover: '#2563eb',
-          light: '#60a5fa',
-          dark: '#1d4ed8',
+          DEFAULT: '#6366f1',  // indigo-500 - more Flux-aligned
+          hover: '#4f46e5',    // indigo-600
+          light: '#818cf8',    // indigo-400
+          dark: '#3730a3',     // indigo-800
         },
         accent: {
-          DEFAULT: '#10b981',
-          hover: '#059669',
-          light: '#34d399',
+          DEFAULT: '#a78bfa',  // violet-400 - complements primary
+          hover: '#8b5cf6',    // violet-500
+          light: '#c4b5fd',    // violet-300
         },
         warning: {
           DEFAULT: '#f59e0b',
@@ -51,7 +51,7 @@ export default {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       backgroundImage: {
-        'grid-pattern': "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233b82f6' fill-opacity='0.04'%3E%3Cpath d='M0 0h40v1H0zM0 0v40h1V0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+        'grid-pattern': "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.04'%3E%3Cpath d='M0 0h40v1H0zM0 0v40h1V0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -65,8 +65,8 @@ export default {
           '50%': { transform: 'translateY(-10px)' },
         },
         glow: {
-          from: { boxShadow: '0 0 10px #3b82f640' },
-          to: { boxShadow: '0 0 20px #3b82f680, 0 0 40px #3b82f640' },
+          from: { boxShadow: '0 0 10px rgba(99, 102, 241, 0.25)' },
+          to: { boxShadow: '0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(99, 102, 241, 0.25)' },
         },
         shimmer: {
           '0%': { backgroundPosition: '200% center' },
