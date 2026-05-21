@@ -25,6 +25,7 @@ import {
   testPrivateAuth,
 } from '../../services/repoIntelligenceService';
 import DashboardPreview from './DashboardPreview';
+import { useAuth } from '../../context/AuthContext';
 
 const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
@@ -42,6 +43,7 @@ const PROVIDER_LABELS = {
 
 export default function HeroSection() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [repoUrl, setRepoUrl] = useState('');
   const [repoStatus, setRepoStatus] = useState('idle');
@@ -198,14 +200,15 @@ export default function HeroSection() {
 
     sessionStorage.setItem(HERO_PREFILL_KEY, JSON.stringify(prefill));
 
-    const params = new URLSearchParams({
-      plan: 'free',
-      repo: finalRepo,
-      branch: finalBranch,
-    });
-    if (finalSubdir) params.set('subdirectory', finalSubdir);
+    const wizardParams = new URLSearchParams({ repo: finalRepo, branch: finalBranch });
+    if (finalSubdir) wizardParams.set('subdirectory', finalSubdir);
 
-    navigate(`/deploy?${params.toString()}`);
+    const dest = `/dashboard/deploy?${wizardParams.toString()}`;
+    if (isAuthenticated) {
+      navigate(dest);
+    } else {
+      navigate(`/login?redirect=${encodeURIComponent(dest)}`);
+    }
   }
 
   // Re-run compatibility when branch or subdirectory changes
