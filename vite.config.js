@@ -39,6 +39,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       open: true,
+      https: {
+        key: './certs/key.pem',
+        cert: './certs/cert.pem',
+      },
       proxy: {
         '/api': {
           target: `http://localhost:${env.SERVER_PORT || 4000}`,

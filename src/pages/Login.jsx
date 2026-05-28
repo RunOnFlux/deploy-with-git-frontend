@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { GitBranch, Globe, ShieldCheck } from 'lucide-react';
 import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import ZelCoreLoginButton from '../components/auth/ZelCoreLoginButton';
 import SSPLoginButton from '../components/auth/SSPLoginButton';
@@ -36,6 +37,15 @@ export default function LoginPage() {
   useEffect(() => {
     if (!authLoading && isAuthenticated) navigate(redirectTo, { replace: true });
   }, [isAuthenticated, authLoading, navigate]);
+
+  // Login page is always dark regardless of dashboard theme preference.
+  useEffect(() => {
+    const prev = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    return () => {
+      if (prev) document.documentElement.setAttribute('data-theme', prev);
+    };
+  }, []);
 
   useEffect(() => {
     import('./dashboard/DashboardLayout');
@@ -99,7 +109,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex" data-theme="dark" style={{ background: '#080c18' }}>
+    <div className="min-h-screen flex" style={{ background: '#080c18' }}>
 
       {/* ── LEFT PANEL ── */}
       <div className="relative w-full lg:w-[480px] xl:w-[520px] shrink-0 flex flex-col"
@@ -235,7 +245,7 @@ export default function LoginPage() {
 
                   <button type="submit" disabled={loading}
                           className="w-full h-11 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-50"
-                          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', marginTop: 4 }}>
+                          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', marginTop: 16 }}>
                     {loading
                       ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : (tab === TAB.SIGNIN ? 'Sign in' : 'Create account')}
@@ -283,15 +293,18 @@ export default function LoginPage() {
           <DashboardPreview frameless />
 
           {/* Bullet points */}
-          <div className="flex items-start gap-8">
+          <div className="flex items-start gap-6">
             {[
-              { title: 'Git-native deploys', desc: 'Push to deploy. Auto-rollback on failure.' },
-              { title: '13,000+ nodes', desc: '100+ countries, zero single point of failure.' },
-              { title: 'You own it', desc: 'No vendor lock-in, no platform risk.' },
-            ].map(({ title, desc }) => (
-              <div key={title} className="flex-1">
-                <p className="text-sm font-semibold text-text">{title}</p>
-                <p className="text-xs text-text-muted mt-0.5 leading-snug">{desc}</p>
+              { Icon: GitBranch,   title: 'Git-native deploys', desc: 'Push to deploy. Auto-rollback on failure.' },
+              { Icon: Globe,       title: '13,000+ nodes',      desc: '100+ countries, zero single point of failure.' },
+              { Icon: ShieldCheck, title: 'You own it',         desc: 'No vendor lock-in, no platform risk.' },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="flex-1 flex items-start gap-2.5">
+                <Icon className="w-8 h-8 text-primary shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-text mb-0.5">{title}</p>
+                  <p className="text-[11px] text-text-muted leading-snug">{desc}</p>
+                </div>
               </div>
             ))}
           </div>

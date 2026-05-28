@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Server } from 'lucide-react';
@@ -22,6 +22,17 @@ export default function AppDetail() {
   const [statusesLoading, setStatusesLoading] = useState(true);
   const [specError, setSpecError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const appInfoRef = useRef(null);
+  const [appInfoHeight, setAppInfoHeight] = useState(null);
+
+  useEffect(() => {
+    const el = appInfoRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setAppInfoHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const loadSpec = useCallback(async () => {
     try {
@@ -100,9 +111,11 @@ export default function AppDetail() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <AppInfoCard spec={spec} nodeStatuses={nodeStatuses} appName={appName} />
-          <SpecEditorCard spec={spec} nodeStatuses={nodeStatuses} onSaved={handleSaved} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-start">
+          <div ref={appInfoRef}>
+            <AppInfoCard spec={spec} nodeStatuses={nodeStatuses} appName={appName} />
+          </div>
+          <SpecEditorCard spec={spec} nodeStatuses={nodeStatuses} onSaved={handleSaved} maxHeight={appInfoHeight} />
         </div>
 
         <div>

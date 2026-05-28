@@ -207,7 +207,7 @@ function PasswordInput({ value, onChange, placeholder, disabled }) {
   );
 }
 
-export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
+export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHeight }) {
   const { zelidauth, loginType } = useAuth();
 
   // ── Local editable state ───────────────────────────────────────────────
@@ -221,8 +221,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
 
   // Sections collapse state
   const [settingsOpen, setSettingsOpen]   = useState(true);
-  const [orbitOpen, setOrbitOpen]         = useState(false);
-  const [userEnvOpen, setUserEnvOpen]     = useState(false);
+  const [orbitOpen, setOrbitOpen]         = useState(true);
+  const [userEnvOpen, setUserEnvOpen]     = useState(true);
 
   // Save flow state
   const [savePhase, setSavePhase]     = useState(null);
@@ -462,8 +462,11 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
   }
 
   return (
-    <div className="card flex flex-col gap-0">
-      <h2 className="font-semibold text-text mb-4">App Settings</h2>
+    <div className="card flex flex-col gap-0" style={maxHeight ? { height: maxHeight } : undefined}>
+      <h2 className="font-semibold text-text mb-4 shrink-0">App Settings</h2>
+
+      {/* Scrollable sections */}
+      <div className="flex-1 overflow-y-auto min-h-0 pr-1 -mr-1">
 
       {/* ── General section ── */}
       <div className="border border-border rounded-lg mb-3 overflow-hidden">
@@ -645,6 +648,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
         )}
       </div>
 
+      </div>{/* end scrollable sections */}
+
+      {/* ── Pinned footer: status + save ── */}
+      <div className="shrink-0 pt-3 mt-1 border-t border-border/50">
       {/* ── Status / Save ── */}
       {saveError && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-danger/10 border border-danger/20 mb-3 text-sm text-danger">
@@ -721,6 +728,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved }) {
           <><Check className="w-4 h-4" />Apply Changes</>
         )}
       </button>
+      </div>{/* end pinned footer */}
     </div>
   );
 }

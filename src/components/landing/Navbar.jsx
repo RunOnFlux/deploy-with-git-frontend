@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Pricing',  href: '#pricing'  },
   { label: 'FAQ',      href: '#faq'      },
-  { label: 'Guides',   href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
+  { label: 'Samples',   href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
 ];
 
 export default function Navbar({ onLoginSuccess }) {
@@ -35,23 +35,21 @@ export default function Navbar({ onLoginSuccess }) {
           <img src="/orbit-logo.svg" alt="Orbit" className="w-auto" style={{ height: '1.4rem' }} />
         </a>
 
-        {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-0.5">
-          {NAV_LINKS.map(({ label, href, external }) => (
-            <a
-              key={href}
-              href={href}
-              target={external ? '_blank' : undefined}
-              rel={external ? 'noopener noreferrer' : undefined}
-              className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-lg hover:bg-white/5 transition-colors"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        {/* CTAs */}
+        {/* Nav links + CTAs */}
         <div className="flex items-center gap-2 shrink-0">
+          <nav className="hidden md:flex items-center gap-0.5 mr-2">
+            {NAV_LINKS.map(({ label, href, external }) => (
+              <a
+                key={href}
+                href={href}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noopener noreferrer' : undefined}
+                className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-lg hover:bg-white/5 transition-colors"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
           {isAuthenticated ? (
             <a href="/dashboard" className="btn-cta inline-flex items-center gap-1.5 text-sm px-4 py-2">
               <LayoutDashboard className="w-4 h-4" />

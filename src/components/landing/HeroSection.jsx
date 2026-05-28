@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import {
   AlertTriangle,
   ArrowRight,
@@ -46,6 +46,7 @@ export default function HeroSection() {
   const { isAuthenticated } = useAuth();
 
   const [repoUrl, setRepoUrl] = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
   const [repoStatus, setRepoStatus] = useState('idle');
   const [compatibilityStatus, setCompatibilityStatus] = useState('idle');
   const [compatibilityMessage, setCompatibilityMessage] = useState('');
@@ -64,11 +65,31 @@ export default function HeroSection() {
   const [showToken, setShowToken] = useState(false);
   const [authTestStatus, setAuthTestStatus] = useState('idle');
   const [authTestError, setAuthTestError] = useState('');
+  const [deployHint, setDeployHint] = useState('');
 
   const debounceRef = useRef(null);
   const requestGenRef = useRef(0);
   const branchDropdownRef = useRef(null);
   const subdirDropdownRef = useRef(null);
+  const previewRef = useRef(null);
+
+  // 3D tilt for dashboard preview
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), { stiffness: 150, damping: 20 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), { stiffness: 150, damping: 20 });
+
+  function handleMouseMove(e) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+  }
+
+  function handleMouseLeave() {
+    mouseX.set(0);
+    mouseY.set(0);
+  }
   
   const parsed = useMemo(() => parseRepoUrl(repoUrl.trim()), [repoUrl]);
   const provider = parsed ? PROVIDER_LABELS[parsed.provider] : null;
@@ -181,6 +202,25 @@ export default function HeroSection() {
 
   function handleDeploy() {
     const finalRepo = repoUrl.trim();
+
+    if (!finalRepo) {
+      setDeployHint('Enter a repository URL above to get started.');
+      return;
+    }
+    if (!parsed) {
+      setDeployHint('Please enter a valid GitHub, GitLab, or Bitbucket URL.');
+      return;
+    }
+    if (!hasAccess) {
+      setDeployHint('Repository access is required before deploying.');
+      return;
+    }
+    if (!compatible) {
+      setDeployHint('Waiting for compatibility check to complete…');
+      return;
+    }
+
+    setDeployHint('');
     const finalBranch = branch || 'main';
     const finalSubdir = subdirectory || '';
     const isPrivate = repoStatus === 'inaccessible' && authTestStatus === 'success';
@@ -257,12 +297,32 @@ export default function HeroSection() {
   const canDeploy = Boolean(parsed) && hasAccess && compatible;
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20 lg:py-24">
+    <section
+      className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20 lg:py-24"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Elegant background gradient */}
       <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gradient-radial from-primary/8 via-primary/4 to-transparent rounded-full blur-3xl" />
         <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-gradient-radial from-accent/6 via-accent/3 to-transparent rounded-full blur-3xl" />
       </div>
+
+      {/* DOT GRID BACKGROUND — remove this block to revert */}
+      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+        {/* Dot grid */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: 'radial-gradient(rgba(99,102,241,0.55) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          WebkitMaskImage: 'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%)',
+          maskImage:        'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%)',
+        }} />
+        {/* Subtle center glow so the grid doesn't feel flat */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] h-[800px] rounded-full bg-indigo-600/10 blur-[100px]" />
+      </div>
+      {/* END DOT GRID BACKGROUND */}
 
       <div className="relative z-10 w-full max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -299,9 +359,9 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="relative rounded-2xl border border-border/40 bg-gradient-to-b from-surface/80 to-surface/40 backdrop-blur-2xl shadow-2xl shadow-black/5 p-6 sm:p-8">
+              <div className="relative rounded-2xl border border-border/60 bg-gradient-to-b from-surface to-surface/70 backdrop-blur-2xl shadow-2xl shadow-primary/10 p-6 sm:p-8">
                 {/* Subtle top border glow */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             
                 {/* URL Input */}
                 <div className="mb-5">
@@ -315,15 +375,31 @@ export default function HeroSection() {
                     </span>
                   );
                 })()}
+
+                {/* Blinking cursor — visible when input is empty */}
+                {!repoUrl && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute w-[10px] h-[2px] bg-primary/80 pointer-events-none z-10"
+                    style={{
+                      left: parsed?.provider && PROVIDER_ICONS[parsed.provider] ? '3.75rem' : '1.6rem',
+                      top: 'calc(50% + 6px)',
+                    }}
+                    animate={{ opacity: [1, 1, 0, 0] }}
+                    transition={{ repeat: Infinity, duration: 1, times: [0, 0.5, 0.5, 1], ease: 'linear' }}
+                  />
+                )}
                 
                 <input
                   type="url"
                   placeholder="https://github.com/username/repository"
                   value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
+                  onChange={(e) => { setRepoUrl(e.target.value); setDeployHint(''); }}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
                   autoComplete="off"
                   spellCheck="false"
-                  className={`w-full h-16 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-14' : 'pl-6'} pr-6 bg-background/60 border border-border/50 rounded-xl text-text text-base placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:bg-background/90 focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] font-mono focus:shadow-[0_0_0_3px_rgba(99,102,241,0.06),0_1px_2px_0_rgba(0,0,0,0.05)]`}
+                  className={`w-full h-16 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-14' : 'pl-6'} pr-6 bg-gradient-to-b from-black/[91%] to-black/[86%] border border-border/50 rounded-xl text-text text-base placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] font-mono shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3)] focus:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3),0_0_0_3px_rgba(99,102,241,0.08)] ${!repoUrl ? '[caret-color:transparent]' : '[caret-color:theme(colors.indigo.400)]'}`}
                 />
                 
                 {/* Provider badge on the right (removed - icon is enough) */}
@@ -332,7 +408,7 @@ export default function HeroSection() {
               {/* Status message */}
               <div className="mt-4 flex items-center px-1">
                 {repoStatus === 'idle' && (
-                  <p className="text-sm text-text-muted/50 flex items-center gap-2.5">
+                  <p className="text-sm text-text-muted/70 flex items-center gap-2.5">
                     <Info className="w-4 h-4" />
                     GitHub, GitLab, and Bitbucket supported
                   </p>
@@ -346,7 +422,7 @@ export default function HeroSection() {
                 )}
 
                 {repoStatus === 'checking' && (
-                  <p className="text-sm text-text-muted/70 flex items-center gap-2.5">
+                  <p className="text-sm text-text-muted/85 flex items-center gap-2.5">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Verifying repository access...
                   </p>
@@ -634,24 +710,42 @@ export default function HeroSection() {
             <button
               type="button"
               onClick={handleDeploy}
-              disabled={!canDeploy}
-              className="group relative w-full h-12 overflow-hidden bg-gradient-to-r from-primary via-primary to-accent hover:shadow-2xl hover:shadow-primary/30 text-white font-bold text-base rounded-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center justify-center gap-3 outline-none ring-0 focus:ring-0 focus:outline-none focus:shadow-[0_0_0_3px_rgba(99,102,241,0.25),0_8px_32px_-4px_rgba(99,102,241,0.4)]"
+              className="group relative w-full h-12 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white font-bold text-base rounded-xl flex items-center justify-center gap-3 outline-none ring-0 focus:ring-0 focus:outline-none transition-all duration-150 ease-out shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_-1px_0_rgba(0,0,0,0.2)_inset,0_2px_4px_rgba(0,0,0,0.3),0_8px_20px_rgba(99,102,241,0.35)] hover:-translate-y-px hover:shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_-1px_0_rgba(0,0,0,0.2)_inset,0_4px_8px_rgba(0,0,0,0.3),0_12px_28px_rgba(99,102,241,0.45)] active:translate-y-px active:shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_-1px_0_rgba(0,0,0,0.25)_inset,0_1px_2px_rgba(0,0,0,0.3),0_2px_8px_rgba(99,102,241,0.2)]"
             >
               <span className="relative z-10">Deploy to Flux</span>
-              <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-0.5 transition-transform duration-200" />
             </button>
 
-            <p className="mt-5 text-center text-xs text-text-muted/50 font-light">
-              Secure authentication • Pre-configured deployment settings • Takes 60 seconds
-            </p>
+            <AnimatePresence>
+              {deployHint ? (
+                <motion.p
+                  key="deploy-hint"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3 text-center text-xs text-amber-400/90 font-medium"
+                >
+                  {deployHint}
+                </motion.p>
+              ) : (
+                <p className="mt-5 text-center text-xs text-text-muted/75 font-light">
+                  Secure authentication • Pre-configured deployment settings • Takes 60 seconds
+                </p>
+              )}
+            </AnimatePresence>
               </div>
             </motion.div>
           </div>
 
           {/* Right Column - Dashboard Preview */}
-          <div className="hidden lg:block">
-            <DashboardPreview frameless />
+          <div className="hidden lg:block" ref={previewRef}>
+            <motion.div
+              style={{ rotateX, rotateY, transformPerspective: 1000, transformStyle: 'preserve-3d' }}
+              className="rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.5),0_8px_24px_rgba(99,102,241,0.15)]"
+            >
+              <DashboardPreview frameless />
+            </motion.div>
           </div>
         </div>
       </div>

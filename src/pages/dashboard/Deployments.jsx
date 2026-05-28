@@ -12,7 +12,7 @@ export default function Deployments() {
   const filtered = apps.filter(
     (app) =>
       app.name.toLowerCase().includes(query.toLowerCase()) ||
-      app.gitRepo.toLowerCase().includes(query.toLowerCase()),
+      (app.gitRepo ?? '').toLowerCase().includes(query.toLowerCase()),
   );
 
   return (
@@ -72,7 +72,7 @@ export default function Deployments() {
         {!loading && filtered.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((app) => (
-              <AppCard key={app.name} app={app} />
+              <AppCard key={app.name} app={app} onRetry={refresh} />
             ))}
           </div>
         )}

@@ -79,9 +79,6 @@ export default function HowItWorksSection() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center">
                   <s.icon className="w-7 h-7 text-primary" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shadow-lg shadow-primary/30">
-                  {s.number}
-                </div>
               </div>
 
               <h3 className="font-semibold text-text text-xl mb-3">{s.title}</h3>

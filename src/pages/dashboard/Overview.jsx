@@ -109,7 +109,7 @@ export default function Overview() {
                 ? Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="card animate-pulse h-36 bg-surface-hover" />
                   ))
-                : recentApps.map((app) => <AppCard key={app.name} app={app} />)}
+                : recentApps.map((app) => <AppCard key={app.name} app={app} onRetry={refresh} />)}
             </div>
           </div>
         )}

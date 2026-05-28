@@ -61,7 +61,8 @@ export function parseAppData(msg) {
     height: msg.height ?? 0,
     expire: msg.expire ?? 0,
     instances: msg.instances ?? first.instances ?? 1,
-    repotag: first.repotag ?? (isEnterprise ? 'runonflux/orbit:latest' : ''),
+    // Don't fabricate a repotag for apps whose decrypt failed — we can't confirm it's Orbit
+    repotag: first.repotag ?? (isEnterprise && !msg._decryptFailed ? 'runonflux/orbit:latest' : ''),
     gitRepo,
     gitBranch,
     appPort,
@@ -71,6 +72,7 @@ export function parseAppData(msg) {
     ports: first.ports ?? [],
     compose,
     isEnterprise,
+    _decryptFailed: msg._decryptFailed ?? false,
   };
 }
 

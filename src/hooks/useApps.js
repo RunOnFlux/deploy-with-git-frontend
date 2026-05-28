@@ -21,7 +21,14 @@ export function useApps() {
       const decrypted = await Promise.all(
         rawApps.map((a) => (a.enterprise && zelidauth ? decryptEnterpriseSpec(a, zelidauth) : a)),
       );
-      return decrypted.map(parseAppData);
+      // Drop successfully-decrypted apps that aren't actually Orbit apps.
+      // Keep _decryptFailed apps — they'll render as locked cards until retry.
+      const orbitApps = decrypted.filter((a) => {
+        if (a._decryptFailed) return true;
+        if (a._wasEnterprise) return a.compose?.some((s) => s.repotag?.includes('runonflux/orbit'));
+        return true;
+      });
+      return orbitApps.map(parseAppData);
     },
     enabled: !!zelid && !isDevMock,
     staleTime: 5 * 60 * 1000,

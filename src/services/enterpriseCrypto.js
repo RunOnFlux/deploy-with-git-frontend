@@ -207,9 +207,21 @@ async function decryptWithAes(base64NonceCiphertext, aesKey) {
  *
  * Fails open — returns the original spec on any error.
  */
+/**
+ * Decrypt an enterprise spec using browser-side WebCrypto (requires HTTPS/localhost).
+ * 1. GET  /apps/apporiginalowner/<name>
+ * 2. POST /apps/getpublickey { name, owner } → RSA public key
+ * 3. Generate ephemeral AES-256 key; RSA-OAEP wrap it
+ * 4. GET  /apps/appspecifications/<name>/true with enterprise-key header
+ *    → node re-encrypts payload with our AES key
+ * 5. AES-GCM decrypt → { contacts, compose }
+ */
 export async function decryptEnterpriseSpec(spec, zelidauth) {
   if (!spec?.enterprise) return spec;
-  if (!isWebCryptoAvailable()) return spec;
+  if (!isWebCryptoAvailable()) {
+    console.warn(`[decrypt:${spec.name}] WebCrypto not available — requires HTTPS`);
+    return { ...spec, _decryptFailed: true };
+  }
 
   const zaStr = qs.stringify({
     zelid: zelidauth.zelid,
@@ -218,54 +230,53 @@ export async function decryptEnterpriseSpec(spec, zelidauth) {
   });
 
   try {
-    // 1. Get RSA public key — same approach as encryptSpec: node-proxy sends
-    //    application/x-www-form-urlencoded to the sticky node (what the API expects)
-    const stickyBackend = zelidauth._stickyBackend;
-    if (!stickyBackend) return spec;
+    // 0. Original owner
+    let owner = spec.owner;
+    try {
+      const ownerResp = await fetch(`/api/flux/apps/apporiginalowner/${encodeURIComponent(spec.name)}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      const ownerJson = await ownerResp.json();
+      if (ownerJson.status === 'success' && ownerJson.data) owner = ownerJson.data;
+    } catch { /* fall back to spec.owner */ }
 
-    const pkResp = await fetch('/api/node-proxy', {
+    // 1. POST /apps/getpublickey — Flux API requires form-encoded body
+    const pkResp = await fetch('/api/flux/apps/getpublickey', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(15_000),
-      body: JSON.stringify({
-        nodeBase: stickyBackend,
-        path: '/apps/getpublickey',
-        method: 'POST',
-        zelidauth: zaStr,
-        data: { name: spec.name, owner: spec.owner },
-      }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', zelidauth: zaStr },
+      body: new URLSearchParams({ name: spec.name, owner }).toString(),
+      signal: AbortSignal.timeout(20_000),
     });
     const pkJson = await pkResp.json();
-    if (pkJson.status !== 'success' || !pkJson.data) return spec;
+    if (pkJson.status !== 'success' || !pkJson.data) return { ...spec, _decryptFailed: true };
 
-    const pubKeyB64 = pkJson.data.trim().replace(/\s+/g, '');
-    const rsaPubKey = await importRsaPublicKey(pubKeyB64);
-
-    // 2. Generate ephemeral AES key and RSA-encrypt it
+    // 2. Import RSA public key + generate ephemeral AES key
+    const rsaPubKey = await importRsaPublicKey(pkJson.data.trim().replace(/\s+/g, ''));
     const aesKey = window.crypto.getRandomValues(new Uint8Array(32));
     const encryptedEnterpriseKey = await encryptAesKeyWithRsaKey(aesKey, rsaPubKey);
 
-    // 3. Fetch re-encrypted spec — node receives enterprise-key, decrypts with its private key,
-    //    re-encrypts the enterprise payload with our AES key, returns it.
-    //    The /api/flux/* proxy now forwards the enterprise-key header.
-    const specResp = await fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(spec.name)}/true`, {
-      headers: {
-        zelidauth: zaStr,
-        'enterprise-key': encryptedEnterpriseKey,
-        'x-apicache-bypass': 'true',
+    // 3. GET /apps/appspecifications/<name>/true with enterprise-key
+    const specResp = await fetch(
+      `/api/flux/apps/appspecifications/${encodeURIComponent(spec.name)}/true`,
+      {
+        headers: {
+          zelidauth: zaStr,
+          'enterprise-key': encryptedEnterpriseKey,
+          'x-apicache-bypass': 'true',
+        },
+        signal: AbortSignal.timeout(20_000),
       },
-      signal: AbortSignal.timeout(15_000),
-    });
+    );
     const specJson = await specResp.json();
-    if (specJson.status !== 'success' || !specJson.data?.enterprise) return spec;
+    if (specJson.status !== 'success' || !specJson.data?.enterprise) return { ...spec, _decryptFailed: true };
 
-    // 4. Decrypt with our AES key → { contacts, compose }
+    // 4. AES-GCM decrypt
     const plain = await decryptWithAes(specJson.data.enterprise, aesKey);
     const extraFields = JSON.parse(plain);
 
     return { ...spec, ...extraFields, enterprise: null, _wasEnterprise: true };
-  } catch {
-    // Fail open — unencrypted display is better than a crash
-    return spec;
+  } catch (err) {
+    console.error(`[decrypt:${spec.name}] failed:`, err);
+    return { ...spec, _decryptFailed: true };
   }
 }

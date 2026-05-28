@@ -2,12 +2,15 @@ import { motion } from 'framer-motion';
 import {
   GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink,
   LayoutDashboard, Rocket, CreditCard, HelpCircle,
+  ShoppingBag, Server, Network,
 } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
 
 const mockApps = [
   {
     name: 'flux-marketplace',
+    icon: ShoppingBag,
+    iconBg: 'bg-emerald-500/12 text-emerald-400 border border-emerald-500/20',
     status: 'running',
     repo: 'RunOnFlux/flux-marketplace',
     gitBranch: 'main',
@@ -16,6 +19,8 @@ const mockApps = [
   },
   {
     name: 'flux-api-server',
+    icon: Server,
+    iconBg: 'bg-sky-500/12 text-sky-400 border border-sky-500/20',
     status: 'running',
     repo: 'RunOnFlux/flux-api-server',
     gitBranch: 'production',
@@ -24,6 +29,8 @@ const mockApps = [
   },
   {
     name: 'flux-dashboard',
+    icon: LayoutDashboard,
+    iconBg: 'bg-primary/10 text-primary border border-primary/20',
     status: 'installing',
     repo: 'RunOnFlux/flux-dashboard',
     gitBranch: 'feature/v2',
@@ -98,32 +105,53 @@ function AppShell({ minHeight }) {
 
         {mockApps.map((app, index) => {
           const sc = STATUS_CONFIG[app.status];
+          const AppIcon = app.icon;
           return (
             <motion.div
               key={app.name}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
-              className="bg-surface/40 border border-border/40 rounded-xl p-3.5 hover:border-primary/25 transition-colors"
+              className="bg-surface/40 border border-border/40 rounded-xl p-3.5 hover:border-primary/25 transition-colors group"
             >
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs font-semibold text-text">{app.name}</span>
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border shrink-0 ${sc.className}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-                  {sc.label}
+              {/* Header row: icon + name + status */}
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${app.iconBg}`}>
+                  <AppIcon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-text truncate">{app.name}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border shrink-0 ${sc.className}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                      {sc.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-text-muted mt-0.5">
+                    <FaGithub className="w-2.5 h-2.5 shrink-0" />
+                    <span className="truncate">{app.repo}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resource chips */}
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-background/50 rounded-md text-[10px] text-text-muted border border-border/30">
+                  <Cpu className="w-2.5 h-2.5" />{app.cpu} vCPU
+                </span>
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-background/50 rounded-md text-[10px] text-text-muted border border-border/30">
+                  <Layers className="w-2.5 h-2.5" />{app.ram} GB
+                </span>
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-background/50 rounded-md text-[10px] text-text-muted border border-border/30">
+                  <HardDrive className="w-2.5 h-2.5" />{app.hdd} GB
+                </span>
+                <span className="ml-auto flex items-center gap-1 px-1.5 py-0.5 bg-primary/5 rounded-md text-[10px] text-primary border border-primary/15">
+                  <Network className="w-2.5 h-2.5" />×{app.instances}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-text-muted mb-2.5">
-                <FaGithub className="w-3 h-3 shrink-0" />
-                <span className="truncate">{app.repo}</span>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-text-muted mb-2.5">
-                <span className="flex items-center gap-1"><Cpu className="w-3 h-3" />{app.cpu} vCPU</span>
-                <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{app.ram} GB</span>
-                <span className="flex items-center gap-1"><HardDrive className="w-3 h-3" />{app.hdd} GB</span>
-                <span className="ml-auto">×{app.instances} nodes</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-text-muted">
+
+              {/* Footer: commit/branch + manage */}
+              <div className="flex items-center justify-between text-[11px] text-text-muted pt-2 border-t border-border/20">
                 <div className="flex items-center gap-2">
                   {app.commit && (
                     <>

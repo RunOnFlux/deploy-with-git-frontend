@@ -8,7 +8,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import { createServer } from 'http';
+import { createServer as createHttpServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import crypto from 'crypto';
@@ -362,7 +362,7 @@ app.post('/api/sso/sign', express.json(), async (req, res) => {
 const NODE_BASE_PATTERN = /^https:\/\/[\d-]+-\d+\.node\.api\.runonflux\.io$/;
 
 app.post('/api/node-proxy', express.json(), async (req, res) => {
-  const { nodeBase, path: nodePath, method = 'GET', zelidauth, data } = req.body || {};
+  const { nodeBase, path: nodePath, method = 'GET', zelidauth, enterpriseKey, data } = req.body || {};
 
   if (!nodeBase || !nodePath) {
     return res.status(400).json({ status: 'error', data: 'Missing nodeBase or path' });
@@ -379,6 +379,7 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
     const bodyStr = data ? new URLSearchParams(data).toString() : null;
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     if (zelidauth) headers['zelidauth'] = zelidauth;
+    if (enterpriseKey) headers['enterprise-key'] = enterpriseKey;
 
     const fetchOptions = {
       method: method.toUpperCase(),
@@ -413,7 +414,112 @@ app.post('/api/node-proxy', express.json(), async (req, res) => {
 });
 
 /**
- * POST /api/orbit-node-status
+ * POST /api/enterprise-decrypt
+ * Server-side enterprise spec decryption — avoids WebCrypto browser requirement.
+ * Body: { specName, specOwner, zelidauth }
+ *
+ * Flow:
+ *  1. GET  /apps/apporiginalowner/<name>  → canonical owner
+ *  2. POST /apps/getpublickey { name, owner } → RSA-2048 public key (SPKI/DER base64)
+ *  3. Generate ephemeral AES-256 key; RSA-OAEP/SHA-256 wrap it
+ *  4. GET  /apps/appspecifications/<name>/true  with enterprise-key header
+ *     → node re-encrypts blob with our AES key (nonce|ciphertext+tag)
+ *  5. AES-GCM decrypt → JSON { contacts, compose }
+ */
+app.post('/api/enterprise-decrypt', express.json(), async (req, res) => {
+  const { specName, specOwner, zelidauth } = req.body || {};
+  if (!specName || !zelidauth) {
+    return res.status(400).json({ status: 'error', data: 'Missing specName or zelidauth' });
+  }
+
+  const FLUX_API = 'https://api.runonflux.io';
+  const tag = `[enterprise-decrypt:${specName}]`;
+
+  try {
+    // 0. Original owner
+    let owner = specOwner || '';
+    try {
+      console.log(`${tag} step 0: fetching original owner`);
+      const ownerRes = await fetch(`${FLUX_API}/apps/apporiginalowner/${encodeURIComponent(specName)}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      const ownerJson = await ownerRes.json();
+      if (ownerJson.status === 'success' && ownerJson.data) owner = ownerJson.data;
+      console.log(`${tag} step 0 done: owner=${owner}`);
+    } catch (e) {
+      console.warn(`${tag} step 0 failed (using fallback):`, e.message);
+    }
+
+    // 1. Get RSA public key
+    console.log(`${tag} step 1: getpublickey name=${specName} owner=${owner}`);
+    const pkRes = await fetch(`${FLUX_API}/apps/getpublickey`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', zelidauth },
+      body: JSON.stringify({ name: specName, owner }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const pkJson = await pkRes.json();
+    console.log(`${tag} step 1 done: status=${pkJson.status} keyLen=${pkJson.data?.length}`);
+    if (pkJson.status !== 'success' || !pkJson.data) {
+      return res.json({ status: 'error', data: `getpublickey failed: ${pkJson.data || pkJson.status}` });
+    }
+
+    // 2. Import RSA public key (SPKI DER, base64-encoded)
+    const pubKeyDer = Buffer.from(pkJson.data.trim().replace(/\s+/g, ''), 'base64');
+    const rsaKey = crypto.createPublicKey({ key: pubKeyDer, format: 'der', type: 'spki' });
+
+    // 3. Generate ephemeral AES-256 key, base64-encode it, RSA-OAEP wrap it
+    //    (matches browser impl: RSA encrypts the base64 string of the raw key bytes)
+    const aesKeyBytes = crypto.randomBytes(32);
+    const aesKeyB64 = aesKeyBytes.toString('base64');
+    const encryptedAesKey = crypto.publicEncrypt(
+      { key: rsaKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
+      Buffer.from(aesKeyB64),
+    );
+    const enterpriseKeyB64 = encryptedAesKey.toString('base64');
+    console.log(`${tag} step 3 done: aes key wrapped`);
+
+    // 4. Fetch re-encrypted spec from same CDN endpoint
+    console.log(`${tag} step 4: appspecifications/true`);
+    const specRes = await fetch(
+      `${FLUX_API}/apps/appspecifications/${encodeURIComponent(specName)}/true`,
+      {
+        headers: {
+          zelidauth,
+          'enterprise-key': enterpriseKeyB64,
+          'x-apicache-bypass': 'true',
+        },
+        signal: AbortSignal.timeout(20_000),
+      },
+    );
+    const specJson = await specRes.json();
+    console.log(`${tag} step 4 done: status=${specJson.status} hasEnterprise=${!!specJson.data?.enterprise}`);
+    if (specJson.status !== 'success' || !specJson.data?.enterprise) {
+      return res.json({ status: 'error', data: `appspecifications/true failed: ${specJson.data?.message || specJson.status}` });
+    }
+
+    // 5. AES-GCM decrypt: node returns nonce(12B) | ciphertext+tag
+    const encBuf = Buffer.from(specJson.data.enterprise, 'base64');
+    const nonce = encBuf.subarray(0, 12);
+    const ciphertextTag = encBuf.subarray(12);
+    const ciphertext = ciphertextTag.subarray(0, ciphertextTag.length - 16);
+    const authTag = ciphertextTag.subarray(ciphertextTag.length - 16);
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', aesKeyBytes, nonce);
+    decipher.setAuthTag(authTag);
+    const plain = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+    const fields = JSON.parse(plain);
+    console.log(`${tag} ✅ success, compose services: ${fields.compose?.length}`);
+
+    return res.json({ status: 'success', data: fields });
+  } catch (err) {
+    console.error(`${tag} ❌ error:`, err.message);
+    return res.status(500).json({ status: 'error', data: err.message });
+  }
+});
+
+
+/**
  * Proxies requests to a specific node's Orbit management (webhook) server.
  * Body: { nodeIp, mgmtPort, path }
  *
@@ -591,9 +697,9 @@ process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection (server kept alive):', reason?.message ?? reason);
 });
 
-const server = createServer(app);
+const server = createHttpServer(app);
 server.listen(PORT, () => {
-  console.log(`\uD83D\uDE80 Orbit BFF running on http://localhost:${PORT}`);
+  console.log(`🚀 Orbit BFF running on http://localhost:${PORT}`);
 });
 
 export default app;

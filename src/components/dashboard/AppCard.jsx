@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink, Globe } from 'lucide-react';
+import { GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink, Globe, Lock, RefreshCw } from 'lucide-react';
 import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import StatusBadge from './StatusBadge';
 import { fetchNodeOrbitStatus, getSpecEnvValue } from '../../services/managementService';
@@ -71,13 +71,13 @@ function repoLabel(gitRepo) {
   }
 }
 
-export default function AppCard({ app, compact = false }) {
+export default function AppCard({ app, compact = false, onRetry }) {
   const repo = repoLabel(app.gitRepo);
   const ramGb = app.ram ? (app.ram / 1000).toFixed(1) : null;
   const RepoIcon = getRepoIcon(app.gitRepo);
 
   // mgmt port is the second port in the first compose service
-  const mgmtPort = app.compose?.[0]?.ports?.[1] ?? null;
+  const mgmtPort = app._decryptFailed ? null : (app.compose?.[0]?.ports?.[1] ?? null);
   // API_KEY from env params — needed for authenticated management endpoints
   const apiKey = getSpecEnvValue(app, 'API_KEY') || undefined;
   // Use the first running node IP attached by useAppsWithStatus
@@ -93,6 +93,41 @@ export default function AppCard({ app, compact = false }) {
 
   const commit = orbitStatus?.last_deployment?.commit;
   const commitFull = orbitStatus?.last_deployment?.commit_full;
+
+  if (app._decryptFailed) {
+    return (
+      <div className="card border-dashed">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-text truncate">{app.name}</h3>
+            <p className="text-xs text-text-muted mt-0.5">Enterprise app — spec encrypted</p>
+          </div>
+          <Lock className="w-4 h-4 text-text-muted shrink-0 mt-0.5" />
+        </div>
+        <p className="text-xs text-text-secondary mb-4">
+          Could not decrypt via your Flux node. Ensure your session is connected to the correct sticky node.
+        </p>
+        <div className="flex items-center justify-between">
+          {onRetry ? (
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry decrypt
+            </button>
+          ) : <span />}
+          <Link
+            to={`/dashboard/deployments/${app.name}`}
+            className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors"
+          >
+            Manage
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card hover:border-primary/30 transition-colors group">

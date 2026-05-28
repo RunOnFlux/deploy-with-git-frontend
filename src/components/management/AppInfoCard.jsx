@@ -145,6 +145,7 @@ function formatBlocksRemaining(blocks) {
 
 export default function AppInfoCard({ spec, nodeStatuses, appName }) {
   const [orbitStatus, setOrbitStatus] = useState(null);
+  const [orbitStatusLoading, setOrbitStatusLoading] = useState(false);
   const [currentBlock, setCurrentBlock] = useState(null);
 
   useEffect(() => {
@@ -156,9 +157,11 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
     const nodeIp = nodeStatuses?.[0]?.ip;
     if (!port || !nodeIp) return;
     const apiKey = getSpecEnvValue(spec, 'API_KEY') || undefined;
+    setOrbitStatusLoading(true);
     fetchNodeOrbitStatus(nodeIp, port, apiKey)
       .then(setOrbitStatus)
-      .catch(() => {}); // non-critical
+      .catch(() => {})
+      .finally(() => setOrbitStatusLoading(false));
   }, [spec, nodeStatuses]);
 
     if (!spec) {
