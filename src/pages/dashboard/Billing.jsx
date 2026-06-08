@@ -12,8 +12,9 @@ import { PLANS, BILLING_PERIODS } from '../../services/deployService';
 import { PageHeader } from '../../components/dashboard';
 import RenewModal from '../../components/billing/RenewModal';
 
-// Flux blocks are ~2 minutes each (post-halving era)
-const BLOCKS_PER_DAY = 720;
+// Post-halving: ~0.5 min/block → 2880 blocks/day
+const BLOCKS_PER_DAY = 2880;
+const DAYS_WARN = 14;
 
 function detectPlan(app) {
   for (const p of PLANS) {
@@ -72,9 +73,7 @@ function AppBillingCard({ app, currentBlock, onRenew }) {
   const plan = detectPlan(app);
   const period = detectBillingPeriod(app.expire);
 
-  // expiry block = registration block + expire duration
-  const expiryBlock = app.height + app.expire;
-  const blocksLeft = currentBlock != null ? expiryBlock - currentBlock : null;
+  const blocksLeft = currentBlock != null ? (app.height + app.expire) - currentBlock : null;
   const daysLeft = blocksLeft != null ? Math.floor(blocksLeft / BLOCKS_PER_DAY) : null;
 
   const isFree = plan.id === 'free';

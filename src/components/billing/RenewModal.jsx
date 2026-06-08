@@ -11,18 +11,17 @@ import {
   signWithZelCore,
   calculatePrice,
   getPaymentAddress,
+  pollUpdate,
 } from '../../services/deployService';
 
 const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
 
 const RENEW_PERIODS = [
-  { label: '1 week',   subLabel: '~7 days',    blocks: 7 * 720 },
-  { label: '2 weeks',  subLabel: '~14 days',   blocks: 14 * 720 },
-  { label: '1 month',  subLabel: '~1 mo',      blocks: 88000 },
-  { label: '2 months', subLabel: '~2 mo',      blocks: 2 * 88000 },
-  { label: '3 months', subLabel: '~3 mo',      blocks: 3 * 88000 },
-  { label: '6 months', subLabel: '~6 mo',      blocks: 6 * 88000 },
-  { label: '1 year',   subLabel: '~12 mo',     blocks: 12 * 88000 },
+  { label: '1 month',  blocks: 88000 },
+  { label: '2 months', blocks: 2  * 88000 },
+  { label: '3 months', blocks: 3  * 88000 },
+  { label: '6 months', blocks: 6  * 88000 },
+  { label: '1 year',   blocks: 12 * 88000 },
 ];
 
 function buildRenewalSpec(rawSpec, expireBlocks) {
@@ -72,7 +71,7 @@ function PeriodPicker({ app, rawSpec, onConfirm, onClose }) {
       </div>
 
       {/* Period buttons */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {RENEW_PERIODS.map((p, i) => (
           <button
             key={p.label}
@@ -195,26 +194,37 @@ function SigningStep({ app, rawSpec, period, onDone, onError }) {
 }
 
 // ─── Payment step ─────────────────────────────────────────────────────────────
-function PaymentStep({ app, txid, verifiedSpec, priceUsd, priceFlux, period, onClose }) {
+function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
   const { zelidauth } = useAuth();
   const [paymentAddress, setPaymentAddress] = useState(null);
   const [addrLoading, setAddrLoading]       = useState(true);
-  const [status, setStatus]   = useState('idle');
-  const [error, setError]     = useState('');
-  const [paid, setPaid]       = useState(false);
+  const [status, setStatus]       = useState('idle'); // idle | pending | error
+  const [error, setError]         = useState('');
+  const [polling, setPolling]     = useState(false);  // blockchain polling active
+  const [confirmed, setConfirmed] = useState(false);  // blockchain confirmed
+  const [pollError, setPollError] = useState('');
   const [stripeInitiated, setStripeInitiated] = useState(false);
   const [blockedUrl, setBlockedUrl]           = useState(null);
-  const popupRef = useRef(null);
+  const popupRef  = useRef(null);
+  const stopPoll  = useRef(null);
 
   useEffect(() => {
     getPaymentAddress(zelidauth)
       .then(setPaymentAddress)
       .catch(() => {})
       .finally(() => setAddrLoading(false));
+    return () => { popupRef.current?.close(); stopPoll.current?.(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => () => { popupRef.current?.close(); }, []);
+  function startPolling() {
+    setPolling(true);
+    setPollError('');
+    stopPoll.current = pollUpdate(app.name, txid, {
+      onSuccess: () => { setPolling(false); setConfirmed(true); },
+      onError:   (e) => { setPolling(false); setPollError(e.message); },
+    });
+  }
 
   async function handleStripe() {
     const popup = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
@@ -268,7 +278,7 @@ function PaymentStep({ app, txid, verifiedSpec, priceUsd, priceFlux, period, onC
     const a = document.createElement('a');
     a.href = protocol; a.style.display = 'none';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setPaid(true);
+    startPolling();
   }
 
   async function handleSSP() {
@@ -278,28 +288,82 @@ function PaymentStep({ app, txid, verifiedSpec, priceUsd, priceFlux, period, onC
     try {
       const resp = await window.ssp.request('pay', { message: txid, amount: priceFlux.toString(), address: paymentAddress, chain: 'flux' });
       if (resp?.status === 'ERROR') throw new Error(resp.data || 'SSP payment failed');
-      setPaid(true);
+      setStatus('idle');
+      startPolling();
     } catch (e) {
       setError(e.message || 'SSP payment failed');
       setStatus('error');
     }
   }
 
-  if (paid) {
+  // ── Confirmed ──
+  if (confirmed) {
     return (
-      <div className="flex flex-col items-center gap-4 py-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center">
-          <CheckCircle className="w-6 h-6 text-green-400" />
+      <div className="flex flex-col items-center gap-4 py-8 text-center">
+        <div className="w-14 h-14 rounded-full bg-green-500/15 flex items-center justify-center">
+          <CheckCircle className="w-7 h-7 text-green-400" />
         </div>
         <div>
-          <p className="font-semibold text-text">Payment initiated</p>
-          <p className="text-sm text-text-muted mt-1">Your renewal will activate once the transaction confirms on-chain.</p>
+          <p className="font-semibold text-text text-lg">Renewal confirmed!</p>
+          <p className="text-sm text-text-muted mt-1">
+            Your app <span className="text-text font-medium">{app.name}</span> has been extended
+            by <span className="text-primary font-medium">{period.label}</span>.
+          </p>
         </div>
         <button type="button" onClick={onClose} className="btn-primary mt-2">Done</button>
       </div>
     );
   }
 
+  // ── Waiting for blockchain ──
+  if (polling || pollError) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div>
+          <h2 className="font-heading text-lg font-semibold text-text">Awaiting Confirmation</h2>
+          <p className="text-sm text-text-muted">Checking blockchain every 10 seconds…</p>
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-background/40 p-5 flex flex-col items-center gap-4 text-center">
+          {polling ? (
+            <>
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-primary" />
+                </div>
+                <Loader2 className="w-5 h-5 text-primary animate-spin absolute -bottom-1 -right-1" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-text">Waiting for blockchain confirmation</p>
+                <p className="text-xs text-text-muted mt-1">Typically takes 5–15 minutes after payment.</p>
+              </div>
+              <p className="text-xs font-mono text-text-muted/60 break-all">TX: {txid}</p>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-8 h-8 text-red-400" />
+              <div>
+                <p className="text-sm font-medium text-text">Confirmation timed out</p>
+                <p className="text-xs text-text-muted mt-1">{pollError}</p>
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={startPolling} className="btn-secondary text-sm">Retry</button>
+                <button type="button" onClick={onClose} className="btn-primary text-sm">Close</button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {polling && (
+          <button type="button" onClick={onClose} className="text-sm text-text-muted hover:text-text transition-colors text-center">
+            Close — renewal will continue in background
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Stripe initiated ──
   if (stripeInitiated) {
     return (
       <div className="space-y-4">
@@ -312,9 +376,9 @@ function PaymentStep({ app, txid, verifiedSpec, priceUsd, priceFlux, period, onC
             <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
             <p className="text-sm font-medium text-text">Stripe checkout opened in a new window</p>
           </div>
-          <p className="text-xs text-text-muted mb-4">Complete the payment, then click <strong>I've paid</strong> below.</p>
+          <p className="text-xs text-text-muted mb-4">Complete the payment, then click <strong>I've paid</strong> to start blockchain monitoring.</p>
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setStripeInitiated(false); setPaid(true); }} className="btn-primary flex-1">I've paid, continue</button>
+            <button type="button" onClick={() => { setStripeInitiated(false); startPolling(); }} className="btn-primary flex-1">I've paid, monitor</button>
             <button type="button" onClick={() => { popupRef.current?.close(); setStripeInitiated(false); setBlockedUrl(null); }} className="btn-secondary">Cancel</button>
           </div>
         </div>
@@ -328,6 +392,7 @@ function PaymentStep({ app, txid, verifiedSpec, priceUsd, priceFlux, period, onC
     );
   }
 
+  // ── Payment method selection ──
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -502,7 +567,6 @@ export default function RenewModal({ app, onClose }) {
           <PaymentStep
             app={app}
             txid={txid}
-            verifiedSpec={verifiedSpec}
             priceUsd={priceUsd}
             priceFlux={priceFlux}
             period={period}

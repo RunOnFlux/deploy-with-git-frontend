@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList } from 'lucide-react';
 import { maskGitUrl, GEO_OPTIONS, BILLING_PERIODS } from '../../services/deployService';
+import { extractGitInfo } from '../../services/appsService';
 import { useAuth } from '../../context/AuthContext';
 
 function Row({ label, value, mono }) {
@@ -59,7 +60,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     }
   }
 
-  // Check if user already has any running Orbit app → not eligible for free tier
+  // Check if the user has already deployed this same repo → not eligible for free first month
   useEffect(() => {
     if (!zelid) {
       onEligibilityChecked?.(true);
@@ -67,6 +68,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       return;
     }
     setDupCheckStatus('checking');
+
+    const currentRepo = normalizeRepoUrl(repo?.url);
 
     (async () => {
       try {
@@ -81,25 +84,26 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           return;
         }
 
-        const hasOrbitApp = json.data.some((app) => {
-          // Non-enterprise: check repotag on compose[0]
-          if (app.compose?.length > 0) {
-            return app.compose[0]?.repotag === 'runonflux/orbit:latest';
-          }
-          // Enterprise: compose is empty, but enterprise blob means it IS an orbit app
-          return !!(app.version >= 8 && app.enterprise);
+        // Only look at non-enterprise Orbit apps (enterprise apps can't easily be compared)
+        const orbitApps = json.data.filter(
+          (app) => app.compose?.length > 0 && app.compose[0]?.repotag === 'runonflux/orbit:latest',
+        );
+
+        const duplicate = orbitApps.find((app) => {
+          const { gitRepo } = extractGitInfo(app.compose);
+          return normalizeRepoUrl(gitRepo) === currentRepo;
         });
 
-        setHasDuplicate(hasOrbitApp);
-        if (hasOrbitApp) setExistingAppName(json.data.find((app) => app.compose?.[0]?.repotag === 'runonflux/orbit:latest')?.name ?? null);
-        onEligibilityChecked?.(!hasOrbitApp);
+        setHasDuplicate(!!duplicate);
+        setExistingAppName(duplicate?.name ?? null);
+        onEligibilityChecked?.(!duplicate);
       } catch {
         onEligibilityChecked?.(true); // fail open
       } finally {
         setDupCheckStatus('done');
       }
     })();
-  }, [zelid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zelid, repo?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -123,8 +127,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <div>
             <p className="font-medium">Not eligible for first month free</p>
             <p className="text-xs text-amber-300/80 mt-1">
-              You already have a running Orbit app (<code className="font-mono">{existingAppName}</code>).
-              Only one free Orbit app is allowed per account. Paid plans will be charged immediately.
+              This repository is already deployed as <code className="font-mono">{existingAppName}</code>.
+              The free first month applies only to new repositories. You will be charged immediately.
             </p>
           </div>
         </div>

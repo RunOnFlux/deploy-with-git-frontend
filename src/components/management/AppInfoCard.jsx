@@ -125,8 +125,8 @@ function getRepoIcon(url) {
   }
 }
 
-// 1 block ≈ 2 minutes → 720 blocks/day
-const BLOCKS_PER_DAY = 720;
+// Post-halving: ~0.5 min/block → 2880 blocks/day
+const BLOCKS_PER_DAY = 2880;
 
 function formatBlocksRemaining(blocks) {
   if (blocks <= 0) return { label: 'Expired', color: 'text-danger' };
