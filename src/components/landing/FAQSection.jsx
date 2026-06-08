@@ -69,9 +69,9 @@ function FAQItem({ q, a }) {
 
 export default function FAQSection() {
   return (
-    <section id="faq" className="relative py-20 lg:py-28 px-6 bg-surface/40 overflow-hidden">
+    <section className="relative py-20 lg:py-28 px-6 bg-surface/40 overflow-hidden">
       <BokehBackground orbs={BOKEH_FAQ} />
-      <div className="max-w-2xl mx-auto">
+      <div id="faq" className="max-w-2xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

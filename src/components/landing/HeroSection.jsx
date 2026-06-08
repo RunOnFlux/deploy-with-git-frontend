@@ -739,7 +739,7 @@ export default function HeroSection() {
           </div>
 
           {/* Right Column - Dashboard Preview */}
-          <div className="hidden lg:block" ref={previewRef}>
+          <div className="hidden lg:block -mr-12 xl:-mr-24 2xl:-mr-32" ref={previewRef}>
             <motion.div
               style={{ rotateX, rotateY, transformPerspective: 1000, transformStyle: 'preserve-3d' }}
               className="rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.5),0_8px_24px_rgba(99,102,241,0.15)]"

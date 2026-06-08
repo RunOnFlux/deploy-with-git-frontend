@@ -80,9 +80,9 @@ const cardVariants = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="relative py-20 lg:py-28 px-6 bg-surface/30 overflow-hidden">
+    <section className="relative py-20 lg:py-28 px-6 bg-surface/30 overflow-hidden">
       <BokehBackground orbs={BOKEH_FEATURES} />
-      <div className="max-w-7xl mx-auto">
+      <div id="features" className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

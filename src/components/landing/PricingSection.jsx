@@ -70,9 +70,9 @@ export default function PricingSection({ onLoginSuccess }) {
 
   return (
     <>
-      <section id="pricing" className="relative py-20 lg:py-28 px-6 overflow-hidden">
+      <section className="relative py-20 lg:py-28 px-6 overflow-hidden">
         <BokehBackground orbs={BOKEH_PRICING} />
-        <div className="max-w-6xl mx-auto">
+        <div id="pricing" className="max-w-6xl mx-auto">
           {/* Heading */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

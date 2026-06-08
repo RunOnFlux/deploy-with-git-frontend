@@ -10,6 +10,8 @@ const NAV_LINKS = [
   { label: 'Samples',   href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
 ];
 
+const NAV_OFFSET = 72; // px — navbar height + a little breathing room
+
 export default function Navbar({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +22,15 @@ export default function Navbar({ onLoginSuccess }) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  function handleHashClick(e, href) {
+    if (!href.startsWith('#')) return;
+    e.preventDefault();
+    const el = document.getElementById(href.slice(1));
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
 
   return (
     <header
@@ -44,6 +55,7 @@ export default function Navbar({ onLoginSuccess }) {
                 href={href}
                 target={external ? '_blank' : undefined}
                 rel={external ? 'noopener noreferrer' : undefined}
+                onClick={!external ? (e) => handleHashClick(e, href) : undefined}
                 className="px-4 py-2 text-sm text-text-secondary hover:text-text rounded-lg hover:bg-white/5 transition-colors"
               >
                 {label}

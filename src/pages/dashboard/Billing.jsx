@@ -10,6 +10,7 @@ import { useApps } from '../../hooks/useApps';
 import { fetchCurrentBlock } from '../../services/appsService';
 import { PLANS, BILLING_PERIODS } from '../../services/deployService';
 import { PageHeader } from '../../components/dashboard';
+import RenewModal from '../../components/billing/RenewModal';
 
 // Flux blocks are ~2 minutes each (post-halving era)
 const BLOCKS_PER_DAY = 720;
@@ -67,7 +68,7 @@ function PlanBadge({ plan }) {
   );
 }
 
-function AppBillingCard({ app, currentBlock }) {
+function AppBillingCard({ app, currentBlock, onRenew }) {
   const plan = detectPlan(app);
   const period = detectBillingPeriod(app.expire);
 
@@ -75,6 +76,8 @@ function AppBillingCard({ app, currentBlock }) {
   const expiryBlock = app.height + app.expire;
   const blocksLeft = currentBlock != null ? expiryBlock - currentBlock : null;
   const daysLeft = blocksLeft != null ? Math.floor(blocksLeft / BLOCKS_PER_DAY) : null;
+
+  const isFree = plan.id === 'free';
 
   return (
     <div className="card p-5 flex flex-col gap-4">
@@ -122,12 +125,15 @@ function AppBillingCard({ app, currentBlock }) {
             </span>
           )}
         </span>
-        <Link
-          to="/dashboard/deploy"
-          className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors"
-        >
-          Renew <ChevronRight className="w-3 h-3" />
-        </Link>
+        {!isFree && (
+          <button
+            type="button"
+            onClick={() => onRenew(app)}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors"
+          >
+            Renew <ChevronRight className="w-3 h-3" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -137,6 +143,7 @@ export default function Billing() {
   const { apps, loading, refresh } = useApps();
   const [currentBlock, setCurrentBlock] = useState(null);
   const [blockLoading, setBlockLoading] = useState(true);
+  const [renewApp, setRenewApp] = useState(null);
 
   useEffect(() => {
     fetchCurrentBlock().then((b) => {
@@ -226,7 +233,7 @@ export default function Billing() {
         {!loading && !blockLoading && apps.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {apps.map((app) => (
-              <AppBillingCard key={app.name} app={app} currentBlock={currentBlock} />
+              <AppBillingCard key={app.name} app={app} currentBlock={currentBlock} onRenew={setRenewApp} />
             ))}
           </div>
         )}
@@ -235,8 +242,7 @@ export default function Billing() {
         {!loading && apps.length > 0 && (
           <div className="mt-8 p-4 rounded-xl bg-surface/50 border border-border/20 text-sm text-text-muted">
             <p>
-              Flux apps are prepaid for a fixed period. To extend your app&apos;s life, create a new
-              deployment with the same name and a fresh billing period.{' '}
+              Flux apps are prepaid for a fixed period. Renew an app before it expires to avoid downtime.{' '}
               <a
                 href="https://docs.runonflux.io"
                 target="_blank"
@@ -249,6 +255,10 @@ export default function Billing() {
           </div>
         )}
       </div>
+
+      {renewApp && (
+        <RenewModal app={renewApp} onClose={() => setRenewApp(null)} />
+      )}
     </>
   );
 }

@@ -138,8 +138,12 @@ html {
 }
 
 /* Offset anchor targets so fixed navbar doesn't cover section headings */
+html {
+  scroll-padding-top: 80px;
+}
+
 [id] {
-  scroll-margin-top: 5rem;
+  scroll-margin-top: 7rem;
 }
 
 /* Orbit "O" spinner */
