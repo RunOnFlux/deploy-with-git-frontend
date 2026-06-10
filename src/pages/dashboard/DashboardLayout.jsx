@@ -62,7 +62,7 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"
         >
           <Github className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Deployment Guides</span>
+          <span className="flex-1">Deployment Samples</span>
           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
         </a>
         <a
