@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
-import { PLANS } from '../../services/deployService';
+import { PLANS, normalizeCustomPlan } from '../../services/deployService';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
 import Step3Config from '../../components/wizard/Step3Config';
@@ -111,7 +111,7 @@ export default function DeployWizard() {
     if (planId) {
       const p = PLANS.find((pl) => pl.id === planId);
       if (p) {
-        setPlan(p);
+        setPlan(p.id === 'custom' ? normalizeCustomPlan(p) : p);
         // Auto-advance past step 1 — plan is already chosen
         next();
       }
@@ -190,11 +190,18 @@ export default function DeployWizard() {
     if (step === 1) return Boolean(plan);
     if (step === 2) return Boolean(repo.url?.startsWith('http'));
     if (step === 3) {
+      const db = config.database;
+      const dbValid = !db?.enabled || plan?.id !== 'custom' || (
+        db.componentName?.length >= 1 &&
+        (db.type !== 'postgres' || db.dbName?.length >= 1) &&
+        plan?.instances >= 3
+      );
       return (
         config.appName?.length >= 3 &&
         /^[a-z][a-z0-9-]*[a-z0-9]$/.test(config.appName) &&
         config.port &&
-        Boolean(config.contactEmail?.trim())
+        Boolean(config.contactEmail?.trim()) &&
+        dbValid
       );
     }
     if (step === 4) return termsAccepted;
@@ -240,10 +247,13 @@ export default function DeployWizard() {
           )}
           {step === 3 && (
             <Step3Config
+              plan={plan}
               config={config}
               onChange={setConfig}
+              onPlanChange={setPlan}
               portAutoDetected={!config.portTouched}
               isEnterpriseForced={!!repo.isPrivate}
+              appPorts={state.ports ?? undefined}
             />
           )}
           {step === 4 && (

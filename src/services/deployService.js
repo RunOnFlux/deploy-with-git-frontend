@@ -3,6 +3,11 @@
  * Pure/async functions for the deployment wizard.
  */
 import qs from 'qs';
+import {
+  buildDatabaseCompose,
+  generateDbPorts,
+  getDatabaseEnvVar,
+} from './databaseSpec';
 
 // Cached server config — fetched once per page load
 let _serverConfig = null;
@@ -61,6 +66,24 @@ export const PLANS = [
     badge: null,
   },
 ];
+
+export const CUSTOM_PLAN_DEFAULTS = { cpu: 1, ram: 2000, hdd: 10, instances: 1, priceMonthly: null };
+
+/** Fill in null resource fields on custom plans (deep-link / DB addon may skip step 1 config). */
+export function normalizeCustomPlan(plan) {
+  if (!plan || plan.id !== 'custom') return plan;
+  const base = PLANS.find((p) => p.id === 'custom');
+  return {
+    ...base,
+    ...CUSTOM_PLAN_DEFAULTS,
+    ...plan,
+    cpu: plan.cpu ?? CUSTOM_PLAN_DEFAULTS.cpu,
+    ram: plan.ram ?? CUSTOM_PLAN_DEFAULTS.ram,
+    hdd: plan.hdd ?? CUSTOM_PLAN_DEFAULTS.hdd,
+    instances: plan.instances ?? CUSTOM_PLAN_DEFAULTS.instances,
+    priceMonthly: plan.priceMonthly ?? CUSTOM_PLAN_DEFAULTS.priceMonthly,
+  };
+}
 
 // ─── Billing periods ─────────────────────────────────────────────────────────
 export const BILLING_PERIODS = [
@@ -301,7 +324,8 @@ export function redactSpecCredentials(spec) {
  * @param {object} params.config - { appName, port, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
  * @param {[number, number]} params.ports - [extPort, mgmtPort]
  */
-export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
+export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
+  const plan = normalizeCustomPlan(rawPlan);
   const [extPort, mgmtPort] = ports;
   const {
     appName, port, billingPeriod, geolocation = [], extraEnvVars = [],
@@ -345,10 +369,29 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
   if (prPreviewEnabled) envParams.push('PR_PREVIEW_ENABLED=true');
 
   // Extra user-defined env vars (reserved keys are filtered out at the UI layer)
-  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED', 'WEBHOOK_SECRET', 'API_KEY']);
+  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED', 'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL']);
   for (const { key, value } of extraEnvVars) {
     if (key?.trim() && !RESERVED.has(key.trim().toUpperCase())) {
       envParams.push(`${key.trim()}=${value || ''}`);
+    }
+  }
+
+  const database = config.database;
+  const dbEnabled = plan?.id === 'custom' && database?.enabled;
+  let dbPorts = database?.ports;
+
+  if (dbEnabled) {
+    if (!dbPorts?.length) {
+      dbPorts = generateDbPorts(database.type, ports);
+    }
+    const dbEnv = getDatabaseEnvVar({
+      type: database.type,
+      componentName: database.componentName,
+      password: database.password,
+      dbName: database.dbName,
+    });
+    if (!envParams.some((p) => p.startsWith(`${dbEnv.key}=`))) {
+      envParams.push(`${dbEnv.key}=${dbEnv.value}`);
     }
   }
 
@@ -384,8 +427,11 @@ export function buildSpec({ zelid, contactsRef, plan, repo, config, ports }) {
         repoauth: '',
         tiered: false,
       },
+      ...(dbEnabled
+        ? [buildDatabaseCompose({ ...database, ports: dbPorts }, appName)].filter(Boolean)
+        : []),
     ],
-    instances: plan.instances,
+    instances: dbEnabled ? Math.max(plan.instances, 3) : plan.instances,
     contacts,
     geolocation: geoArray,
     expire: expireBlocks,

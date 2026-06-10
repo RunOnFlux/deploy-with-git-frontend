@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { BILLING_PERIODS, GEO_OPTIONS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
+import DatabaseAddon from './DatabaseAddon';
 
 const POLLING_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
@@ -27,7 +28,7 @@ const RUNTIMES = [
 const RESERVED_ENV_KEYS = new Set([
   'BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND',
   'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED',
-  'WEBHOOK_SECRET', 'API_KEY',
+  'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL',
 ]);
 
 function EnvImporter({ onImport }) {
@@ -235,7 +236,7 @@ function GeoSelector({ selected, onChange }) {
   );
 }
 
-export default function Step3Config({ config, onChange, portAutoDetected, isEnterpriseForced }) {
+export default function Step3Config({ plan, config, onChange, onPlanChange, portAutoDetected, isEnterpriseForced, appPorts }) {
   const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
           contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
           buildCommand, runCommand, installCommand, webhookSecret, apiKey,
@@ -430,6 +431,15 @@ export default function Step3Config({ config, onChange, portAutoDetected, isEnte
           </div>
         )}
       </div>
+
+      <DatabaseAddon
+        plan={plan}
+        config={config}
+        appName={appName}
+        appPorts={appPorts}
+        onChange={onChange}
+        onPlanChange={onPlanChange}
+      />
 
       {/* Billing period */}
       <div className="mb-6">

@@ -50,6 +50,18 @@ const INITIAL_STATE = {
     apiKey: '',
     prPreviewEnabled: false,
     enterprise: false, // true = encrypt contacts+compose with RSA/AES
+    database: {
+      enabled: false,
+      type: 'postgres',
+      componentName: 'pg',
+      dbName: 'appdb',
+      password: '',
+      replicationPassword: '',
+      sslPassphrase: '',
+      keyfilePassphrase: '',
+      resources: { cpu: 1, ram: 4000, hdd: 20 },
+      ports: null,
+    },
   },
 
   // Terms acceptance (required before Step 5)

@@ -1,5 +1,5 @@
 import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock } from 'lucide-react';
-import { PLANS } from '../../services/deployService';
+import { PLANS, normalizeCustomPlan } from '../../services/deployService';
 
 const PLAN_COLORS = {
   free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400' },
@@ -128,21 +128,19 @@ function PlanCard({ plan, selected, onSelect }) {
   );
 }
 
-const CUSTOM_DEFAULTS = { cpu: 1, ram: 2000, hdd: 10, instances: 1, priceMonthly: null };
-
 export default function Step1Plan({ plan, onChange }) {
   const custom = plan?.id === 'custom' ? plan : null;
 
   function handleSelect(p) {
     if (p.id === 'custom') {
-      onChange({ ...CUSTOM_DEFAULTS, ...p });
+      onChange(normalizeCustomPlan(p));
     } else {
       onChange(p);
     }
   }
 
   function handleCustomField(field, value) {
-    onChange({ ...PLANS.find((p) => p.id === 'custom'), ...custom, [field]: value });
+    onChange(normalizeCustomPlan({ ...custom, [field]: value }));
   }
 
   return (
