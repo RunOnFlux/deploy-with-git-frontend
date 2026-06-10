@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw, Upload, Clipboard, X, SlidersHorizontal, KeyRound } from 'lucide-react';
+import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw, Upload, Clipboard, X, SlidersHorizontal, KeyRound, Globe } from 'lucide-react';
 import { parseEnvText } from '../../utils/envParser';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +13,7 @@ import {
   signWithSSP,
   signWithZelCore,
   pollUpdate,
+  GEO_OPTIONS,
 } from '../../services/deployService';
 import { encryptSpec } from '../../services/enterpriseCrypto';
 import { redeployAllInstances } from '../../services/managementService';
@@ -182,6 +183,54 @@ function SectionHeader({ title, expanded, onToggle }) {
   );
 }
 
+// ── Geo helpers ──────────────────────────────────────────────────────────────
+// Spec stores geo as ["a=EU","f=NA"]; UI works with [{ code, type }]
+function parseGeoSpec(arr = []) {
+  return arr.map((s) => {
+    const eq = s.indexOf('=');
+    if (eq === -1) return null;
+    return { code: s.slice(eq + 1), type: s[0] === 'f' ? 'forbidden' : 'allowed' };
+  }).filter(Boolean);
+}
+function buildGeoSpec(rows) {
+  return rows.filter((g) => g.code).map((g) => `${g.type === 'forbidden' ? 'f' : 'a'}=${g.code}`);
+}
+
+function GeoSelector({ selected, onChange, disabled }) {
+  function toggle(code) {
+    const existing = selected.find((g) => g.code === code);
+    if (existing) onChange(selected.filter((g) => g.code !== code));
+    else onChange([...selected, { code, type: 'allowed' }]);
+  }
+  function toggleType(code) {
+    onChange(selected.map((g) => g.code === code ? { ...g, type: g.type === 'allowed' ? 'forbidden' : 'allowed' } : g));
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {GEO_OPTIONS.map(({ code, label }) => {
+        const sel = selected.find((g) => g.code === code);
+        const isForbidden = sel?.type === 'forbidden';
+        return (
+          <div key={code} className={`flex items-center rounded-lg overflow-hidden border ${disabled ? 'opacity-50 pointer-events-none' : ''} ${sel ? isForbidden ? 'border-red-500/40' : 'border-primary/40' : 'border-border'}`}>
+            <button type="button" onClick={() => toggle(code)}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${sel ? isForbidden ? 'bg-red-500/20 text-red-400' : 'bg-primary/20 text-primary' : 'bg-surface text-text-muted hover:bg-surface-hover'}`}>
+              {label}
+            </button>
+            {sel && (
+              <button type="button" onClick={() => toggleType(code)}
+                className={`px-2 py-1.5 text-xs border-l border-border transition-colors ${isForbidden ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+                title={`Currently ${isForbidden ? 'forbidden' : 'allowed'} — click to toggle`}>
+                {isForbidden ? '✗' : '✓'}
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {selected.length === 0 && <p className="text-xs text-text-muted py-1">No restriction — deploys globally</p>}
+    </div>
+  );
+}
+
 function PasswordInput({ value, onChange, placeholder, disabled }) {
   const [show, setShow] = useState(false);
   return (
@@ -223,6 +272,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const [settingsOpen, setSettingsOpen]   = useState(true);
   const [orbitOpen, setOrbitOpen]         = useState(true);
   const [userEnvOpen, setUserEnvOpen]     = useState(true);
+  const [geoOpen, setGeoOpen]             = useState(true); // kept for future use
+  const [activeTab, setActiveTab]         = useState('general');
+
+  const [geolocation, setGeolocation] = useState([]);
 
   // Save flow state
   const [savePhase, setSavePhase]     = useState(null);
@@ -262,6 +315,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     setHiddenEnvRows(hidden);
     setOrbitSettings(orbit);
     setUserEnvRows(user);
+    setGeolocation(parseGeoSpec(spec.geolocation ?? []));
   }, [spec]);
 
   // ── Dirty check ──────────────────────────────────────────────────────
@@ -281,6 +335,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     }
     if (JSON.stringify(origOrbit) !== JSON.stringify(orbitSettings)) return true;
     if (JSON.stringify(origUser)  !== JSON.stringify(userEnvRows))   return true;
+    if (JSON.stringify(buildGeoSpec(geolocation)) !== JSON.stringify(spec.geolocation ?? [])) return true;
     return false;
   }, [spec, description, customDomain, orbitSettings, userEnvRows]);
 
@@ -316,6 +371,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     const updatedSpec = {
       ...spec,
       description,
+      geolocation: buildGeoSpec(geolocation),
       compose: spec.compose.map((c, i) =>
         i === 0
           ? {
@@ -461,33 +517,48 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     );
   }
 
+  const TABS = [
+    { id: 'general',  label: 'General',      icon: SlidersHorizontal },
+    { id: 'geo',      label: 'Geolocation',  icon: Globe },
+    { id: 'deploy',   label: 'Deploy',       icon: Settings2 },
+    { id: 'env',      label: `Env (${userEnvRows.length})`, icon: KeyRound },
+  ];
+
   return (
     <div className="card flex flex-col gap-0" style={maxHeight ? { height: maxHeight } : undefined}>
-      <h2 className="font-semibold text-text mb-4 shrink-0">App Settings</h2>
+      <h2 className="font-semibold text-text mb-3 shrink-0">App Settings</h2>
 
-      {/* Scrollable sections */}
+      {/* Tab bar */}
+      <div className="flex gap-1 mb-3 shrink-0 bg-background/40 rounded-lg p-1">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+              activeTab === id
+                ? 'bg-surface shadow text-text'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Scrollable tab content */}
       <div className="flex-1 overflow-y-auto min-h-0 pr-1 -mr-1">
 
-      {/* ── General section ── */}
-      <div className="border border-border rounded-lg mb-3 overflow-hidden">
-        <div className="px-3 bg-surface-hover">
-          <SectionHeader
-            title={
-              <span className="flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
-                General
-              </span>
-            }
-            expanded={settingsOpen} onToggle={() => setSettingsOpen((v) => !v)} />
-        </div>
-        {settingsOpen && (
-          <div className="px-3 py-3 space-y-3">
+        {/* ── General ── */}
+        {activeTab === 'general' && (
+          <div className="space-y-3 py-1">
             <div>
               <label className="block text-xs text-text-muted mb-1">Description</label>
               <input
                 className="input w-full text-sm"
                 value={description}
-                onChange={(e) => { setDescription(e.target.value); }}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Short description of your app"
                 disabled={isSaving}
               />
@@ -497,7 +568,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
               <input
                 className="input w-full text-sm font-mono"
                 value={customDomain}
-                onChange={(e) => { setCustomDomain(e.target.value); }}
+                onChange={(e) => setCustomDomain(e.target.value)}
                 placeholder="yourdomain.com"
                 disabled={isSaving}
               />
@@ -512,32 +583,26 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             </div>
           </div>
         )}
-      </div>
 
-      {/* ── Orbit Settings section ── */}
-      <div className="border border-border rounded-lg mb-3 overflow-hidden">
-        <div className="px-3 bg-surface-hover">
-          <SectionHeader
-            title={
-              <span className="flex items-center gap-1.5">
-                <Settings2 className="w-3.5 h-3.5 text-primary" />
-                Deploy Options
-              </span>
-            }
-            expanded={orbitOpen}
-            onToggle={() => setOrbitOpen((v) => !v)}
-          />
-        </div>
-        {orbitOpen && (
-          <div className="px-3 py-3 space-y-3">
+        {/* ── Geolocation ── */}
+        {activeTab === 'geo' && (
+          <div className="py-1">
+            <p className="text-xs text-text-muted mb-3">
+              Select regions to allow (✓) or forbid (✗). Leave blank for global deployment.
+            </p>
+            <GeoSelector selected={geolocation} onChange={setGeolocation} disabled={isSaving} />
+          </div>
+        )}
+
+        {/* ── Deploy Options ── */}
+        {activeTab === 'deploy' && (
+          <div className="space-y-3 py-1">
             {ORBIT_SETTINGS_DEFS.map((def) => {
-              // Find actual key in orbitSettings (could be alias)
               const actualKey =
                 orbitSettings[def.key] !== undefined
                   ? def.key
                   : (def.aliases ?? []).find((a) => orbitSettings[a] !== undefined) ?? def.key;
               const value = orbitSettings[actualKey] ?? '';
-
               return (
                 <div key={def.key}>
                   <label className="block text-xs text-text-muted mb-1">{def.label}</label>
@@ -576,24 +641,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             })}
           </div>
         )}
-      </div>
 
-      {/* ── User env vars section ── */}
-      <div className="border border-border rounded-lg mb-4 overflow-hidden">
-        <div className="px-3 bg-surface-hover">
-          <SectionHeader
-            title={
-              <span className="flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-primary" />
-                {`Environment Variables (${userEnvRows.length})`}
-              </span>
-            }
-            expanded={userEnvOpen}
-            onToggle={() => setUserEnvOpen((v) => !v)}
-          />
-        </div>
-        {userEnvOpen && (
-          <div className="px-3 py-3">
+        {/* ── Env Vars ── */}
+        {activeTab === 'env' && (
+          <div className="py-1">
             <EnvImporter onImport={(pairs) => {
               setUserEnvRows((prev) => {
                 const next = [...prev];
@@ -646,9 +697,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             </button>
           </div>
         )}
-      </div>
 
-      </div>{/* end scrollable sections */}
+      </div>{/* end scrollable tab content */}
 
       {/* ── Pinned footer: status + save ── */}
       <div className="shrink-0 pt-3 mt-1 border-t border-border/50">

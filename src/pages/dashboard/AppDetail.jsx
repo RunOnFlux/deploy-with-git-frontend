@@ -111,7 +111,7 @@ export default function AppDetail() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-6 mb-6 items-start">
           <div ref={appInfoRef}>
             <AppInfoCard spec={spec} nodeStatuses={nodeStatuses} appName={appName} />
           </div>
