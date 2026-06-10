@@ -3,8 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { calculatePrice, getPaymentAddress } from '../../services/deployService';
 import DeploymentTracker from './DeploymentTracker';
 import { CreditCard, Loader2, XCircle, ArrowRight, ExternalLink } from 'lucide-react';
-
-const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
+import { getRuntimeConfig } from '../../config/runtimeConfig.js';
 
 export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, eligibleForFree = true, subtitle, onBack }) {
   const { zelidauth } = useAuth();
@@ -137,11 +136,12 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
 
     setStatus('pending');
     try {
+      const paymentBridgeUrl = getRuntimeConfig().paymentBridgeUrl;
       // Multi-month billing → subscription endpoint; single month → one-time checkout
       const months = billingPeriod?.months ?? 1;
       const endpoint = months > 1
-        ? `${PAYMENT_BRIDGE_URL}/api/v1/stripe/subscription/create`
-        : `${PAYMENT_BRIDGE_URL}/api/v1/stripe/checkout/create`;
+        ? `${paymentBridgeUrl}/api/v1/stripe/subscription/create`
+        : `${paymentBridgeUrl}/api/v1/stripe/checkout/create`;
 
       const resp = await fetch(endpoint, {
         method: 'POST',

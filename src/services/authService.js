@@ -9,19 +9,10 @@ import {
   reloadUser,
 } from '../utils/firebase';
 import secureStorage from '../utils/secureStorage';
+import { getRuntimeConfig } from '../config/runtimeConfig.js';
 
 // zelidauth sessions are valid for 85 minutes (just under the 90min auto-logout)
 const ZELIDAUTH_TTL_MS = 85 * 60 * 1000;
-
-// Cache the server config (SSO_PROVIDER) so we only fetch it once per page load.
-let _serverConfig = null;
-async function getServerConfig() {
-  if (!_serverConfig) {
-    const resp = await fetch('/api/config');
-    _serverConfig = await resp.json();
-  }
-  return _serverConfig;
-}
 
 /**
  * Parse the `fluxnode` response header into a sticky backend URL.
@@ -143,7 +134,7 @@ class AuthService {
 
     let zelid, signature;
 
-    const { ssoProvider } = await getServerConfig();
+    const { ssoProvider } = getRuntimeConfig();
 
     if (ssoProvider === 'fluxcore') {
       // FluxCore SSO: service.fluxcore.ai signs the loginPhrase on the user's behalf.
@@ -159,7 +150,7 @@ class AuthService {
       signature = data.signature;
     } else {
       // Self-hosted SSO: server derives a deterministic Flux keypair per Firebase UID.
-      // Works with any Firebase project. Configured via SSO_SIGNING_SECRET in .env.
+      // Works with any Firebase project. Server uses SSO_SIGNING_SECRET (never exposed to client).
       const resp = await fetch('/api/sso/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },

@@ -8,16 +8,7 @@ import {
   generateDbPorts,
   getDatabaseEnvVar,
 } from './databaseSpec';
-
-// Cached server config — fetched once per page load
-let _serverConfig = null;
-async function getServerConfig() {
-  if (!_serverConfig) {
-    const resp = await fetch('/api/config');
-    _serverConfig = await resp.json();
-  }
-  return _serverConfig;
-}
+import { getRuntimeConfig } from '../config/runtimeConfig.js';
 
 // ─── Plans ──────────────────────────────────────────────────────────────────
 export const PLANS = [
@@ -617,7 +608,7 @@ export async function signWithSSO(dataToSign, firebaseUser) {
   const token = await firebaseUser.getIdToken();
 
   // Read SSO provider from server config (cached after first call)
-  const { ssoProvider } = await getServerConfig();
+  const { ssoProvider } = getRuntimeConfig();
 
   if (ssoProvider === 'fluxcore') {
     // FluxCore: service.fluxcore.ai/api/signMessage (requires fluxcore-prod Firebase project)

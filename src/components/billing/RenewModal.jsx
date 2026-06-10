@@ -20,8 +20,7 @@ import {
   formatExpiryDate,
   usesStripeSubscription,
 } from '../../services/deployService';
-
-const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
+import { getRuntimeConfig } from '../../config/runtimeConfig.js';
 
 function buildRenewalSpec(rawSpec, expireBlocks) {
   // Keep only valid Flux app spec fields, replacing expire
@@ -299,11 +298,12 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
     if (popup) popup.document.write('<p style="font-family:sans-serif;padding:2rem;color:#aaa">Redirecting to Stripe checkout…</p>');
     setStatus('pending');
     try {
+      const paymentBridgeUrl = getRuntimeConfig().paymentBridgeUrl;
       const months = period.blocks / BLOCKS_PER_MONTH;
       const subscription = usesStripeSubscription(period);
       const endpoint = subscription
-        ? `${PAYMENT_BRIDGE_URL}/api/v1/stripe/subscription/create`
-        : `${PAYMENT_BRIDGE_URL}/api/v1/stripe/checkout/create`;
+        ? `${paymentBridgeUrl}/api/v1/stripe/subscription/create`
+        : `${paymentBridgeUrl}/api/v1/stripe/checkout/create`;
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

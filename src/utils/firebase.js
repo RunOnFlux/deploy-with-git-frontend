@@ -12,28 +12,35 @@ import {
   updateProfile,
 } from 'firebase/auth';
 
-// FluxOS Firebase Configuration (shared across all Flux apps).
-// Override any value via VITE_FIREBASE_* environment variables in .env
-const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            ?? 'AIzaSyAtMsozWwJhhPIOd9BGkZxk5D6Wr8jVGVM',
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        ?? 'fluxcore-prod.firebaseapp.com',
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         ?? 'fluxcore-prod',
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     ?? 'fluxcore-prod.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '468366888401',
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID             ?? '1:468366888401:web:56eb34ebe93751527ea4f0',
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     ?? 'G-SEGT3X2737',
-};
+/** @type {import('firebase/auth').Auth | null} */
+let auth = null;
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+/**
+ * Initialize Firebase with runtime config from /api/config.
+ * Must be called once before the React app mounts.
+ * @param {import('../config/runtimeConfig.js').RuntimeConfig['firebase']} firebaseConfig
+ */
+export function initFirebase(firebaseConfig) {
+  if (auth) return auth;
 
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error('Failed to set auth persistence:', error);
-});
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Failed to set auth persistence:', error);
+  });
+
+  return auth;
+}
+
+function requireAuth() {
+  if (!auth) throw new Error('Firebase not initialized — call initFirebase() during bootstrap');
+  return auth;
+}
 
 export function getUser() {
   try {
-    return auth.currentUser;
+    return requireAuth().currentUser;
   } catch {
     return null;
   }
@@ -41,10 +48,11 @@ export function getUser() {
 
 export async function reloadUser() {
   try {
-    const user = auth.currentUser;
+    const instance = requireAuth();
+    const user = instance.currentUser;
     if (user) {
       await user.reload();
-      return auth.currentUser;
+      return instance.currentUser;
     }
     return null;
   } catch (error) {
@@ -55,10 +63,11 @@ export async function reloadUser() {
 
 export async function loginWithGoogle() {
   try {
-    await setPersistence(auth, browserLocalPersistence);
+    const instance = requireAuth();
+    await setPersistence(instance, browserLocalPersistence);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    return await signInWithPopup(auth, provider);
+    return await signInWithPopup(instance, provider);
   } catch (error) {
     console.error('Google login error:', error);
     throw error;
@@ -67,8 +76,9 @@ export async function loginWithGoogle() {
 
 export async function loginWithEmail(email, password) {
   try {
-    await setPersistence(auth, browserLocalPersistence);
-    return await signInWithEmailAndPassword(auth, email, password);
+    const instance = requireAuth();
+    await setPersistence(instance, browserLocalPersistence);
+    return await signInWithEmailAndPassword(instance, email, password);
   } catch (error) {
     console.error('Email login error:', error);
     throw error;
@@ -77,7 +87,7 @@ export async function loginWithEmail(email, password) {
 
 export async function createEmailAccount(email, password) {
   try {
-    return await createUserWithEmailAndPassword(auth, email, password);
+    return await createUserWithEmailAndPassword(requireAuth(), email, password);
   } catch (error) {
     console.error('Email signup error:', error);
     throw error;
@@ -106,7 +116,7 @@ export async function updateUserProfile(user, profile) {
 
 export async function signOut() {
   try {
-    await auth.signOut();
+    await requireAuth().signOut();
   } catch (error) {
     console.error('Sign out error:', error);
     throw error;

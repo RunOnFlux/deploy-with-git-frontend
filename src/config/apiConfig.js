@@ -1,4 +1,5 @@
 // API Configuration for Orbit Deployment UI
+import { getRuntimeConfig } from './runtimeConfig.js';
 
 export const apiConfig = {
   // Primary Flux Network API
@@ -39,7 +40,7 @@ export const apiConfig = {
   // Payment Bridge (Stripe + Flux payments)
   paymentBridge: {
     get baseUrl() {
-      return import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://jetpackbridge.runonflux.io';
+      return getRuntimeConfig().paymentBridgeUrl;
     },
     endpoints: {
       stripeCheckout: '/api/v1/stripe/checkout/create',
@@ -50,7 +51,7 @@ export const apiConfig = {
   // Stripe
   stripe: {
     get publishableKey() {
-      return import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      return getRuntimeConfig().stripePublishableKey;
     },
   },
 

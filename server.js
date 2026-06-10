@@ -14,6 +14,11 @@ import { dirname, join } from 'path';
 import crypto from 'crypto';
 import { createRequire } from 'module';
 import puppeteer from 'puppeteer-core';
+import {
+  DEFAULT_APP_URL,
+  DEFAULT_PAYMENT_BRIDGE_URL,
+  DEFAULT_FIREBASE,
+} from './config/defaults.js';
 
 const require = createRequire(import.meta.url);
 const ecc = require('tiny-secp256k1');
@@ -212,15 +217,35 @@ app.get('/api/flux-stream/apps/testappinstall/:hash', async (req, res) => {
   }
 });
 
+function envFlag(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  return value === 'true' || value === '1';
+}
+
 /**
  * GET /api/config
- * Exposes server-side configuration to the frontend.
- * Change SSO_PROVIDER in .env and restart the server to switch SSO backends
- * without requiring a frontend rebuild.
+ * Public client configuration loaded at runtime (no secrets).
+ * Inject via container environment variables — no frontend rebuild required.
  */
 app.get('/api/config', (_req, res) => {
   res.json({
     ssoProvider: process.env.SSO_PROVIDER || 'self',
+    appUrl: process.env.VITE_APP_URL || DEFAULT_APP_URL,
+    paymentBridgeUrl: process.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
+    stripePublishableKey: process.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+    firebase: {
+      apiKey: process.env.VITE_FIREBASE_API_KEY || DEFAULT_FIREBASE.apiKey,
+      authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE.authDomain,
+      projectId: process.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE.projectId,
+      storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || DEFAULT_FIREBASE.storageBucket,
+      messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_FIREBASE.messagingSenderId,
+      appId: process.env.VITE_FIREBASE_APP_ID || DEFAULT_FIREBASE.appId,
+      measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || DEFAULT_FIREBASE.measurementId,
+    },
+    analytics: {
+      enabled: envFlag(process.env.VITE_ENABLE_ANALYTICS, false),
+      measurementId: process.env.VITE_GA_MEASUREMENT_ID || '',
+    },
   });
 });
 
@@ -242,7 +267,7 @@ const firebaseJwksClient = jwksClient({
   cacheMaxAge: 3600000, // 1 hour
 });
 
-const FIREBASE_PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID || 'orbit-fdf48';
+const FIREBASE_PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE.projectId;
 
 async function verifyFirebaseToken(idToken) {
   return new Promise((resolve, reject) => {
