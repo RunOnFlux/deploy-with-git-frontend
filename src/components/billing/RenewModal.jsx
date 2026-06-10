@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Clock, Loader2, XCircle, CheckCircle, CreditCard, ArrowRight, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../utils/firebase';
@@ -12,17 +12,16 @@ import {
   calculatePrice,
   getPaymentAddress,
   pollUpdate,
+  BLOCKS_PER_MONTH,
+  getBlocksRemaining,
+  getRenewalOptions,
+  formatDurationFromBlocks,
+  expiryDateFromBlocks,
+  formatExpiryDate,
+  usesStripeSubscription,
 } from '../../services/deployService';
 
 const PAYMENT_BRIDGE_URL = import.meta.env.VITE_PAYMENT_BRIDGE_URL || 'https://fiatpaymentsbridge.runonflux.io';
-
-const RENEW_PERIODS = [
-  { label: '1 month',  blocks: 88000 },
-  { label: '2 months', blocks: 2  * 88000 },
-  { label: '3 months', blocks: 3  * 88000 },
-  { label: '6 months', blocks: 6  * 88000 },
-  { label: '1 year',   blocks: 12 * 88000 },
-];
 
 function buildRenewalSpec(rawSpec, expireBlocks) {
   // Keep only valid Flux app spec fields, replacing expire
@@ -43,25 +42,56 @@ function buildRenewalSpec(rawSpec, expireBlocks) {
 }
 
 // ─── Period Picker ────────────────────────────────────────────────────────────
-function PeriodPicker({ app, rawSpec, onConfirm, onClose }) {
-  const [selected, setSelected] = useState(2); // default: 1 month
-  const [priceUsd, setPriceUsd]   = useState(null);
-  const [priceFlux, setPriceFlux] = useState(null);
-  const [priceLoading, setPriceLoading] = useState(false);
-  const [priceError, setPriceError]     = useState('');
+function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm, onClose }) {
+  const defaultIndex = Math.max(0, renewalOptions.findIndex((p) => p.blocks === BLOCKS_PER_MONTH));
+  const [selected, setSelected] = useState(defaultIndex);
+  const [prices, setPrices] = useState({});
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [priceError, setPriceError] = useState('');
   const { zelidauth } = useAuth();
 
+  const selectedPeriod = renewalOptions[selected];
+  const selectedPrice = prices[selected];
+  const remaining = Math.max(0, blocksRemaining ?? 0);
+  const currentExpiryDate = expiryDateFromBlocks(remaining);
+
   useEffect(() => {
-    if (!rawSpec || !zelidauth) return;
-    setPriceLoading(true);
+    if (selected >= renewalOptions.length) {
+      setSelected(Math.max(0, renewalOptions.length - 1));
+    }
+  }, [renewalOptions.length, selected]);
+
+  useEffect(() => {
+    if (!rawSpec || !zelidauth || renewalOptions.length === 0) return;
+
+    let cancelled = false;
+    setPricesLoading(true);
     setPriceError('');
-    const spec = buildRenewalSpec(rawSpec, RENEW_PERIODS[selected].blocks);
-    calculatePrice(spec, zelidauth)
-      .then((p) => { setPriceUsd(p?.usd ?? null); setPriceFlux(p?.flux ?? null); })
-      .catch((e) => setPriceError(e.message || 'Could not load price'))
-      .finally(() => setPriceLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, rawSpec]);
+    setPrices({});
+
+    Promise.all(
+      renewalOptions.map(async (period, i) => {
+        const spec = buildRenewalSpec(rawSpec, period.expireBlocks);
+        const price = await calculatePrice(spec, zelidauth);
+        return { i, price };
+      }),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const next = {};
+        results.forEach(({ i, price }) => { next[i] = price; });
+        setPrices(next);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setPriceError(e.message || 'Could not load prices');
+      })
+      .finally(() => {
+        if (!cancelled) setPricesLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [rawSpec, renewalOptions, zelidauth]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -70,48 +100,85 @@ function PeriodPicker({ app, rawSpec, onConfirm, onClose }) {
         <p className="text-sm text-text-muted">Choose how long to extend the deployment.</p>
       </div>
 
-      {/* Period buttons */}
-      <div className="grid grid-cols-5 gap-2">
-        {RENEW_PERIODS.map((p, i) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => setSelected(i)}
-            className={`flex flex-col items-center justify-center px-2 py-3 rounded-xl border text-xs font-medium transition-all duration-150 ${
-              selected === i
-                ? 'bg-primary/15 border-primary/50 text-primary'
-                : 'bg-background/40 border-border/40 text-text-muted hover:border-border hover:text-text-secondary'
-            }`}
-          >
-            <span className="font-semibold text-[13px] leading-tight">{p.label}</span>
-          </button>
-        ))}
+      {/* Current subscription */}
+      <div className="rounded-xl border border-border/40 bg-background/40 px-4 py-3">
+        <div className="flex items-start gap-2 text-sm">
+          <Clock className="w-4 h-4 text-text-muted mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-text-secondary">
+              Active until{' '}
+              <span className="font-medium text-text">{formatExpiryDate(currentExpiryDate)}</span>
+            </p>
+            <p className="text-xs text-text-muted mt-0.5">
+              {formatDurationFromBlocks(remaining)} remaining
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Price estimate */}
-      <div className="rounded-xl border border-border/40 bg-background/40 p-4 flex items-center justify-between min-h-[64px]">
-        {priceLoading ? (
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin" /> Calculating price…
-          </div>
-        ) : priceError ? (
-          <p className="text-sm text-amber-400">{priceError}</p>
-        ) : priceUsd != null ? (
-          <>
-            <div>
-              <p className="text-xs text-text-muted mb-0.5">Estimated cost</p>
-              <p className="text-xl font-bold text-text">${priceUsd}</p>
-              {priceFlux && <p className="text-xs text-text-muted">{priceFlux} FLUX</p>}
-            </div>
-            <div className="text-right text-xs text-text-muted">
-              <p className="text-primary font-medium">{RENEW_PERIODS[selected].label}</p>
-              <p className="mt-0.5">extension</p>
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-text-muted">Select a period to see pricing.</p>
-        )}
+      {/* Period options — vertical list */}
+      <div className="space-y-2" role="radiogroup" aria-label="Renewal period">
+        {renewalOptions.map((period, i) => {
+          const isSelected = selected === i;
+          const price = prices[i];
+
+          return (
+            <button
+              key={`${period.blocks}-${period.label}`}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => setSelected(i)}
+              className={`w-full text-left rounded-xl border px-4 py-3 transition-all duration-150 ${
+                isSelected
+                  ? 'bg-primary/10 border-primary/50 ring-1 ring-primary/20'
+                  : 'bg-background/40 border-border/40 hover:border-border/70 hover:bg-background/60'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      isSelected ? 'border-primary' : 'border-border'
+                    }`}
+                  >
+                    {isSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-text'}`}>
+                      {period.label}
+                      {period.isCustomMax && (
+                        <span className="text-text-muted font-normal"> · max</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Until {formatExpiryDate(period.newExpiryDate)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 min-w-[3.5rem]">
+                  {pricesLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-text-muted ml-auto" />
+                  ) : price?.usd != null ? (
+                    <div>
+                      <p className="text-sm font-semibold text-text">${price.usd}</p>
+                      {price.flux > 0 && (
+                        <p className="text-[10px] text-text-muted">{price.flux} FLUX</p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-text-muted">—</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
+
+      {priceError && (
+        <p className="text-sm text-amber-400 -mt-2">{priceError}</p>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3 pt-1">
@@ -120,8 +187,8 @@ function PeriodPicker({ app, rawSpec, onConfirm, onClose }) {
         </button>
         <button
           type="button"
-          onClick={() => onConfirm(RENEW_PERIODS[selected], priceUsd, priceFlux)}
-          disabled={priceLoading || priceUsd == null}
+          onClick={() => onConfirm(selectedPeriod, selectedPrice?.usd, selectedPrice?.flux)}
+          disabled={pricesLoading || selectedPrice?.usd == null || !selectedPeriod}
           className="btn-primary flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Continue <ChevronRight className="w-4 h-4 ml-1" />
@@ -141,7 +208,7 @@ function SigningStep({ app, rawSpec, period, onDone, onError }) {
     ran.current = true;
 
     async function run() {
-      const spec = buildRenewalSpec(rawSpec, period.blocks);
+      const spec = buildRenewalSpec(rawSpec, period.expireBlocks);
 
       // 1. Verify
       onDone('verifying');
@@ -232,8 +299,9 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
     if (popup) popup.document.write('<p style="font-family:sans-serif;padding:2rem;color:#aaa">Redirecting to Stripe checkout…</p>');
     setStatus('pending');
     try {
-      const months = period.blocks / 88000;
-      const endpoint = months > 1
+      const months = period.blocks / BLOCKS_PER_MONTH;
+      const subscription = usesStripeSubscription(period);
+      const endpoint = subscription
         ? `${PAYMENT_BRIDGE_URL}/api/v1/stripe/subscription/create`
         : `${PAYMENT_BRIDGE_URL}/api/v1/stripe/checkout/create`;
       const resp = await fetch(endpoint, {
@@ -249,7 +317,7 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
             hash: txid,
             price: parseFloat((priceUsd ?? 0).toFixed(2)),
             productName: app.name,
-            ...(months > 1 ? { period: months } : {}),
+            ...(subscription ? { period: months } : {}),
             success_url: `${window.location.origin}/successcheckout`,
             cancel_url: window.location.origin,
             kpi: { origin: 'Orbit', marketplace: true, renewal: true },
@@ -307,7 +375,10 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
           <p className="font-semibold text-text text-lg">Renewal confirmed!</p>
           <p className="text-sm text-text-muted mt-1">
             Your app <span className="text-text font-medium">{app.name}</span> has been extended
-            by <span className="text-primary font-medium">{period.label}</span>.
+            by <span className="text-primary font-medium">{period.label}</span>
+            {period.newExpiryDate && (
+              <> — active until <span className="text-text font-medium">{formatExpiryDate(period.newExpiryDate)}</span></>
+            )}.
           </p>
         </div>
         <button type="button" onClick={onClose} className="btn-primary mt-2">Done</button>
@@ -463,8 +534,8 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
 }
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
-export default function RenewModal({ app, onClose }) {
-  const [phase, setPhase] = useState('loading'); // loading | pick | signing | paying | error
+export default function RenewModal({ app, currentBlock, onClose }) {
+  const [phase, setPhase] = useState('loading'); // loading | pick | signing | paying | error | maxed
   const [signingPhase, setSigningPhase] = useState(''); // verifying | signing | submitting
   const [rawSpec, setRawSpec]     = useState(null);
   const [period, setPeriod]       = useState(null);
@@ -474,20 +545,38 @@ export default function RenewModal({ app, onClose }) {
   const [verifiedSpec, setVerifiedSpec] = useState(null);
   const [errorMsg, setErrorMsg]   = useState('');
 
+  const blocksRemaining = useMemo(
+    () => getBlocksRemaining(app.height, app.expire, currentBlock),
+    [app.height, app.expire, currentBlock],
+  );
+
+  const renewalOptions = useMemo(
+    () => getRenewalOptions(blocksRemaining),
+    [blocksRemaining],
+  );
+
   // Fetch the raw full spec on mount
   useEffect(() => {
+    let cancelled = false;
     fetch(`/api/flux/apps/appspecifications/${encodeURIComponent(app.name)}`)
       .then((r) => r.json())
       .then((json) => {
+        if (cancelled) return;
         if (json.status !== 'success' || !json.data) throw new Error('Could not fetch app spec');
         setRawSpec(json.data);
-        setPhase('pick');
       })
       .catch((e) => {
+        if (cancelled) return;
         setErrorMsg(e.message || 'Failed to load app spec');
         setPhase('error');
       });
+    return () => { cancelled = true; };
   }, [app.name]);
+
+  useEffect(() => {
+    if (!rawSpec) return;
+    setPhase(renewalOptions.length === 0 ? 'maxed' : 'pick');
+  }, [rawSpec, renewalOptions.length]);
 
   function handleConfirm(selectedPeriod, usd, flux) {
     setPeriod(selectedPeriod);
@@ -520,7 +609,7 @@ export default function RenewModal({ app, onClose }) {
   return (
     /* Overlay */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="relative w-full max-w-md bg-surface border border-border/50 rounded-2xl shadow-2xl p-6">
+      <div className="relative w-full max-w-lg bg-surface border border-border/50 rounded-2xl shadow-2xl p-6">
         {/* Close */}
         <button type="button" onClick={onClose} className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors">
           <X className="w-4 h-4" />
@@ -534,9 +623,32 @@ export default function RenewModal({ app, onClose }) {
           </div>
         )}
 
+        {/* Max subscription reached */}
+        {phase === 'maxed' && (
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
+              <Clock className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-text">Maximum subscription length reached</p>
+              <p className="text-sm text-text-muted mt-1">
+                This app already has the maximum 1-year subscription. Renew when time runs down.
+              </p>
+            </div>
+            <button type="button" onClick={onClose} className="btn-primary">Close</button>
+          </div>
+        )}
+
         {/* Period picker */}
         {phase === 'pick' && (
-          <PeriodPicker app={app} rawSpec={rawSpec} onConfirm={handleConfirm} onClose={onClose} />
+          <PeriodPicker
+            app={app}
+            rawSpec={rawSpec}
+            blocksRemaining={blocksRemaining}
+            renewalOptions={renewalOptions}
+            onConfirm={handleConfirm}
+            onClose={onClose}
+          />
         )}
 
         {/* Signing in progress */}

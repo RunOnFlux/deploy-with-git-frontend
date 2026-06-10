@@ -256,7 +256,7 @@ export default function Billing() {
       </div>
 
       {renewApp && (
-        <RenewModal app={renewApp} onClose={() => setRenewApp(null)} />
+        <RenewModal app={renewApp} currentBlock={currentBlock} onClose={() => setRenewApp(null)} />
       )}
     </>
   );

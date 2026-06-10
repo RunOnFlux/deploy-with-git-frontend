@@ -70,8 +70,96 @@ export const BILLING_PERIODS = [
   { months: 12, label: '12 months', discount: 15 },
 ];
 
+export const BLOCKS_PER_MONTH = 88000;
+export const MAX_SUBSCRIPTION_BLOCKS = 12 * BLOCKS_PER_MONTH;
+/** Post-halving: ~0.5 min/block → 2880 blocks/day */
+export const BLOCKS_PER_DAY = 2880;
+const MS_PER_BLOCK = (24 * 60 * 60 * 1000) / BLOCKS_PER_DAY;
+
 export function calcExpire(months) {
-  return months * 88000;
+  return months * BLOCKS_PER_MONTH;
+}
+
+/** Base renewal extension periods (blocks added on top of remaining time). */
+export const RENEWAL_PERIODS = [
+  { label: '1 month', blocks: BLOCKS_PER_MONTH },
+  { label: '2 months', blocks: 2 * BLOCKS_PER_MONTH },
+  { label: '3 months', blocks: 3 * BLOCKS_PER_MONTH },
+  { label: '6 months', blocks: 6 * BLOCKS_PER_MONTH },
+  { label: '1 year', blocks: MAX_SUBSCRIPTION_BLOCKS },
+];
+
+/** Blocks remaining until expiry (naive: registration height + expire − current block). */
+export function getBlocksRemaining(height, expire, currentBlock) {
+  if (currentBlock == null || height == null || expire == null) return null;
+  return (height + expire) - currentBlock;
+}
+
+/**
+ * Renewal options capped at 1 year total subscription.
+ * Each option includes expireBlocks = remaining + extension (value sent in app spec).
+ */
+export function getAvailableExtensionBlocks(blocksRemaining) {
+  const remaining = Math.max(0, blocksRemaining ?? 0);
+  return Math.max(0, MAX_SUBSCRIPTION_BLOCKS - remaining);
+}
+
+export function formatDurationFromBlocks(blocks) {
+  const days = Math.max(0, Math.floor(blocks / BLOCKS_PER_DAY));
+  if (days === 0) return 'less than a day';
+  if (days === 1) return '1 day';
+  if (days < 30) return `${days} days`;
+  const months = Math.floor(days / 30);
+  const remDays = days % 30;
+  if (remDays === 0) return months === 1 ? '1 month' : `${months} months`;
+  const monthPart = months === 1 ? '1 month' : `${months} months`;
+  const dayPart = remDays === 1 ? '1 day' : `${remDays} days`;
+  return `${monthPart} ${dayPart}`;
+}
+
+export function expiryDateFromBlocks(blocksFromNow) {
+  return new Date(Date.now() + Math.max(0, blocksFromNow) * MS_PER_BLOCK);
+}
+
+export function formatExpiryDate(date) {
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function getRenewalOptions(blocksRemaining) {
+  const remaining = Math.max(0, blocksRemaining ?? 0);
+  const available = getAvailableExtensionBlocks(remaining);
+
+  const options = RENEWAL_PERIODS
+    .filter((period) => period.blocks <= available)
+    .map((period) => ({
+      ...period,
+      expireBlocks: remaining + period.blocks,
+      newExpiryDate: expiryDateFromBlocks(remaining + period.blocks),
+    }));
+
+  const maxStandardBlocks = RENEWAL_PERIODS[RENEWAL_PERIODS.length - 1].blocks;
+  const lastStandardExtension = options.length > 0 ? options[options.length - 1].blocks : 0;
+
+  // Add a custom option for the remaining headroom when it doesn't match a standard period
+  // (e.g. "11 months 16 days" instead of hiding 1 year behind a warning).
+  if (available > 0 && available < maxStandardBlocks && available > lastStandardExtension) {
+    options.push({
+      label: formatDurationFromBlocks(available),
+      blocks: available,
+      expireBlocks: MAX_SUBSCRIPTION_BLOCKS,
+      newExpiryDate: expiryDateFromBlocks(MAX_SUBSCRIPTION_BLOCKS),
+      isCustomMax: true,
+    });
+  }
+
+  return options;
+}
+
+/** Stripe subscriptions only support standard whole-month periods. */
+export function usesStripeSubscription(period) {
+  if (!period || period.isCustomMax) return false;
+  const months = period.blocks / BLOCKS_PER_MONTH;
+  return months > 1 && Number.isInteger(months);
 }
 
 // ─── Geolocation options ─────────────────────────────────────────────────────
