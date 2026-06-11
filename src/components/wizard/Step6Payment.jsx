@@ -16,6 +16,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
   const [error, setError] = useState('');
   const [paid, setPaid] = useState(false);
   const [stripeInitiated, setStripeInitiated] = useState(false); // popup opened, waiting for user
+  const [zelcoreInitiated, setZelcoreInitiated] = useState(false); // wallet opened, waiting for user
   const [blockedUrl, setBlockedUrl] = useState(null); // popup was blocked
   const popupRef = useRef(null);
   const wsRef = useRef(null);
@@ -124,6 +125,43 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
     );
   }
 
+  // ZelCore deep link opened — waiting for user to send payment
+  if (zelcoreInitiated) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5 mb-1">
+          <CreditCard className="w-5 h-5 text-primary" />
+          <h2 className="font-heading text-xl font-bold text-text">Complete Payment</h2>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-surface">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+            <p className="text-sm font-medium text-text">ZelCore payment opened</p>
+          </div>
+          <p className="text-xs text-text-muted mb-4">
+            Confirm the payment in ZelCore, then click <strong>I&apos;ve paid</strong> to start deployment monitoring.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setZelcoreInitiated(false); setPaid(true); }}
+              className="btn-primary flex-1"
+            >
+              I've paid, continue
+            </button>
+            <button
+              type="button"
+              onClick={() => setZelcoreInitiated(false)}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   async function handleStripe() {
     if (!zelidauth) { setError('Not authenticated.'); setStatus('error'); return; }
 
@@ -202,7 +240,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
       a.click();
       document.body.removeChild(a);
     }
-    setPaid(true);
+    setZelcoreInitiated(true);
   }
 
   async function handleSSP() {

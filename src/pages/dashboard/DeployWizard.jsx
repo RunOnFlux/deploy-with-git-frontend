@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
 import { PLANS, normalizeCustomPlan } from '../../services/deployService';
+import { resolvePlanFromImport } from '../../services/repoConfigImportService';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
 import Step3Config from '../../components/wizard/Step3Config';
@@ -170,6 +171,9 @@ export default function DeployWizard() {
     if (payload.pollingInterval) updates.pollingInterval = payload.pollingInterval;
     if (payload.runtime) updates.runtime = payload.runtime;
     if (payload.runtimeVersion) updates.runtimeVersion = payload.runtimeVersion;
+    if (payload.appName && !config.appName?.trim()) updates.appName = payload.appName;
+    if (payload.prPreviewEnabled != null) updates.prPreviewEnabled = Boolean(payload.prPreviewEnabled);
+    if (payload.database) updates.database = payload.database;
 
     if (payload.envVars?.length) {
       const COMMAND_KEYS = { BUILD_COMMAND: 'buildCommand', RUN_COMMAND: 'runCommand', INSTALL_COMMAND: 'installCommand' };
@@ -183,6 +187,9 @@ export default function DeployWizard() {
     }
 
     if (Object.keys(updates).length) setConfig(updates);
+
+    const importedPlan = resolvePlanFromImport(payload);
+    if (importedPlan) setPlan(importedPlan);
   }
 
   // ── Validation guards ───────────────────────────────────────────────────────
@@ -234,7 +241,7 @@ export default function DeployWizard() {
           {step === 1 && (
             <Step1Plan
               plan={plan}
-              onChange={(p) => { setPlan(p); if (p?.id !== 'custom') next(); }}
+              onChange={(p) => { setPlan(p); next(); }}
             />
           )}
           {step === 2 && (
@@ -287,7 +294,6 @@ export default function DeployWizard() {
               registration={state.registration}
               billingPeriod={config.billingPeriod}
               eligibleForFree={state.eligibleForFree}
-              onBack={back}
             />
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { MotionConfig } from 'framer-motion';
 import Navbar from '../components/landing/Navbar';
@@ -14,8 +14,19 @@ import CTASection from '../components/landing/CTASection';
 import MobileStickyCTA from '../components/landing/MobileStickyCTA';
 import Footer from '../components/landing/Footer';
 
+const DEPLOY_LINK_PARAMS = ['repo', 'repolink', 'repository'];
+
 export default function Home() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Deep links like /?repo=...&plan=custom → /deploy (auth gateway → wizard)
+  useEffect(() => {
+    const hasDeployLink = DEPLOY_LINK_PARAMS.some((key) => searchParams.get(key)?.trim());
+    if (hasDeployLink) {
+      navigate(`/deploy?${searchParams.toString()}`, { replace: true });
+    }
+  }, [navigate, searchParams]);
 
   // Landing page is always dark regardless of user's theme preference.
   // Restore the user's chosen theme when they leave.

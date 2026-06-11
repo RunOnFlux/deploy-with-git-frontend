@@ -129,6 +129,57 @@ export function buildMongoCompose({
 
 export const DB_MIN_INSTANCES = 3;
 
+/** Flux specs use MB; UI shows GB (÷1000) with sensible rounding. */
+export function formatRamMb(mb) {
+  if (mb == null) return '—';
+  if (mb < 1000) return `${mb} MB`;
+  const gb = Math.round((mb / 1000) * 10) / 10;
+  const text = Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
+  return `${text} GB`;
+}
+
+/** Map flux.deploy.schema database.type to wizard DB_TYPES id. */
+export function mapFluxDatabaseType(fluxType) {
+  if (!fluxType) return null;
+  const key = String(fluxType).toLowerCase().trim();
+  if (key === 'pg' || key === 'postgres' || key === 'postgresql') return 'postgres';
+  if (key === 'mongo' || key === 'mongodb') return 'mongodb';
+  return null;
+}
+
+/**
+ * Build wizard database config from flux.deploy.schema `database` block.
+ * Generates secrets and ports — never reuse credentials from repo files.
+ */
+export function databaseConfigFromFluxSchema(dbBlock, appPorts = []) {
+  if (!dbBlock || typeof dbBlock !== 'object') return null;
+
+  const type = mapFluxDatabaseType(dbBlock.type);
+  if (!type) return null;
+
+  const defaults = createDefaultDatabaseConfig(type);
+  const cpu = Number(dbBlock.cpu);
+  const ram = parseInt(String(dbBlock.ram ?? ''), 10);
+  const hdd = parseInt(String(dbBlock.hdd ?? ''), 10);
+
+  return {
+    enabled: true,
+    type,
+    componentName: defaults.componentName,
+    dbName: String(dbBlock.name || defaults.dbName).trim() || defaults.dbName,
+    password: generateSecret(20),
+    replicationPassword: type === 'postgres' ? generateSecret(20) : '',
+    sslPassphrase: type === 'postgres' ? generateSecret(16) : '',
+    keyfilePassphrase: type === 'mongodb' ? generateSecret(16) : '',
+    resources: {
+      cpu: Number.isFinite(cpu) && cpu > 0 ? cpu : defaults.resources.cpu,
+      ram: Number.isFinite(ram) && ram >= 128 ? ram : defaults.resources.ram,
+      hdd: Number.isFinite(hdd) && hdd >= 1 ? hdd : defaults.resources.hdd,
+    },
+    ports: generateDbPorts(type, appPorts),
+  };
+}
+
 export function getDatabaseConnectionString({ type, componentName, password, dbName }) {
   if (type === 'mongodb') {
     const encoded = encodeURIComponent(password);

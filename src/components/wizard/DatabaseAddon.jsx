@@ -7,15 +7,16 @@ import {
   generateDbPorts,
   generateSecret,
   getDatabaseConnectionString,
+  formatRamMb,
 } from '../../services/databaseSpec';
 import { normalizeCustomPlan } from '../../services/deployService';
 
-function ResourceSlider({ label, value, min, max, step, unit, onChange }) {
+function ResourceSlider({ label, value, valueLabel, min, max, step, unit, onChange }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-text-muted">{label}</span>
-        <span className="text-xs font-mono text-text">{value}{unit}</span>
+        <span className="text-xs font-mono text-text">{valueLabel ?? `${value}${unit}`}</span>
       </div>
       <input
         type="range"
@@ -188,6 +189,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
             <ResourceSlider
               label="RAM"
               value={database.resources.ram / 1000}
+              valueLabel={formatRamMb(database.resources.ram)}
               min={1}
               max={32}
               step={0.5}

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList } from 'lucide-react';
 import { maskGitUrl, GEO_OPTIONS, BILLING_PERIODS, normalizeCustomPlan } from '../../services/deployService';
-import { DB_MIN_INSTANCES } from '../../services/databaseSpec';
-import { DB_TYPES, getDatabaseConnectionString } from '../../services/databaseSpec';
+import { DB_MIN_INSTANCES, DB_TYPES, getDatabaseConnectionString, formatRamMb } from '../../services/databaseSpec';
 import { extractGitInfo } from '../../services/appsService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -189,7 +188,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <Row label="Component" value={config.database.componentName} mono />
           {config.database.type === 'postgres' && <Row label="Database" value={config.database.dbName} mono />}
           <Row label="CPU" value={`${config.database.resources?.cpu} vCPU`} />
-          <Row label="RAM" value={`${(config.database.resources?.ram ?? 0) / 1000} GB`} />
+          <Row label="RAM" value={formatRamMb(config.database.resources?.ram)} />
           <Row label="Storage" value={`${config.database.resources?.hdd} GB`} />
           <div className="flex gap-4 py-2 border-b border-border">
             <span className="text-xs text-text-muted w-36 shrink-0 pt-0.5">

@@ -3,6 +3,7 @@ import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronU
 import { BILLING_PERIODS, GEO_OPTIONS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
 import DatabaseAddon from './DatabaseAddon';
+import CustomPlanResources from './CustomPlanResources';
 
 const POLLING_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
@@ -431,6 +432,8 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           </div>
         )}
       </div>
+
+      <CustomPlanResources plan={plan} config={config} onPlanChange={onPlanChange} />
 
       <DatabaseAddon
         plan={plan}
