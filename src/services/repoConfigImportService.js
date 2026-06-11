@@ -211,6 +211,9 @@ export function parseFluxConfig(data) {
   const forbidden = data.forbiddenLocations || data.forbiddenGeolocations;
   if (Array.isArray(allowed)) payload.allowedGeolocations = allowed;
   if (Array.isArray(forbidden)) payload.forbiddenGeolocations = forbidden;
+  if (Array.isArray(data.geolocation) && data.geolocation.length) {
+    payload.geolocation = data.geolocation.filter(Boolean);
+  }
 
   const hasContent = Object.keys(payload).length > 0;
   return hasContent ? payload : null;

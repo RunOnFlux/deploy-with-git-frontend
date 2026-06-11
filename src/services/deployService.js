@@ -9,6 +9,9 @@ import {
   getDatabaseEnvVar,
 } from './databaseSpec';
 import { getRuntimeConfig } from '../config/runtimeConfig.js';
+import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
+
+export { GEO_OPTIONS };
 
 // ─── Plans ──────────────────────────────────────────────────────────────────
 export const PLANS = [
@@ -175,16 +178,6 @@ export function usesStripeSubscription(period) {
   const months = period.blocks / BLOCKS_PER_MONTH;
   return months > 1 && Number.isInteger(months);
 }
-
-// ─── Geolocation options ─────────────────────────────────────────────────────
-export const GEO_OPTIONS = [
-  { code: 'EU', label: 'Europe' },
-  { code: 'NA', label: 'North America' },
-  { code: 'AS', label: 'Asia' },
-  { code: 'OC', label: 'Oceania' },
-  { code: 'SA', label: 'South America' },
-  { code: 'AF', label: 'Africa' },
-];
 
 // ─── Port generation ─────────────────────────────────────────────────────────
 const BANNED_PORTS = new Set([
@@ -386,10 +379,8 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
     }
   }
 
-  // Geolocation: array of "a=XX" / "f=XX" strings
-  const geoArray = geolocation
-    .filter((g) => g.code)
-    .map((g) => `${g.type === 'forbidden' ? 'f' : 'a'}=${g.code}`);
+  // Geolocation: Flux format acEU / a!cNA
+  const geoArray = buildGeoSpec(geolocation);
 
   const expireBlocks = calcExpire(billingPeriod?.months ?? 1);
 

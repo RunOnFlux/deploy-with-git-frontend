@@ -5,6 +5,7 @@ import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import StatusBadge from '../dashboard/StatusBadge';
 import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 import { fetchCurrentBlock } from '../../services/appsService';
+import { formatGeoSpecArray } from '../../services/geolocationSpec';
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -230,12 +231,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
 
   const ram = compose.ram >= 1000 ? `${(compose.ram / 1000).toFixed(1)} GB` : `${compose.ram} MB`;
 
-  const regionLabel = (() => {
-    const allowed = (spec.geolocation ?? [])
-      .filter((g) => g.startsWith('a='))
-      .map((g) => g.slice(2).toUpperCase());
-    return allowed.length ? allowed.join(', ') : 'Worldwide';
-  })();
+  const regionLabel = formatGeoSpecArray(spec.geolocation ?? []);
 
   return (
     <div className="card">

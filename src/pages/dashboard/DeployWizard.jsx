@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
 import { PLANS, normalizeCustomPlan } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
+import { geolocationFromImport } from '../../services/geolocationSpec';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
 import Step3Config from '../../components/wizard/Step3Config';
@@ -174,6 +175,9 @@ export default function DeployWizard() {
     if (payload.appName && !config.appName?.trim()) updates.appName = payload.appName;
     if (payload.prPreviewEnabled != null) updates.prPreviewEnabled = Boolean(payload.prPreviewEnabled);
     if (payload.database) updates.database = payload.database;
+
+    const importedGeo = geolocationFromImport(payload);
+    if (importedGeo.length) updates.geolocation = importedGeo;
 
     if (payload.envVars?.length) {
       const COMMAND_KEYS = { BUILD_COMMAND: 'buildCommand', RUN_COMMAND: 'runCommand', INSTALL_COMMAND: 'installCommand' };
