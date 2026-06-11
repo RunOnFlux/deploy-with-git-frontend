@@ -25,7 +25,9 @@ RUN apt-get update \
     fonts-liberation \
   && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# App code lives outside containerData — Flux mounts persistence over that path
+# and would hide server.js/dist if they shared the same directory.
+WORKDIR /opt/orbit-ui
 
 ENV NODE_ENV=production \
     PORT=4000 \
@@ -34,11 +36,13 @@ ENV NODE_ENV=production \
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY server.js ./
+COPY server.js docker-entrypoint.sh ./
 COPY config ./config
 COPY --from=builder /app/dist ./dist
 
-RUN chown -R node:node /app
+RUN chmod +x docker-entrypoint.sh \
+  && mkdir -p /data \
+  && chown -R node:node /opt/orbit-ui /data
 
 USER node
 
@@ -47,4 +51,5 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 4000) + '/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
