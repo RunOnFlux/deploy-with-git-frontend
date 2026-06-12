@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal, Clock } from 'lucide-react';
 import { BILLING_PERIODS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
 import DatabaseAddon from './DatabaseAddon';
-import CustomPlanResources from './CustomPlanResources';
+import CustomPlanResources, { PlanResourceSummary } from './CustomPlanResources';
 import GeoSelector from '../common/GeoSelector';
+import BuildSettingsCard from './BuildSettingsCard';
 
 const POLLING_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
@@ -13,17 +14,6 @@ const POLLING_OPTIONS = [
   { value: '21600', label: '6 hours' },
   { value: '43200', label: '12 hours' },
   { value: '86400', label: '24 hours (default)' },
-];
-
-const RUNTIMES = [
-  { value: 'node', label: 'Node.js' },
-  { value: 'python', label: 'Python' },
-  { value: 'go', label: 'Go' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'java', label: 'Java' },
-  { value: 'php', label: 'PHP' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'dotnet', label: '.NET' },
 ];
 
 // Orbit-reserved env keys — users cannot set these manually
@@ -202,6 +192,89 @@ function EnvVarRow({ envVar, onChange, onRemove }) {
 }
 
 
+function ConfigSection({ title, description, children }) {
+  return (
+    <section className="mb-8 last:mb-0">
+      <h3 className="text-sm font-semibold text-text">{title}</h3>
+      {description && <p className="text-xs text-text-muted mt-0.5 mb-4">{description}</p>}
+      {!description && <div className="mb-4" />}
+      {children}
+    </section>
+  );
+}
+
+function EnterpriseModeBlock({ enterprise, isEnterpriseForced, onToggle }) {
+  if (isEnterpriseForced) {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+        <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-text">Enterprise mode — required</p>
+          <p className="text-xs text-text-secondary mt-0.5">
+            Private repositories require encrypted specs on ArcaneOS nodes. Environment variables are end-to-end encrypted.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+      <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-text">Enterprise mode</p>
+          <button
+            type="button"
+            onClick={() => onToggle(!enterprise)}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+              enterprise ? 'bg-primary' : 'bg-border'
+            }`}
+            role="switch"
+            aria-checked={enterprise}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${enterprise ? 'translate-x-4' : 'translate-x-0'}`} />
+          </button>
+        </div>
+        <p className="text-xs text-text-secondary mt-0.5">
+          Encrypt app specifications and run exclusively on ArcaneOS nodes. Required for storing secrets in environment variables.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, configured, children }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface/40 overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface-hover/40 transition-colors"
+      >
+        <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-text">{title}</p>
+            {configured && <span className="text-xs text-primary">configured</span>}
+          </div>
+          {description && <p className="text-xs text-text-muted mt-0.5">{description}</p>}
+        </div>
+        {expanded
+          ? <ChevronUp className="w-4 h-4 text-text-muted shrink-0 mt-1" />
+          : <ChevronDown className="w-4 h-4 text-text-muted shrink-0 mt-1" />}
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4 pt-0 border-t border-border/40">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function Step3Config({ plan, config, onChange, onPlanChange, portAutoDetected, isEnterpriseForced, appPorts }) {
   const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
           contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
@@ -209,7 +282,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           prPreviewEnabled, enterprise } = config;
   const [nameState, setNameState] = useState('idle');
   const [nameError, setNameError] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPreviewBuilds, setShowPreviewBuilds] = useState(false);
   const debounceRef = useRef(null);
 
   // Debounced name availability check
@@ -231,11 +304,9 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
     return () => clearTimeout(debounceRef.current);
   }, [appName]);
 
-  // Auto-open advanced if any advanced fields are set (e.g. from deep-link prefill)
+  // Auto-open preview section if enabled (e.g. from flux.json import)
   useEffect(() => {
-    if (pollingInterval && pollingInterval !== '86400') setShowAdvanced(true);
-    if (runtime) setShowAdvanced(true);
-    if (buildCommand || runCommand || installCommand || webhookSecret || apiKey || prPreviewEnabled) setShowAdvanced(true);
+    if (prPreviewEnabled) setShowPreviewBuilds(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field, value) {
@@ -286,174 +357,165 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         <h2 className="font-heading text-xl font-bold text-text">Configure</h2>
       </div>
       <p className="text-sm text-text-secondary mb-6">
-        Set your app name, port, and deployment settings.
+        Name your app, configure containers, and set deployment options.
       </p>
 
-      {/* App name */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-text mb-1">
-          App name <span className="text-red-400">*</span>
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="my-app"
-            value={appName}
-            onChange={(e) => update('appName', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-            className={`input-base w-full pr-9 ${
-              nameState === 'taken' || nameState === 'invalid'
-                ? 'border-red-500/50 focus:ring-red-500'
-                : nameState === 'available' ? 'border-green-500/50' : ''
-            }`}
-            maxLength={32}
-          />
-          {nameStatusIcon && <div className="absolute right-3 top-1/2 -translate-y-1/2">{nameStatusIcon}</div>}
-        </div>
-        {nameError ? (
-          <p className="text-xs text-red-400 mt-1">{nameError}</p>
-        ) : nameState === 'available' ? (
-          <p className="text-xs text-green-400 mt-1">✓ Name is available</p>
-        ) : (
-          <p className="text-xs text-text-muted mt-1">
-            3–32 chars, lowercase letters, numbers and hyphens. Globally unique on Flux.
-          </p>
-        )}
-      </div>
-
-      {/* App port */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-text mb-1">
-          App port <span className="text-red-400">*</span>
-        </label>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            min="1" max="65535"
-            placeholder="3000"
-            value={port}
-            onChange={(e) => onChange({ ...config, port: e.target.value, portTouched: true })}
-            className="input-base w-36"
-          />
-          {portAutoDetected && !portTouched && (
-            <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
-              <Zap className="w-3.5 h-3.5" /> Auto-detected
-            </span>
+      {/* ── App details ── */}
+      <ConfigSection title="App details" description="Basic identity and how users reach your app.">
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-1">
+            App name <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="my-app"
+              value={appName}
+              onChange={(e) => update('appName', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              className={`input-base w-full pr-9 ${
+                nameState === 'taken' || nameState === 'invalid'
+                  ? 'border-red-500/50 focus:ring-red-500'
+                  : nameState === 'available' ? 'border-green-500/50' : ''
+              }`}
+              maxLength={32}
+            />
+            {nameStatusIcon && <div className="absolute right-3 top-1/2 -translate-y-1/2">{nameStatusIcon}</div>}
+          </div>
+          {nameError ? (
+            <p className="text-xs text-red-400 mt-1">{nameError}</p>
+          ) : nameState === 'available' ? (
+            <p className="text-xs text-green-400 mt-1">✓ Name is available</p>
+          ) : (
+            <p className="text-xs text-text-muted mt-1">
+              3–32 chars, lowercase letters, numbers and hyphens. Globally unique on Flux.
+            </p>
           )}
         </div>
-        <p className="text-xs text-text-muted mt-1">
-          The port your app listens on inside the container (e.g. 3000, 8080, 5000).
-        </p>
-      </div>
 
-      {/* Contact email */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-text mb-1">
-          Contact email <span className="text-red-400">*</span>
-        </label>
-        <input
-          type="email"
-          placeholder="you@example.com"
-          value={contactEmail}
-          onChange={(e) => update('contactEmail', e.target.value)}
-          className="input-base w-full"
-        />
-        <p className="text-xs text-text-muted mt-1">Used for deployment notifications.</p>
-      </div>
-
-      {/* Enterprise mode */}
-      <div className="mb-5">
-        {isEnterpriseForced ? (
-          <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-            <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-text">Enterprise mode — required</p>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Encrypt app specifications and run exclusively on ArcaneOS nodes for enhanced security and privacy.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-            <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-text">Enterprise mode</p>
-                <button
-                  type="button"
-                  onClick={() => update('enterprise', !enterprise)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                    enterprise ? 'bg-primary' : 'bg-border'
-                  }`}
-                  role="switch"
-                  aria-checked={enterprise}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${enterprise ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Encrypt app specifications and run exclusively on ArcaneOS nodes for enhanced security and privacy.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <CustomPlanResources plan={plan} config={config} onPlanChange={onPlanChange} />
-
-      <DatabaseAddon
-        plan={plan}
-        config={config}
-        appName={appName}
-        appPorts={appPorts}
-        onChange={onChange}
-        onPlanChange={onPlanChange}
-      />
-
-      {/* Billing period */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-text mb-2">Billing period</label>
-        <div className="flex flex-wrap gap-2">
-          {BILLING_PERIODS.map((bp) => (
-            <button key={bp.months} type="button" onClick={() => update('billingPeriod', bp)}
-              className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                billingPeriod?.months === bp.months
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
-              }`}>
-              {bp.label}
-              {bp.discount > 0 && <span className="ml-1.5 text-xs text-green-400">–{bp.discount}%</span>}
-            </button>
-          ))}
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-1">
+            Contact email <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="email"
+            placeholder="you@example.com"
+            value={contactEmail}
+            onChange={(e) => update('contactEmail', e.target.value)}
+            className="input-base w-full"
+          />
+          <p className="text-xs text-text-muted mt-1">Used for deployment notifications.</p>
         </div>
-      </div>
 
-      {/* Geolocation */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
-          <Globe className="w-3.5 h-3.5" /> Geolocation <span className="text-text-muted font-normal">(optional)</span>
-        </label>
-        <p className="text-xs text-text-muted mb-2">Select regions to allow (✓) or forbid (✗) for your deployment.</p>
-        <GeoSelector selected={geolocation} onChange={(v) => update('geolocation', v)} />
-      </div>
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-1">
+            Custom domain <span className="text-text-muted font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            placeholder="myapp.example.com"
+            value={customDomain}
+            onChange={(e) => update('customDomain', e.target.value)}
+            className="input-base w-full"
+          />
+          <p className="text-xs text-text-muted mt-1">
+            Default URL: <code className="font-mono">{appName ? `${appName}.app.runonflux.io` : '{appName}.app.runonflux.io'}</code>
+          </p>
+        </div>
 
-      {/* Custom domain */}
-      <div className="mb-5">
-        <label className="block text-sm font-medium text-text mb-1">
-          Custom domain <span className="text-text-muted font-normal">(optional)</span>
-        </label>
-        <input
-          type="text"
-          placeholder="myapp.example.com"
-          value={customDomain}
-          onChange={(e) => update('customDomain', e.target.value)}
-          className="input-base w-full"
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">
+            App port <span className="text-red-400">*</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="1" max="65535"
+              placeholder="3000"
+              value={port}
+              onChange={(e) => onChange({ ...config, port: e.target.value, portTouched: true })}
+              className="input-base w-36"
+            />
+            {portAutoDetected && !portTouched && (
+              <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
+                <Zap className="w-3.5 h-3.5" /> Auto-detected
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-text-muted mt-1">
+            The port your app listens on inside the container (e.g. 3000, 8080, 5000).
+          </p>
+        </div>
+      </ConfigSection>
+
+      {/* ── Containers ── */}
+      <ConfigSection title="Containers" description="Application and optional database resources.">
+        <PlanResourceSummary plan={plan} />
+        <CustomPlanResources plan={plan} config={config} onPlanChange={onPlanChange} />
+        <BuildSettingsCard config={config} onChange={onChange} />
+        <DatabaseAddon
+          plan={plan}
+          config={config}
+          appName={appName}
+          appPorts={appPorts}
+          onChange={onChange}
+          onPlanChange={onPlanChange}
         />
-        <p className="text-xs text-text-muted mt-1">
-          Your app will be accessible at <code className="font-mono">{'{appName}'}.app.runonflux.io</code> by default.
-        </p>
-      </div>
+      </ConfigSection>
 
-      {/* Environment variables */}
+      {/* ── Deployment options ── */}
+      <ConfigSection title="Deployment options" description="Where and how long your app runs.">
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5" /> Geolocation <span className="text-text-muted font-normal">(optional)</span>
+          </label>
+          <p className="text-xs text-text-muted mb-2">Select regions to allow (✓) or forbid (✗). Leave empty for global deployment.</p>
+          <GeoSelector selected={geolocation} onChange={(v) => update('geolocation', v)} />
+        </div>
+
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-2">Billing period</label>
+          <div className="flex flex-wrap gap-2">
+            {BILLING_PERIODS.map((bp) => (
+              <button key={bp.months} type="button" onClick={() => update('billingPeriod', bp)}
+                className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                  billingPeriod?.months === bp.months
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
+                }`}>
+                {bp.label}
+                {bp.discount > 0 && <span className="ml-1.5 text-xs text-green-400">–{bp.discount}%</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> Auto-redeploy interval
+          </label>
+          <select
+            value={pollingInterval}
+            onChange={(e) => update('pollingInterval', e.target.value)}
+            className="input-base w-48"
+          >
+            {POLLING_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-text-muted mt-1">
+            How often Orbit checks for new commits and redeploys automatically.
+          </p>
+        </div>
+
+        <EnterpriseModeBlock
+          enterprise={enterprise}
+          isEnterpriseForced={isEnterpriseForced}
+          onToggle={(v) => update('enterprise', v)}
+        />
+      </ConfigSection>
+
+      {/* ── Environment ── */}
+      <ConfigSection title="Environment" description="Variables, secrets, and optional preview settings.">
       <div className="mb-5">
         <label className="block text-sm font-medium text-text mb-3">Environment variables</label>
 
@@ -492,168 +554,74 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         </button>
       </div>
 
-      {/* Advanced options toggle */}
-      <button
-        type="button"
-        onClick={() => setShowAdvanced((v) => !v)}
-        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text transition-colors w-full mb-3"
-      >
-        {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        Advanced options
-        {(runtime || (pollingInterval && pollingInterval !== '86400') || buildCommand || runCommand || installCommand || webhookSecret || apiKey || prPreviewEnabled) && (
-          <span className="ml-auto text-xs text-primary">configured</span>
-        )}
-      </button>
-
-      {showAdvanced && (
-        <div className="border border-border rounded-xl p-4 space-y-5 mb-2 bg-surface/40">
-
-          {/* Polling interval */}
+      <div className="mb-5">
+        <label className="block text-sm font-medium text-text mb-1">Security</label>
+        <p className="text-xs text-text-muted mb-3">
+          Setting either field automatically enables{' '}
+          <span className="text-orange-400 font-medium">Enterprise mode</span> to keep secrets encrypted.
+        </p>
+        <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-text mb-1">
-              Auto-redeploy interval
-            </label>
-            <select
-              value={pollingInterval}
-              onChange={(e) => update('pollingInterval', e.target.value)}
-              className="input-base w-48"
-            >
-              {POLLING_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <p className="text-xs text-text-muted mt-1">
-              How often Orbit checks for new commits and redeploys automatically.
-            </p>
+            <label className="block text-xs text-text-secondary mb-1">Webhook secret</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={webhookSecret ?? ''}
+              onChange={(e) => updateSecret('webhookSecret', e.target.value)}
+              className="input-base w-full font-mono text-sm"
+              autoComplete="new-password"
+            />
+            <p className="text-xs text-text-muted mt-1">Secret for webhook deployments.</p>
           </div>
-
-          {/* Runtime selector */}
           <div>
-            <label className="block text-sm font-medium text-text mb-1">
-              Runtime override <span className="text-text-muted font-normal">(optional)</span>
-            </label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {RUNTIMES.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => update('runtime', runtime === r.value ? '' : r.value)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    runtime === r.value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            {runtime && (
-              <div className="mt-2">
-                <label className="block text-xs font-medium text-text mb-1">
-                  Version <span className="text-text-muted font-normal">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder={runtime === 'node' ? '20' : runtime === 'python' ? '3.11' : 'latest'}
-                  value={runtimeVersion}
-                  onChange={(e) => update('runtimeVersion', e.target.value)}
-                  className="input-base w-32 text-sm"
-                />
-              </div>
-            )}
-            <p className="text-xs text-text-muted mt-1">
-              Override the runtime Orbit uses to build and run your app.
-            </p>
-          </div>
-
-          {/* Build commands */}
-          <div>
-            <label className="block text-sm font-medium text-text mb-3">Build commands <span className="text-text-muted font-normal">(optional)</span></label>
-            <div className="space-y-2">
-              {[
-                { field: 'installCommand', label: 'Install', placeholder: 'npm install' },
-                { field: 'buildCommand',   label: 'Build',   placeholder: 'npm run build' },
-                { field: 'runCommand',     label: 'Start',   placeholder: 'node server.js' },
-              ].map(({ field, label, placeholder }) => (
-                <div key={field} className="flex items-center gap-3">
-                  <span className="text-xs text-text-muted w-12 shrink-0 text-right">{label}</span>
-                  <input
-                    type="text"
-                    placeholder={placeholder}
-                    value={config[field] ?? ''}
-                    onChange={(e) => update(field, e.target.value)}
-                    className="input-base flex-1 font-mono text-sm"
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-text-muted mt-2">Leave blank to use Orbit's auto-detected defaults.</p>
-          </div>
-
-          {/* Security secrets */}
-          <div>
-            <label className="block text-sm font-medium text-text mb-1">Security</label>
-            <p className="text-xs text-text-muted mb-3">
-              Setting either field automatically enables{' '}
-              <span className="text-orange-400 font-medium">Enterprise mode</span> to keep secrets encrypted.
-            </p>
-            <div className="space-y-2">
-              <div>
-                <label className="block text-xs text-text-secondary mb-1">Webhook secret</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={webhookSecret ?? ''}
-                  onChange={(e) => updateSecret('webhookSecret', e.target.value)}
-                  className="input-base w-full font-mono text-sm"
-                  autoComplete="new-password"
-                />
-                <p className="text-xs text-text-muted mt-1">Secret for webhook deployments.</p>
-              </div>
-              <div>
-                <label className="block text-xs text-text-secondary mb-1">API key</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={apiKey ?? ''}
-                  onChange={(e) => updateSecret('apiKey', e.target.value)}
-                  className="input-base w-full font-mono text-sm"
-                  autoComplete="new-password"
-                />
-                <p className="text-xs text-text-muted mt-1">Protects status, logs, and preview endpoints.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* PR preview */}
-          <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-            <span className="mt-0.5 text-text-muted"><GitPullRequest className="w-5 h-5" /></span>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-text">PR preview builds</p>
-                  <span className="text-xs text-text-muted bg-surface-hover border border-border rounded px-1.5 py-0.5">Static sites only</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => update('prPreviewEnabled', !prPreviewEnabled)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                    prPreviewEnabled ? 'bg-primary' : 'bg-border'
-                  }`}
-                  role="switch"
-                  aria-checked={!!prPreviewEnabled}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${prPreviewEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <p className="text-xs text-text-secondary mt-1.5">
-                Automatically build and deploy a preview for each pull request.
-              </p>
-            </div>
+            <label className="block text-xs text-text-secondary mb-1">API key</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={apiKey ?? ''}
+              onChange={(e) => updateSecret('apiKey', e.target.value)}
+              className="input-base w-full font-mono text-sm"
+              autoComplete="new-password"
+            />
+            <p className="text-xs text-text-muted mt-1">Protects status, logs, and preview endpoints.</p>
           </div>
         </div>
-      )}
+      </div>
+
+      <CollapsibleCard
+        title="Preview builds"
+        description="Deploy a preview for each pull request. Static sites only."
+        icon={GitPullRequest}
+        expanded={showPreviewBuilds}
+        onToggle={() => setShowPreviewBuilds((v) => !v)}
+        configured={!!prPreviewEnabled}
+      >
+        <div className="pt-4 flex items-start gap-3">
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-text">PR preview builds</p>
+                <span className="text-xs text-text-muted bg-surface-hover border border-border rounded px-1.5 py-0.5">Static sites only</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => update('prPreviewEnabled', !prPreviewEnabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  prPreviewEnabled ? 'bg-primary' : 'bg-border'
+                }`}
+                role="switch"
+                aria-checked={!!prPreviewEnabled}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ${prPreviewEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+            <p className="text-xs text-text-secondary mt-1.5">
+              Automatically build and deploy a preview for each pull request.
+            </p>
+          </div>
+        </div>
+      </CollapsibleCard>
+      </ConfigSection>
 
     </div>
   );

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Database, Copy, Check, RefreshCw } from 'lucide-react';
+import { Database, Copy, Check, RefreshCw, Info } from 'lucide-react';
 import {
   DB_TYPES,
   DB_MIN_INSTANCES,
@@ -10,26 +10,7 @@ import {
   formatRamMb,
 } from '../../services/databaseSpec';
 import { normalizeCustomPlan } from '../../services/deployService';
-
-function ResourceSlider({ label, value, valueLabel, min, max, step, unit, onChange }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-text-muted">{label}</span>
-        <span className="text-xs font-mono text-text">{valueLabel ?? `${value}${unit}`}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full accent-primary"
-      />
-    </div>
-  );
-}
+import ResourceSlider from './ResourceSlider';
 
 export default function DatabaseAddon({ plan, config, appName, appPorts, onChange, onPlanChange }) {
   const database = config.database ?? createDefaultDatabaseConfig();
@@ -127,12 +108,15 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
 
       {database.enabled && (
         <div className="space-y-4 pt-2 border-t border-border/40">
-          <p className="text-xs text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-            Database clusters require at least {DB_MIN_INSTANCES} instances.
-            {plan?.instances < DB_MIN_INSTANCES
-              ? ' Instances will be set to 3.'
-              : ` Current: ${plan.instances} instances.`}
-          </p>
+          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 light:text-amber-700 env-warning">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>
+              Database clusters require at least {DB_MIN_INSTANCES} instances.
+              {plan?.instances < DB_MIN_INSTANCES
+                ? ' Instances will be set to 3.'
+                : ` Current: ${plan.instances} instances.`}
+            </span>
+          </div>
           <div className="flex gap-2">
             {Object.values(DB_TYPES).map((db) => (
               <button
