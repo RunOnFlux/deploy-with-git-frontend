@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import AnalyticsTracker from './components/common/AnalyticsTracker';
+import AnalyticsConsentBanner from './components/common/AnalyticsConsentBanner';
 
 import LoadingSpinner from './components/common/LoadingSpinner';
 
@@ -102,6 +104,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <Router>
+              <AnalyticsTracker />
               <div className="min-h-screen bg-background text-text">
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
@@ -127,6 +130,7 @@ function App() {
 
                 <ToasterWithTheme />
               </div>
+              <AnalyticsConsentBanner />
             </Router>
           </AuthProvider>
         </QueryClientProvider>

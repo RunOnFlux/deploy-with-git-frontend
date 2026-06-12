@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 import { loadRuntimeConfig } from './config/runtimeConfig.js';
+import { initAnalytics } from './services/analytics.js';
 import { initFirebase } from './utils/firebase.js';
 
 function renderConfigError(message) {
@@ -28,6 +29,7 @@ function renderConfigError(message) {
 
 try {
   const config = await loadRuntimeConfig();
+  initAnalytics(config.analytics);
   initFirebase(config.firebase);
 
   const { default: App } = await import('./App.jsx');

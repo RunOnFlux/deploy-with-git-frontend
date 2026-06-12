@@ -115,9 +115,9 @@ Copy `.env.example` to `.env` and fill in the values:
 # App
 VITE_APP_URL=http://localhost:5173
 
-# Feature Flags
+# Feature Flags (runtime via GET /api/config — set as container env in production)
 VITE_ENABLE_ANALYTICS=false
-VITE_GA_MEASUREMENT_ID=
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
 # Payment Bridge (Stripe + Flux price calculation)
 VITE_PAYMENT_BRIDGE_URL=https://fiatpaymentsbridge.runonflux.io
@@ -146,9 +146,14 @@ SSO_SIGNING_SECRET=your_secret_here
 ```bash
 VITE_APP_URL=https://orbit.runonflux.io
 VITE_ENABLE_ANALYTICS=true
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 PORT=4000
 NODE_ENV=production
 ```
+
+Google Analytics is optional. When enabled, the server exposes both variables through `GET /api/config`; the client loads GA4 only after the user accepts the analytics consent banner. No frontend rebuild is required when changing these in a Docker/Flux container — restart the app process so `server.js` picks up new env values.
+
+> `VITE_GA_MEASUREMENT_ID` is for Google Analytics 4. `VITE_FIREBASE_MEASUREMENT_ID` (Firebase config) is separate and does not enable GA tracking on its own.
 
 ---
 
@@ -364,6 +369,8 @@ Flux spec environment variables to set:
 | `SSO_SIGNING_SECRET` | 32-byte hex secret for deterministic keypair derivation |
 | `VITE_PAYMENT_BRIDGE_URL` | Flux fiat payment bridge URL |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `VITE_ENABLE_ANALYTICS` | `true` or `1` to enable GA4 (requires measurement ID) |
+| `VITE_GA_MEASUREMENT_ID` | Google Analytics 4 measurement ID (e.g. `G-XXXXXXXXXX`) |
 
 ---
 
