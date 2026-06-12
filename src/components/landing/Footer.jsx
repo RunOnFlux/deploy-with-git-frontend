@@ -1,4 +1,5 @@
-
+import { useState } from 'react';
+import CookieSettingsDialog from '../common/CookieSettingsDialog';
 
 const links = [
   { label: 'Flux Network', href: 'https://runonflux.io', external: true },
@@ -9,6 +10,8 @@ const links = [
 ];
 
 export default function Footer() {
+  const [showCookieSettings, setShowCookieSettings] = useState(false);
+
   return (
     <footer className="border-t border-border py-10 px-6">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -30,8 +33,20 @@ export default function Footer() {
               {l.label}
             </a>
           ))}
+          <button
+            type="button"
+            onClick={() => setShowCookieSettings(true)}
+            className="text-sm text-text-muted hover:text-text transition-colors"
+          >
+            Cookie Settings
+          </button>
         </nav>
       </div>
+
+      <CookieSettingsDialog
+        isOpen={showCookieSettings}
+        onClose={() => setShowCookieSettings(false)}
+      />
     </footer>
   );
 }

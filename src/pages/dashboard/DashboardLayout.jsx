@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket } from 'lucide-react';
 import OrbitSpinner from '../../components/common/OrbitSpinner';
+import CookieSettingsDialog from '../../components/common/CookieSettingsDialog';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -128,6 +129,7 @@ export default function DashboardLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showCookieSettings, setShowCookieSettings] = useState(false);
 
   // (data-theme is managed globally by ThemeProvider in ThemeContext)
 
@@ -202,8 +204,27 @@ export default function DashboardLayout() {
         {/* Page content */}
         <main className="flex-1 overflow-auto">
           <Outlet />
+
+          {/* Footer */}
+          <footer className="border-t border-border px-6 py-4 mt-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-text-muted">
+              <span>© {new Date().getFullYear()} InFlux Technologies</span>
+              <button
+                type="button"
+                onClick={() => setShowCookieSettings(true)}
+                className="hover:text-text transition-colors"
+              >
+                Cookie Settings
+              </button>
+            </div>
+          </footer>
         </main>
       </div>
+
+      <CookieSettingsDialog
+        isOpen={showCookieSettings}
+        onClose={() => setShowCookieSettings(false)}
+      />
     </div>
   );
 }

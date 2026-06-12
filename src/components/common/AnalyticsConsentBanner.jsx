@@ -27,6 +27,7 @@ export default function AnalyticsConsentBanner() {
       <div className="max-w-3xl mx-auto pointer-events-auto rounded-xl border border-border bg-surface shadow-lg px-4 py-3 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <p className="text-xs sm:text-sm text-text-secondary flex-1">
           We use Google Analytics to understand how Orbit is used. Accept to enable anonymous usage statistics.
+          You can change this anytime via &ldquo;Cookie Settings&rdquo; in the footer.
         </p>
         <div className="flex items-center gap-2 shrink-0">
           <button type="button" onClick={decline} className="btn-secondary text-xs sm:text-sm px-3 py-1.5">
