@@ -266,10 +266,28 @@ let networkStatsCache = null; // { data, timestamp }
 function clusterNodeData(nodes) {
   const countries = {};
   const cities = {};
+  // Code-based breakdown for the deploy location picker (capacity filtering).
+  const geoContinents = {}; // code -> { code, name, nodeCount }
+  const geoCountries = {};  // `${continentCode}_${countryCode}` -> { continentCode, code, name, nodeCount }
   let total = 0;
 
   for (const node of nodes) {
     const g = node.geolocation || {};
+
+    // Count availability by continent/country code regardless of lat/lon
+    // (matches the FluxOS location picker, which uses projection=geo).
+    if (g.continentCode && g.countryCode) {
+      if (!geoContinents[g.continentCode]) {
+        geoContinents[g.continentCode] = { code: g.continentCode, name: g.continent || g.continentCode, nodeCount: 0 };
+      }
+      geoContinents[g.continentCode].nodeCount++;
+      const key = `${g.continentCode}_${g.countryCode}`;
+      if (!geoCountries[key]) {
+        geoCountries[key] = { continentCode: g.continentCode, code: g.countryCode, name: g.country || g.countryCode, nodeCount: 0 };
+      }
+      geoCountries[key].nodeCount++;
+    }
+
     const lat = parseFloat(g.lat);
     const lon = parseFloat(g.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) continue;
@@ -308,6 +326,10 @@ function clusterNodeData(nodes) {
     countryCount: countryList.length,
     countries: countryList,
     cityClusters: Object.values(cities),
+    geo: {
+      continents: Object.values(geoContinents).sort((a, b) => b.nodeCount - a.nodeCount),
+      countries: Object.values(geoCountries).sort((a, b) => b.nodeCount - a.nodeCount),
+    },
   };
 }
 

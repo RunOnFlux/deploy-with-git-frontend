@@ -545,7 +545,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             <p className="text-xs text-text-muted mb-3">
               Select regions to allow (✓) or forbid (✗). Leave blank for global deployment.
             </p>
-            <GeoSelector selected={geolocation} onChange={setGeolocation} disabled={isSaving} />
+            <GeoSelector selected={geolocation} onChange={setGeolocation} disabled={isSaving} instances={spec?.instances ?? 1} />
           </div>
         )}
 

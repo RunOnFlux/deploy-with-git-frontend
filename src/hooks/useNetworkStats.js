@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import { registerGeoLabels } from '../services/geolocationSpec';
 
 /**
- * Live Flux network totals for marketing copy, fetched once from the BFF
- * (`GET /api/network-stats`) and shared across every consumer via a
- * module-level cached promise — so the landing page makes a single request
- * no matter how many components show the node count.
+ * Live Flux network data from the BFF (`GET /api/network-stats`), fetched once
+ * and shared across every consumer via a module-level cached promise — so the
+ * landing page + deploy wizard make a single request no matter how many
+ * components read the node count or location availability.
  *
- * @returns {{ stats: { total: number, countryCount: number } | null, loading: boolean }}
+ * @returns {{ stats: { total: number, countryCount: number, geo?: object } | null, loading: boolean }}
  */
 
 let cachedPromise = null;
@@ -15,7 +16,10 @@ function loadNetworkStats() {
   if (!cachedPromise) {
     cachedPromise = fetch('/api/network-stats')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('stats unavailable'))))
-      .then((d) => ({ total: d.total, countryCount: d.countryCount }))
+      .then((d) => {
+        registerGeoLabels(d.geo); // teach geolocationSpec the code → name labels
+        return d;
+      })
       .catch((err) => {
         cachedPromise = null; // allow a retry on the next mount
         throw err;

@@ -10,6 +10,38 @@ export const GEO_OPTIONS = [
 
 const CONTINENT_CODES = new Set(GEO_OPTIONS.map((o) => o.code));
 
+/**
+ * Code → human label registry. Continents are seeded from GEO_OPTIONS; country
+ * names (e.g. 'EU_DE' → 'Germany') are filled in once the network-stats geo
+ * data loads via registerGeoLabels(). Lets formatGeoRows render country rows
+ * nicely even though the Flux spec only stores codes.
+ */
+const geoLabelMap = new Map(GEO_OPTIONS.map((o) => [o.code, o.label]));
+
+/** @param {{ continents?: Array, countries?: Array }} geo */
+export function registerGeoLabels(geo) {
+  if (!geo) return;
+  for (const c of geo.continents || []) {
+    if (c.code && c.name) geoLabelMap.set(c.code, c.name);
+  }
+  for (const c of geo.countries || []) {
+    if (c.continentCode && c.code && c.name) geoLabelMap.set(`${c.continentCode}_${c.code}`, c.name);
+  }
+}
+
+/** Resolve a geo code ('EU' or 'EU_DE') to a display label. */
+export function labelForGeoCode(code) {
+  if (!code) return '';
+  if (geoLabelMap.has(code)) return geoLabelMap.get(code);
+  // Unknown country code — show "Continent · CC" rather than the raw token.
+  if (code.includes('_')) {
+    const [cont, cc] = code.split('_');
+    const contLabel = geoLabelMap.get(cont) || cont;
+    return `${contLabel} · ${cc}`;
+  }
+  return code;
+}
+
 function parseGeoToken(token) {
   if (!token || typeof token !== 'string') return null;
   const trimmed = token.trim();
@@ -22,13 +54,15 @@ function parseGeoToken(token) {
     return code ? { code, type: trimmed[0] === 'f' ? 'forbidden' : 'allowed' } : null;
   }
 
+  // Flux geolocation: acEU (continent) or acEU_DE (continent_country). Preserve
+  // the full code so country-level targeting round-trips.
   if (trimmed.startsWith('a!c')) {
-    const code = trimmed.slice(3).split('_')[0];
+    const code = trimmed.slice(3);
     return code ? { code, type: 'forbidden' } : null;
   }
 
   if (trimmed.startsWith('ac')) {
-    const code = trimmed.slice(2).split('_')[0];
+    const code = trimmed.slice(2);
     return code ? { code, type: 'allowed' } : null;
   }
 
@@ -75,10 +109,7 @@ export function buildGeoSpec(rows = []) {
 export function formatGeoRows(rows = []) {
   if (!rows.length) return 'No restriction (global)';
   return rows
-    .map((g) => {
-      const label = GEO_OPTIONS.find((o) => o.code === g.code)?.label ?? g.code;
-      return `${g.type === 'forbidden' ? '✗ ' : '✓ '}${label}`;
-    })
+    .map((g) => `${g.type === 'forbidden' ? '✗ ' : '✓ '}${labelForGeoCode(g.code)}`)
     .join(', ');
 }
 

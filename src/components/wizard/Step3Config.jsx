@@ -469,7 +469,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
             <Globe className="w-3.5 h-3.5" /> Geolocation <span className="text-text-muted font-normal">(optional)</span>
           </label>
           <p className="text-xs text-text-muted mb-2">Select regions to allow (✓) or forbid (✗). Leave empty for global deployment.</p>
-          <GeoSelector selected={geolocation} onChange={(v) => update('geolocation', v)} />
+          <GeoSelector selected={geolocation} onChange={(v) => update('geolocation', v)} instances={plan?.instances ?? 1} />
         </div>
 
         <div className="mb-5">
