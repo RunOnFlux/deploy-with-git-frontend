@@ -3,6 +3,9 @@
 export const DEFAULT_APP_URL = 'https://orbit.runonflux.io';
 export const DEFAULT_PAYMENT_BRIDGE_URL = 'https://fiatpaymentsbridge.runonflux.io';
 
+/** GA4 property for the Orbit site. Overridable via VITE_GA_MEASUREMENT_ID. */
+export const DEFAULT_GA_MEASUREMENT_ID = 'G-TLJ33FR9XM';
+
 export const DEFAULT_FIREBASE = {
   apiKey: 'AIzaSyAtMsozWwJhhPIOd9BGkZxk5D6Wr8jVGVM',
   authDomain: 'fluxcore-prod.firebaseapp.com',

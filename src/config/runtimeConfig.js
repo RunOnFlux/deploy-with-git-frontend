@@ -2,6 +2,7 @@ import {
   DEFAULT_APP_URL,
   DEFAULT_PAYMENT_BRIDGE_URL,
   DEFAULT_FIREBASE,
+  DEFAULT_GA_MEASUREMENT_ID,
 } from '../../config/defaults.js';
 
 /**
@@ -39,8 +40,8 @@ function configFromImportMetaEnv() {
       measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || DEFAULT_FIREBASE.measurementId,
     },
     analytics: {
-      enabled: envFlag(import.meta.env.VITE_ENABLE_ANALYTICS, false),
-      measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID || '',
+      enabled: envFlag(import.meta.env.VITE_ENABLE_ANALYTICS, true),
+      measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID || DEFAULT_GA_MEASUREMENT_ID,
     },
   };
 }

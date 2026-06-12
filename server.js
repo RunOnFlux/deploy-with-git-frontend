@@ -18,6 +18,7 @@ import {
   DEFAULT_APP_URL,
   DEFAULT_PAYMENT_BRIDGE_URL,
   DEFAULT_FIREBASE,
+  DEFAULT_GA_MEASUREMENT_ID,
 } from './config/defaults.js';
 
 const require = createRequire(import.meta.url);
@@ -243,8 +244,8 @@ app.get('/api/config', (_req, res) => {
       measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || DEFAULT_FIREBASE.measurementId,
     },
     analytics: {
-      enabled: envFlag(process.env.VITE_ENABLE_ANALYTICS, false),
-      measurementId: process.env.VITE_GA_MEASUREMENT_ID || '',
+      enabled: envFlag(process.env.VITE_ENABLE_ANALYTICS, true),
+      measurementId: process.env.VITE_GA_MEASUREMENT_ID || DEFAULT_GA_MEASUREMENT_ID,
     },
   });
 });
