@@ -1,6 +1,6 @@
 /** Shared default values for public client config (safe to expose via /api/config). */
 
-export const DEFAULT_APP_URL = 'https://orbit.runonflux.io';
+export const DEFAULT_APP_URL = 'https://orbit.runonflux.com';
 export const DEFAULT_PAYMENT_BRIDGE_URL = 'https://fiatpaymentsbridge.runonflux.io';
 
 /** GA4 property for the Orbit site. Overridable via VITE_GA_MEASUREMENT_ID. */

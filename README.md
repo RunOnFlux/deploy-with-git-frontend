@@ -144,7 +144,7 @@ SSO_SIGNING_SECRET=your_secret_here
 ### Production Environment
 
 ```bash
-VITE_APP_URL=https://orbit.runonflux.io
+VITE_APP_URL=https://orbit.runonflux.com
 VITE_ENABLE_ANALYTICS=true
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 PORT=4000
