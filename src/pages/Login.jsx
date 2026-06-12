@@ -8,6 +8,7 @@ import SSPLoginButton from '../components/auth/SSPLoginButton';
 import DashboardPreview from '../components/landing/DashboardPreview';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import { useNetworkStats, formatNodeCount, formatCountryCount } from '../hooks/useNetworkStats';
 
 const TAB = { SIGNIN: 'signin', SIGNUP: 'signup' };
 
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { onWalletAuthSuccess, isAuthenticated, authLoading } = useAuth();
+  const { stats } = useNetworkStats();
 
   const redirectTo = searchParams.get('redirect') || '/dashboard';
 
@@ -296,7 +298,7 @@ export default function LoginPage() {
           <div className="flex items-start gap-6">
             {[
               { Icon: GitBranch,   title: 'Git-native deploys', desc: 'Push to deploy. Auto-rollback on failure.' },
-              { Icon: Globe,       title: '13,000+ nodes',      desc: '100+ countries, zero single point of failure.' },
+              { Icon: Globe,       title: `${formatNodeCount(stats)} nodes`, desc: `${formatCountryCount(stats)} countries, zero single point of failure.` },
               { Icon: ShieldCheck, title: 'You own it',         desc: 'No vendor lock-in, no platform risk.' },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="flex-1 flex items-start gap-2.5">

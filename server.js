@@ -250,6 +250,89 @@ app.get('/api/config', (_req, res) => {
 });
 
 /**
+ * GET /api/network-stats
+ * Public Flux network overview for the landing-page map.
+ *
+ * Fetches the full node list from stats.runonflux.io (~1.8 MB, ~7k nodes) and
+ * clusters it server-side into a compact ~50 KB payload (country + city
+ * clusters). Cached in-memory for 30 min so we don't refetch per visitor.
+ * Keeps the heavy fetch off the client and matches the BFF pattern (the
+ * browser never talks to Flux infra directly).
+ */
+const FLUX_STATS_URL = 'https://stats.runonflux.io/fluxinfo?projection=geolocation,tier';
+const NETWORK_STATS_TTL = 30 * 60 * 1000; // 30 min
+let networkStatsCache = null; // { data, timestamp }
+
+function clusterNodeData(nodes) {
+  const countries = {};
+  const cities = {};
+  let total = 0;
+
+  for (const node of nodes) {
+    const g = node.geolocation || {};
+    const lat = parseFloat(g.lat);
+    const lon = parseFloat(g.lon);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) continue;
+
+    const country = g.country || 'Unknown';
+    const countryCode = (g.countryCode || '').toLowerCase();
+    const region = g.regionName || '';
+
+    if (!countries[country]) {
+      countries[country] = { country, countryCode, lat, lon, count: 0 };
+    }
+    countries[country].count++;
+
+    // Group to a ~0.1° grid so nearby nodes form a single city dot.
+    const cityKey = `${country}_${Math.round(lat * 10) / 10}_${Math.round(lon * 10) / 10}`;
+    if (!cities[cityKey]) {
+      cities[cityKey] = {
+        lat: Math.round(lat * 1000) / 1000,
+        lon: Math.round(lon * 1000) / 1000,
+        count: 0,
+        country,
+        region,
+      };
+    }
+    cities[cityKey].count++;
+    total++;
+  }
+
+  // Round country centroids too; they're only used to place a marker.
+  const countryList = Object.values(countries)
+    .map((c) => ({ ...c, lat: Math.round(c.lat * 1000) / 1000, lon: Math.round(c.lon * 1000) / 1000 }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    total,
+    countryCount: countryList.length,
+    countries: countryList,
+    cityClusters: Object.values(cities),
+  };
+}
+
+app.get('/api/network-stats', async (_req, res) => {
+  const fresh = networkStatsCache && (Date.now() - networkStatsCache.timestamp) < NETWORK_STATS_TTL;
+  if (fresh) return res.json(networkStatsCache.data);
+
+  try {
+    const upstream = await fetch(FLUX_STATS_URL, { signal: AbortSignal.timeout(25_000) });
+    const json = await upstream.json();
+    if (json.status !== 'success' || !Array.isArray(json.data)) {
+      throw new Error('Unexpected stats response');
+    }
+    const data = clusterNodeData(json.data);
+    networkStatsCache = { data, timestamp: Date.now() };
+    res.json(data);
+  } catch (err) {
+    console.error('network-stats error:', err.message);
+    // Serve stale cache if we have any, otherwise signal failure.
+    if (networkStatsCache) return res.json(networkStatsCache.data);
+    res.status(502).json({ status: 'error', message: 'Could not load network stats' });
+  }
+});
+
+/**
  * Server-side SSO signing for Firebase/email users.
  *
  * Each Firebase user gets a deterministic Flux keypair derived from:

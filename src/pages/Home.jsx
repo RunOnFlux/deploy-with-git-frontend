@@ -8,6 +8,7 @@ import FrameworkLogosSection from '../components/landing/FrameworkLogosSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import ComparisonSection from '../components/landing/ComparisonSection';
+import GlobalNetworkSection from '../components/landing/GlobalNetworkSection';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import CTASection from '../components/landing/CTASection';
@@ -53,7 +54,7 @@ export default function Home() {
         <meta property="og:title" content="Orbit - Deploy to Flux with Git" />
         <meta
           property="og:description"
-          content="Push your code. Orbit builds and deploys to 10,000+ Flux nodes worldwide."
+          content="Push your code. Orbit builds and deploys to thousands of Flux nodes worldwide."
         />
       </Helmet>
 
@@ -65,6 +66,7 @@ export default function Home() {
           <HowItWorksSection />
           <FeaturesSection />
           <ComparisonSection />
+          <GlobalNetworkSection />
           <PricingSection onLoginSuccess={handleLoginSuccess} />
           <FAQSection />
           <CTASection onLoginSuccess={handleLoginSuccess} />

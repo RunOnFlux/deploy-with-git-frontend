@@ -26,6 +26,7 @@ import {
 } from '../../services/repoIntelligenceService';
 import DashboardPreview from './DashboardPreview';
 import { useAuth } from '../../context/AuthContext';
+import { useNetworkStats, formatNodeCount } from '../../hooks/useNetworkStats';
 
 const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
@@ -44,6 +45,7 @@ const PROVIDER_LABELS = {
 export default function HeroSection() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { stats } = useNetworkStats();
 
   const [repoUrl, setRepoUrl] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
@@ -350,7 +352,7 @@ export default function HeroSection() {
               transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="text-lg text-text-secondary/70 mb-10 leading-relaxed font-light max-w-xl"
             >
-              Paste your repository. Automatic framework detection, zero-config builds, and global deployment across 10,000+ Flux nodes.
+              Paste your repository. Automatic framework detection, zero-config builds, and global deployment across {formatNodeCount(stats)} Flux nodes.
             </motion.p>
 
             {/* Main card */}

@@ -6,7 +6,7 @@ import BokehBackground, { BOKEH_FAQ } from './BokehBackground';
 const faqs = [
   {
     q: 'What is Orbit?',
-    a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required.',
+    a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across thousands of nodes worldwide. No server management required.',
   },
   {
     q: 'How is my data kept secure?',

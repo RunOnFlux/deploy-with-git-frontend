@@ -21,7 +21,7 @@ const steps = [
     number: '3',
     title: 'Deploy worldwide',
     description:
-      'One click deploys to 10,000+ Flux nodes globally. Live URL in minutes.',
+      'One click deploys to thousands of Flux nodes globally. Live URL in minutes.',
   },
 ];
 

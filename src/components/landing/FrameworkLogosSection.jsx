@@ -49,19 +49,25 @@ const FRAMEWORKS = [
 const ITEMS = [...FRAMEWORKS, ...FRAMEWORKS];
 
 import { Globe, Layers, Gift, Infinity } from 'lucide-react';
+import { useNetworkStats, formatNodeCount } from '../../hooks/useNetworkStats';
 
 const STATS = [
-  { value: '10,000+', label: 'global nodes',  Icon: Globe     },
+  { key: 'nodes', value: '—', label: 'global nodes',  Icon: Globe     },
   { value: '100+',    label: 'frameworks',    Icon: Layers    },
   { value: 'Free',    label: 'forever tier',  Icon: Gift      },
   { value: 'Unlimited', label: 'builds forever', Icon: Infinity  },
 ];
 
 export default function FrameworkLogosSection() {
+  const { stats } = useNetworkStats();
+  const items = STATS.map((s) =>
+    s.key === 'nodes' ? { ...s, value: formatNodeCount(stats) } : s,
+  );
+
   return (
     <div className="border-b border-border/50 bg-surface/20">
       <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4">
-        {STATS.map((s, i) => (
+        {items.map((s, i) => (
           <div
             key={s.label}
             className="group relative flex flex-col items-center py-7 px-4 overflow-hidden
