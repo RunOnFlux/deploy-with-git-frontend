@@ -51,6 +51,18 @@ if (process.env.NODE_ENV === 'production') {
       },
     }),
   );
+
+  // Thin / app-only public routes render no unique content (auth gateways and a
+  // post-checkout redirect, all served from the same SPA shell). Mark them
+  // noindex so they don't get indexed as duplicates of the homepage. X-Robots-Tag
+  // is an HTTP header, so it works even for crawlers that don't run JS — unlike a
+  // client-injected <meta robots>. These are deliberately NOT in robots.txt
+  // Disallow: a disallowed URL is never fetched and so would never see this.
+  const NOINDEX_ROUTES = new Set(['/login', '/deploy', '/successcheckout']);
+  app.use((req, res, next) => {
+    if (NOINDEX_ROUTES.has(req.path)) res.setHeader('X-Robots-Tag', 'noindex');
+    next();
+  });
 }
 
 /**

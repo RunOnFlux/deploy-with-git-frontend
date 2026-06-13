@@ -43,16 +43,23 @@
       "@context": "https://schema.org",
       "@graph": [
         {
+          "@type": "Organization",
+          "@id": "__SITE_URL__/#organization",
+          "name": "Flux Labs",
+          "url": "https://runonflux.io",
+          "logo": "__SITE_URL__/orbit-logo.svg",
+          "sameAs": [
+            "https://github.com/runonflux",
+            "https://x.com/RunOnFlux"
+          ]
+        },
+        {
           "@type": "WebSite",
           "@id": "__SITE_URL__/#website",
           "name": "Orbit by Flux",
           "url": "__SITE_URL__/",
           "description": "Deploy any git repository to the Flux decentralized cloud. Auto-detect frameworks, global nodes, free tier available.",
-          "publisher": {
-            "@type": "Organization",
-            "name": "Flux Labs",
-            "url": "https://runonflux.io"
-          }
+          "publisher": { "@id": "__SITE_URL__/#organization" }
         },
         {
           "@type": "SoftwareApplication",
@@ -106,7 +113,7 @@
               "name": "What is Orbit?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required."
+                "text": "Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across thousands of nodes worldwide. No server management required."
               }
             },
             {
@@ -122,7 +129,7 @@
               "name": "What frameworks are supported?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Orbit supports 50+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files."
+                "text": "Orbit supports 100+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files."
               }
             },
             {
@@ -146,7 +153,7 @@
               "name": "Can I use a custom domain?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes. Developer and Pro plans support custom domains. Point your DNS to your Orbit deployment and SSL is handled automatically through the Flux reverse proxy network."
+                "text": "Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network."
               }
             }
           ]
@@ -252,13 +259,13 @@
           <h2>Common questions</h2>
           <dl>
             <dt>What is Orbit?</dt>
-            <dd>Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across 10,000+ nodes worldwide. No server management required.</dd>
+            <dd>Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across thousands of nodes worldwide. No server management required.</dd>
 
             <dt>How is my data kept secure?</dt>
             <dd>Enterprise apps run inside ArcaneOS, Flux's hardened execution environment, where all data is encrypted at rest. Your code, secrets, and persistent storage are fully isolated and encrypted, with no shared tenancy at the infrastructure level.</dd>
 
             <dt>What frameworks are supported?</dt>
-            <dd>Orbit supports 50+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.</dd>
+            <dd>Orbit supports 100+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.</dd>
 
             <dt>Is the free tier really free forever?</dt>
             <dd>Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances.</dd>
@@ -267,7 +274,7 @@
             <dd>Orbit deploys to the Flux decentralized network, meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in.</dd>
 
             <dt>Can I use a custom domain?</dt>
-            <dd>Yes. Developer and Pro plans support custom domains. Point your DNS to your Orbit deployment and SSL is handled automatically through the Flux reverse proxy network.</dd>
+            <dd>Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.</dd>
           </dl>
         </section>
       </main>
