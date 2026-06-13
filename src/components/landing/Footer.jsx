@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import CookieSettingsDialog from '../common/CookieSettingsDialog';
+import { version } from '../../../package.json';
+
+const YEAR = new Date().getFullYear();
 
 const links = [
   { label: 'Flux Network', href: 'https://runonflux.io', external: true },
@@ -42,6 +45,11 @@ export default function Footer() {
           </button>
         </nav>
       </div>
+
+      <p className="text-center text-sm text-text-muted mt-8">
+        © {YEAR} InFlux Technologies. All rights reserved.{' '}
+        <span className="text-text-muted/50">v{version}</span>
+      </p>
 
       <CookieSettingsDialog
         isOpen={showCookieSettings}

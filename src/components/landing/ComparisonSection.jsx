@@ -153,7 +153,7 @@ export default function ComparisonSection() {
         </motion.div>
 
         <p className="text-center text-text-secondary text-sm mt-5">
-          Prices as of 2025. Orbit Developer plan: dedicated resources, decentralised infrastructure.
+          Prices as of 2026. Orbit Developer plan: dedicated resources, decentralised infrastructure.
         </p>
       </div>
     </section>
