@@ -7,16 +7,29 @@ import { DEFAULT_APP_URL } from './config/defaults.js'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
+  // Canonical public origin for every static SEO asset (sitemap <loc>, og:image,
+  // og:url, canonical link, JSON-LD @id/url). It must point at the production
+  // domain regardless of where the build runs — NOT at VITE_APP_URL, which is the
+  // dev proxy target (= localhost in .env) and is undefined in the Docker build,
+  // so it would otherwise bake `http://localhost:4000` into every meta tag.
+  // Defaults to DEFAULT_APP_URL; override per-deployment with VITE_SITE_URL.
+  const siteUrl = (env.VITE_SITE_URL || DEFAULT_APP_URL).replace(/\/+$/, '')
+
+  // Replace the __SITE_URL__ token in index.html with the canonical origin. We use
+  // a custom token rather than Vite's %VITE_APP_URL% syntax precisely so it is
+  // immune to VITE_APP_URL: Vite never touches __SITE_URL__, so this is the single
+  // source of truth for the page's SEO origin.
+  const htmlSeoOrigin = {
+    name: 'html-seo-origin',
+    transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', siteUrl),
+  }
+
   return {
     plugins: [
       react(),
+      htmlSeoOrigin,
       sitemap({
-        // The sitemap is a public SEO asset: its <loc> URLs must always point to
-        // the canonical production origin, never the dev proxy target. Decoupled
-        // from VITE_APP_URL (= localhost in .env) so a plain `npm run build` — and
-        // the Docker build, which has no .env — still emits the prod hostname.
-        // Override per-deployment with VITE_SITEMAP_HOSTNAME if needed.
-        hostname: env.VITE_SITEMAP_HOSTNAME || DEFAULT_APP_URL,
+        hostname: siteUrl,
         exclude: [
           '/dashboard',
           '/dashboard/deployments',
