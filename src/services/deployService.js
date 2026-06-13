@@ -8,7 +8,6 @@ import {
   generateDbPorts,
   getDatabaseEnvVar,
 } from './databaseSpec';
-import { getRuntimeConfig } from '../config/runtimeConfig.js';
 import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
 
 export { GEO_OPTIONS };
@@ -598,32 +597,15 @@ export function buildDataToSign(verifiedSpec, timestamp, isUpdate = false) {
 export async function signWithSSO(dataToSign, firebaseUser) {
   const token = await firebaseUser.getIdToken();
 
-  // Read SSO provider from server config (cached after first call)
-  const { ssoProvider } = getRuntimeConfig();
-
-  if (ssoProvider === 'fluxcore') {
-    // FluxCore: service.fluxcore.ai/api/signMessage (requires fluxcore-prod Firebase project)
-    const resp = await fetch('/api/fluxcore/signMessage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: dataToSign }),
-    });
-    const json = await resp.json();
-    if (json.status !== 'success' || !json.signature) {
-      throw new Error(json.message || json.data || 'SSO signing failed');
-    }
-    return json.signature;
-  }
-
-  // Self-hosted: our server derives a deterministic keypair and signs
-  const resp = await fetch('/api/sso/sign', {
+  // FluxCore: service.fluxcore.ai/api/signMessage (requires fluxcore-prod Firebase project)
+  const resp = await fetch('/api/fluxcore/signMessage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ message: dataToSign }),
   });
   const json = await resp.json();
   if (json.status !== 'success' || !json.signature) {
-    throw new Error(json.message || 'SSO signing failed');
+    throw new Error(json.message || json.data || 'SSO signing failed');
   }
   return json.signature;
 }

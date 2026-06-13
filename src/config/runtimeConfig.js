@@ -7,7 +7,6 @@ import {
 
 /**
  * @typedef {Object} RuntimeConfig
- * @property {'self' | 'fluxcore'} ssoProvider
  * @property {string} appUrl
  * @property {string} paymentBridgeUrl
  * @property {typeof DEFAULT_FIREBASE} firebase
@@ -25,7 +24,6 @@ function envFlag(value, fallback = false) {
 /** Dev-only fallback when the BFF is not running. */
 function configFromImportMetaEnv() {
   return {
-    ssoProvider: 'fluxcore',
     appUrl: import.meta.env.VITE_APP_URL || DEFAULT_APP_URL,
     paymentBridgeUrl: import.meta.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
     firebase: {

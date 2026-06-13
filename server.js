@@ -12,7 +12,6 @@ import { createServer as createHttpServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import crypto from 'crypto';
-import { createRequire } from 'module';
 import puppeteer from 'puppeteer-core';
 import {
   DEFAULT_APP_URL,
@@ -20,13 +19,6 @@ import {
   DEFAULT_FIREBASE,
   DEFAULT_GA_MEASUREMENT_ID,
 } from './config/defaults.js';
-
-const require = createRequire(import.meta.url);
-const ecc = require('tiny-secp256k1');
-const bitcoin = require('bitcoinjs-lib');
-const bitcoinMessage = require('bitcoinjs-message');
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -195,7 +187,6 @@ function envFlag(value, fallback = false) {
  */
 app.get('/api/config', (_req, res) => {
   res.json({
-    ssoProvider: process.env.SSO_PROVIDER || 'fluxcore',
     appUrl: process.env.VITE_APP_URL || DEFAULT_APP_URL,
     paymentBridgeUrl: process.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
     firebase: {
@@ -316,132 +307,6 @@ app.get('/api/network-stats', async (_req, res) => {
     // Serve stale cache if we have any, otherwise signal failure.
     if (networkStatsCache) return res.json(networkStatsCache.data);
     res.status(502).json({ status: 'error', message: 'Could not load network stats' });
-  }
-});
-
-/**
- * Server-side SSO signing for Firebase/email users.
- *
- * Each Firebase user gets a deterministic Flux keypair derived from:
- *   HMAC-SHA256(SSO_SIGNING_SECRET, uid)
- * This means:
- *  - No key storage needed (deterministic from uid)
- *  - Same user always gets the same zelid across server restarts
- *  - Keep SSO_SIGNING_SECRET safe — changing it changes all zelids
- */
-
-// JWKS client for verifying Firebase ID tokens
-const firebaseJwksClient = jwksClient({
-  jwksUri: 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
-  cache: true,
-  cacheMaxAge: 3600000, // 1 hour
-});
-
-const FIREBASE_PROJECT_ID = process.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE.projectId;
-
-async function verifyFirebaseToken(idToken) {
-  return new Promise((resolve, reject) => {
-    const decoded = jwt.decode(idToken, { complete: true });
-    if (!decoded?.header?.kid) return reject(new Error('Invalid token format'));
-
-    firebaseJwksClient.getSigningKey(decoded.header.kid, (err, key) => {
-      if (err) return reject(new Error('Failed to fetch signing key'));
-      const pubKey = key.getPublicKey();
-      jwt.verify(
-        idToken,
-        pubKey,
-        {
-          algorithms: ['RS256'],
-          audience: FIREBASE_PROJECT_ID,
-          issuer: `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`,
-        },
-        (verifyErr, payload) => {
-          if (verifyErr) return reject(new Error(`Token verification failed: ${verifyErr.message}`));
-          resolve(payload);
-        },
-      );
-    });
-  });
-}
-
-function deriveFluxKeypair(uid) {
-  const secret = process.env.SSO_SIGNING_SECRET;
-  if (!secret) throw new Error('SSO_SIGNING_SECRET not configured');
-  if (!uid) throw new Error('uid is undefined — check Firebase token claims (uid vs user_id)');
-  const privateKey = crypto.createHmac('sha256', secret).update(uid).digest();
-  if (!ecc.isPrivate(privateKey)) throw new Error('Derived key is invalid');
-  const publicKey = Buffer.from(ecc.pointFromScalar(privateKey));
-  const { address } = bitcoin.payments.p2pkh({ pubkey: publicKey });
-  return { privateKey, address };
-}
-
-/**
- * POST /api/sso/zelid
- * Returns the deterministic Flux zelid for the authenticated Firebase user.
- * Used in authService so the zelid is set as app owner.
- */
-app.post('/api/sso/zelid', express.json(), async (req, res) => {
-  try {
-    const authHeader = req.headers['authorization'] || '';
-    const idToken = authHeader.replace(/^Bearer\s+/i, '');
-    if (!idToken) return res.status(401).json({ status: 'error', message: 'Missing token' });
-
-    const payload = await verifyFirebaseToken(idToken);
-    const uid = payload.uid || payload.user_id || payload.sub;
-    const { address } = deriveFluxKeypair(uid);
-    res.json({ status: 'success', zelid: address });
-  } catch (err) {
-    console.error('SSO zelid error:', err.message);
-    res.status(401).json({ status: 'error', message: err.message });
-  }
-});
-
-/**
- * POST /api/sso/sign
- * Signs an arbitrary message with the user's derived Flux keypair.
- * Body: { message: string }
- * Returns: { status: 'success', zelid, signature }
- */
-app.post('/api/sso/sign', express.json(), async (req, res) => {
-  try {
-    const authHeader = req.headers['authorization'] || '';
-    const idToken = authHeader.replace(/^Bearer\s+/i, '');
-    if (!idToken) return res.status(401).json({ status: 'error', message: 'Missing token' });
-
-    const { message } = req.body || {};
-    if (!message) return res.status(400).json({ status: 'error', message: 'Missing message' });
-
-    const payload = await verifyFirebaseToken(idToken);
-    const uid = payload.uid || payload.user_id || payload.sub;
-    const { privateKey, address } = deriveFluxKeypair(uid);
-
-    // bitcoinMessage.sign expects a Buffer/Uint8Array for the private key
-    // and the message as a string. Validate both before calling.
-    if (!Buffer.isBuffer(privateKey) && !(privateKey instanceof Uint8Array)) {
-      throw new Error('Derived private key is not a Buffer');
-    }
-    if (typeof message !== 'string') {
-      throw new Error(`message must be a string, got ${typeof message}`);
-    }
-
-    const keyBuf = Buffer.isBuffer(privateKey) ? privateKey : Buffer.from(privateKey);
-    // bitcoinjs-message passes extraEntropy directly to secp256k1 as { data: extraEntropy }.
-    // secp256k1 rejects undefined/null — must pass a real 32-byte Buffer or omit the option.
-    // We use a signer object so bitcoinjs-message never calls secp256k1.sign with options.
-    const secp256k1 = require('secp256k1');
-    const signer = {
-      sign: (hash) => {
-        const { signature, recovery } = secp256k1.sign(hash, keyBuf);
-        return { signature: Buffer.from(signature), recovery };
-      },
-    };
-    const sigBuf = bitcoinMessage.sign(message, signer, true);
-    const signature = sigBuf.toString('base64');
-
-    res.json({ status: 'success', zelid: address, signature });
-  } catch (err) {
-    console.error('SSO sign error:', err.message);
-    res.status(401).json({ status: 'error', message: err.message });
   }
 });
 

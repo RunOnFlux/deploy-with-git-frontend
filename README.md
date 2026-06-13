@@ -33,7 +33,7 @@ Deploy any Git repository to the **Flux Decentralized Cloud** in minutes. Orbit 
 - 🔁 **Redeploy** — trigger a git pull + rebuild on any node via HMAC-signed webhook
 - ⚡ **Hard Redeploy** — force a clean build from scratch
 - 🛑 **Node actions** — restart / start / stop / remove per Flux node
-- 📜 **Live logs** — streaming app & system logs via xterm.js terminal
+- 📜 **Live logs** — streaming app & system build logs (NDJSON)
 - 🌐 **Orbit status** — last commit, build status, deployed-at per node
 
 ### Billing & Support
@@ -119,11 +119,8 @@ VITE_APP_URL=http://localhost:5173
 VITE_ENABLE_ANALYTICS=false
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
-# Payment Bridge (Stripe + Flux price calculation)
+# Payment Bridge (Stripe checkout + Flux price calculation, via the hosted bridge)
 VITE_PAYMENT_BRIDGE_URL=https://fiatpaymentsbridge.runonflux.io
-
-# Stripe
-VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
 
 # Firebase (optional — defaults to the shared FluxOS project)
 VITE_FIREBASE_API_KEY=
@@ -132,13 +129,6 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-
-# SSO signing — 'self' (HMAC keypair) or 'fluxcore' (service.fluxcore.ai)
-SSO_PROVIDER=self
-
-# Required when SSO_PROVIDER=self. Generate with: openssl rand -hex 32
-# Never change this in production — it determines all user zelid addresses.
-SSO_SIGNING_SECRET=your_secret_here
 ```
 
 ### Production Environment
@@ -185,19 +175,11 @@ VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
 
 ### 4. SSO Signing
 
-Orbit derives a deterministic Flux keypair for every Firebase user so they can sign transactions without owning a wallet app:
-
-| `SSO_PROVIDER` | How it works |
-|---|---|
-| `self` | BFF signs with HMAC-SHA256 using `SSO_SIGNING_SECRET` |
-| `fluxcore` | Delegates to `service.fluxcore.ai` (requires official FluxOS Firebase project) |
-
-```bash
-# Generate a strong signing secret (do this once, never change it)
-openssl rand -hex 32
-```
-
-> ⚠️ Changing `SSO_SIGNING_SECRET` after launch will generate different zelid addresses for all existing users. Treat it like a database encryption key.
+Firebase users sign Flux transactions without owning a wallet app: the BFF
+forwards the user's Firebase ID token to `service.fluxcore.ai`, which signs the
+login phrase and app specs on their behalf. This requires the official FluxOS
+`fluxcore-prod` Firebase project (the default in `config/defaults.js`), so no
+signing secret or extra configuration is needed.
 
 ---
 
@@ -260,7 +242,6 @@ Browser  →  Vite dev proxy (dev)  →  BFF :3001
 | `POST` | `/api/flux/apps/registerapplication` | Register app on Flux |
 | `GET` | `/api/screenshot?url=` | Capture site screenshot via thum.io |
 | `POST` | `/api/orbit-deploy` | HMAC-signed redeploy webhook trigger |
-| `POST` | `/api/sso/sign` | Derive deterministic Flux keypair + sign |
 
 ---
 
@@ -306,12 +287,10 @@ The BFF signs the payload with the app's `WEBHOOK_SECRET` env var so each node v
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite, Tailwind CSS, Framer Motion |
-| State / Data | TanStack Query, Zustand |
+| State / Data | TanStack Query, React Context |
 | Backend | Node.js, Express |
-| Auth | Firebase Auth, SSP Wallet, ZelCore |
-| Payments | Stripe, ZelCore deep-link, SSP extension |
-| Crypto signing | bitcoinjs-lib, tiny-secp256k1 |
-| Terminal | xterm.js |
+| Auth | Firebase Auth (signing delegated to service.fluxcore.ai) |
+| Payments | Stripe (hosted Checkout via the Flux fiat bridge) |
 | Icons | Lucide React |
 | Notifications | react-hot-toast |
 
@@ -365,10 +344,7 @@ Flux spec environment variables to set:
 |---|---|
 | `PORT` | Server port (default `3001`, set to `4000` or any free port) |
 | `NODE_ENV` | `production` |
-| `SSO_PROVIDER` | `self` or `fluxcore` |
-| `SSO_SIGNING_SECRET` | 32-byte hex secret for deterministic keypair derivation |
 | `VITE_PAYMENT_BRIDGE_URL` | Flux fiat payment bridge URL |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `VITE_ENABLE_ANALYTICS` | `true` or `1` to enable GA4 (requires measurement ID) |
 | `VITE_GA_MEASUREMENT_ID` | Google Analytics 4 measurement ID (e.g. `G-XXXXXXXXXX`) |
 

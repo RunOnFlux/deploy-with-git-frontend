@@ -9,7 +9,6 @@ import {
   reloadUser,
 } from '../utils/firebase';
 import secureStorage from '../utils/secureStorage';
-import { getRuntimeConfig } from '../config/runtimeConfig.js';
 
 // zelidauth sessions are valid for 85 minutes (just under the 90min auto-logout)
 const ZELIDAUTH_TTL_MS = 85 * 60 * 1000;
@@ -132,37 +131,17 @@ class AuthService {
     const idToken = await firebaseUser.getIdToken();
     const { loginPhrase, stickyBackend } = await getLoginPhraseWithSticky();
 
-    let zelid, signature;
-
-    const { ssoProvider } = getRuntimeConfig();
-
-    if (ssoProvider === 'fluxcore') {
-      // FluxCore SSO: service.fluxcore.ai signs the loginPhrase on the user's behalf.
-      // Requires the Firebase project to be 'fluxcore-prod'.
-      const resp = await fetch('/api/fluxcore/signInOrUp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ message: loginPhrase }),
-      });
-      const data = await resp.json();
-      if (data?.status !== 'success') throw new Error(data?.message || 'FluxCore authentication failed');
-      zelid = data.public_address;
-      signature = data.signature;
-    } else {
-      // Self-hosted SSO: server derives a deterministic Flux keypair per Firebase UID.
-      // Works with any Firebase project. Server uses SSO_SIGNING_SECRET (never exposed to client).
-      const resp = await fetch('/api/sso/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ message: loginPhrase }),
-      });
-      const data = await resp.json();
-      if (data?.status !== 'success' || !data.zelid || !data.signature) {
-        throw new Error(data?.message || 'SSO sign-in failed');
-      }
-      zelid = data.zelid;
-      signature = data.signature;
-    }
+    // FluxCore SSO: service.fluxcore.ai signs the loginPhrase on the user's behalf.
+    // Requires the Firebase project to be 'fluxcore-prod'.
+    const resp = await fetch('/api/fluxcore/signInOrUp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ message: loginPhrase }),
+    });
+    const data = await resp.json();
+    if (data?.status !== 'success') throw new Error(data?.message || 'FluxCore authentication failed');
+    const zelid = data.public_address;
+    const signature = data.signature;
 
     const zelidauth = {
       zelid,
