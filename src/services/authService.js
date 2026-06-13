@@ -182,58 +182,6 @@ class AuthService {
   }
 
   /**
-   * Complete ZelCore login after WS success.
-   * ZelCoreLoginButton already has zelid + signature + loginPhrase from the WS message.
-   */
-  async finalizeZelCoreAuth({ zelid, signature, loginPhrase, stickyBackend }) {
-    const zelidauth = {
-      zelid,
-      signature,
-      loginPhrase,
-      _issuedAt: Date.now(),
-      _loginType: 'zelcore',
-      _stickyBackend: stickyBackend,
-    };
-
-    await secureStorage.setItem('zelidauth', zelidauth);
-    localStorage.setItem('loginType', 'zelcore');
-
-    return zelidauth;
-  }
-
-  /**
-   * Complete SSP login: sign loginPhrase, verify via BFF proxy, store zelidauth.
-   */
-  async finalizeSSPAuth({ zelid, signature, loginPhrase, stickyBackend }) {
-    // Verify the signature on the sticky node via BFF proxy
-    const verifyResp = await fetch('/api/node-verifylogin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zelid, signature, loginPhrase, stickyBackend }),
-    });
-
-    const verifyData = await verifyResp.json();
-
-    if (verifyData?.status !== 'success') {
-      throw new Error(verifyData?.data || 'SSP verification failed');
-    }
-
-    const zelidauth = {
-      zelid,
-      signature,
-      loginPhrase,
-      _issuedAt: Date.now(),
-      _loginType: 'ssp',
-      _stickyBackend: stickyBackend,
-    };
-
-    await secureStorage.setItem('zelidauth', zelidauth);
-    localStorage.setItem('loginType', 'ssp');
-
-    return zelidauth;
-  }
-
-  /**
    * Check if current Firebase user's email is verified.
    * Used by the verification polling loop after registration.
    */
@@ -273,14 +221,6 @@ class AuthService {
     } catch (error) {
       throw this.handleFirebaseError(error);
     }
-  }
-
-  /**
-   * Get the utility function for fetching loginPhrase.
-   * Exposed so ZelCoreLoginButton and SSPLoginButton can use the same logic.
-   */
-  getLoginPhraseWithSticky() {
-    return getLoginPhraseWithSticky();
   }
 
   getCurrentUser() {

@@ -4,10 +4,7 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
 import GoogleLoginButton from './GoogleLoginButton';
-import ZelCoreLoginButton from './ZelCoreLoginButton';
-import SSPLoginButton from './SSPLoginButton';
 import authService from '../../services/authService';
-import { useAuth } from '../../context/AuthContext';
 
 // Views within the modal
 const VIEW = {
@@ -20,12 +17,9 @@ const VIEW = {
 /**
  * Full-screen login modal supporting:
  * - Google OAuth
- * - ZelCore wallet (deep link + WS)
- * - SSP wallet (browser extension)
  * - Email / password (register + verify + login)
  */
 export default function LoginModal({ isOpen, onClose, onSuccess }) {
-  const { onWalletAuthSuccess } = useAuth();
   const [view, setView] = useState(VIEW.CHOOSE);
   const [error, setError] = useState('');
 
@@ -128,13 +122,8 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
     }
   }
 
-  function handleAuthSuccess({ zelidauth } = {}) {
-    // For wallet logins (ZelCore/SSP), zelidauth is set but no Firebase user exists.
-    // We must update AuthContext state so isAuthenticated becomes true.
-    if (zelidauth) {
-      onWalletAuthSuccess({ zelidauth });
-    }
-    onSuccess?.({ zelidauth });
+  function handleAuthSuccess() {
+    onSuccess?.();
     onClose();
   }
 
@@ -171,8 +160,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
           )}
 
           <GoogleLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} />
-          <ZelCoreLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} />
-          <SSPLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} />
 
           {divider}
 

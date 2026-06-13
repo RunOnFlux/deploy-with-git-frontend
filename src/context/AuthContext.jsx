@@ -5,8 +5,6 @@ import SessionTimer from '../components/auth/SessionTimer';
 
 const AuthContext = createContext(null);
 
-const SESSION_DURATION_MS = 90 * 60 * 1000;
-const ZELIDAUTH_TTL_MS = 85 * 60 * 1000;
 const WALLET_SESSION_KEY = 'wallet_session';
 
 function formatUser(firebaseUser) {
@@ -20,38 +18,7 @@ function formatUser(firebaseUser) {
   };
 }
 
-function walletUser(zelid, loginType) {
-  return {
-    uid: zelid,
-    email: null,
-    displayName: zelid.slice(0, 8) + '…',
-    photoURL: null,
-    emailVerified: true,
-    loginType,
-  };
-}
-
-function saveWalletSession(za, loginType) {
-  try {
-    localStorage.setItem(WALLET_SESSION_KEY, JSON.stringify({
-      zelidauth: za,
-      loginType,
-      loginTime: Date.now(),
-    }));
-  } catch { /* storage full */ }
-}
-
-function loadWalletSession() {
-  try {
-    const raw = localStorage.getItem(WALLET_SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function clearWalletSession() {
+function clearStoredSession() {
   localStorage.removeItem(WALLET_SESSION_KEY);
   localStorage.removeItem('loginTime');
   localStorage.removeItem('loginType');
@@ -75,7 +42,7 @@ export function AuthProvider({ children }) {
 
   function handleLogout() {
     authService.logout();
-    clearWalletSession();
+    clearStoredSession();
     sessionStorage.removeItem('stickyBackendDNS');
     setUser(null);
     setZelidauth(null);
@@ -86,24 +53,6 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       // ── No Firebase session ──────────────────────────────────────────────
       if (!firebaseUser) {
-        const session = loadWalletSession();
-
-        if (session?.zelidauth?.zelid && session.loginType) {
-          const sessionExpired = Date.now() - (session.loginTime || 0) > SESSION_DURATION_MS;
-          const tokenExpired =
-            !session.zelidauth._issuedAt ||
-            Date.now() - session.zelidauth._issuedAt > ZELIDAUTH_TTL_MS;
-
-          if (!sessionExpired && !tokenExpired) {
-            applyStickyBackend(session.zelidauth);
-            setZelidauth(session.zelidauth);
-            setLoginType(session.loginType);
-            setUser(walletUser(session.zelidauth.zelid, session.loginType));
-          } else {
-            clearWalletSession();
-          }
-        }
-
         setAuthLoading(false);
         return;
       }
@@ -141,24 +90,12 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  function onWalletAuthSuccess({ zelidauth: za }) {
-    if (!za) return;
-    const lt = za._loginType || 'zelcore';
-    const zaWithMeta = { ...za, _issuedAt: za._issuedAt ?? Date.now() };
-    applyStickyBackend(zaWithMeta);
-    setZelidauth(zaWithMeta);
-    setLoginType(lt);
-    setUser(walletUser(za.zelid, lt));
-    saveWalletSession(zaWithMeta, lt);
-  }
-
   const value = {
     user,
     zelidauth,
     authLoading,
     loginType,
     isAuthenticated: Boolean(user),
-    onWalletAuthSuccess,
     logout: handleLogout,
   };
 

@@ -3,8 +3,6 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 import { GitBranch, Globe, ShieldCheck } from 'lucide-react';
 import GoogleLoginButton from '../components/auth/GoogleLoginButton';
-import ZelCoreLoginButton from '../components/auth/ZelCoreLoginButton';
-import SSPLoginButton from '../components/auth/SSPLoginButton';
 import DashboardPreview from '../components/landing/DashboardPreview';
 import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
@@ -19,7 +17,7 @@ const inputCls =
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { onWalletAuthSuccess, isAuthenticated, authLoading } = useAuth();
+  const { isAuthenticated, authLoading } = useAuth();
   const { stats } = useNetworkStats();
 
   const redirectTo = searchParams.get('redirect') || '/dashboard';
@@ -102,8 +100,7 @@ export default function LoginPage() {
     }
   }
 
-  function handleAuthSuccess({ zelidauth } = {}) {
-    if (zelidauth) onWalletAuthSuccess({ zelidauth });
+  function handleAuthSuccess() {
     navigate(redirectTo);
   }
   function handleAuthError(err) {
@@ -180,10 +177,8 @@ export default function LoginPage() {
                 </div>
 
                 {/* Provider buttons */}
-                <div className="grid grid-cols-3 gap-2 mb-5">
-                  <GoogleLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} compact />
-                  <ZelCoreLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} compact />
-                  <SSPLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} compact />
+                <div className="mb-5">
+                  <GoogleLoginButton onSuccess={handleAuthSuccess} onError={handleAuthError} />
                 </div>
 
                 {/* Divider */}

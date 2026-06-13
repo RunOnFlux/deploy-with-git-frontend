@@ -130,41 +130,6 @@ app.all('/api/fluxcore/*splat', express.json(), async (req, res) => {
 });
 
 /**
- * POST /api/node-verifylogin
- * Proxies a verifylogin call to the sticky Flux node selected for a login phrase.
- * Used by SSP wallet (browser → BFF → node), avoiding browser CORS issues.
- *
- * SSRF protection: validates stickyBackend matches *.node.api.runonflux.io
- */
-const STICKY_NODE_PATTERN = /^https:\/\/[\d-]+-\d+\.node\.api\.runonflux\.io$/;
-
-app.post('/api/node-verifylogin', express.json(), async (req, res) => {
-  const { zelid, signature, loginPhrase, stickyBackend } = req.body;
-
-  if (!zelid || !signature || !loginPhrase || !stickyBackend) {
-    return res.status(400).json({ status: 'error', data: 'Missing required fields' });
-  }
-
-  if (!STICKY_NODE_PATTERN.test(stickyBackend)) {
-    return res.status(400).json({ status: 'error', data: 'Invalid sticky backend URL' });
-  }
-
-  try {
-    const upstream = await fetch(`${stickyBackend}/id/verifylogin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zelid, signature, loginPhrase }),
-    });
-
-    const data = await upstream.text();
-    res.status(upstream.status).send(data);
-  } catch (err) {
-    console.error('node-verifylogin proxy error:', err.message);
-    res.status(502).json({ status: 'error', data: 'Upstream request failed' });
-  }
-});
-
-/**
  * GET /api/flux-stream/apps/testappinstall/:hash
  * Streams NDJSON from Flux API testappinstall endpoint.
  * The generic proxy buffers responses — this route pipes the stream directly.
