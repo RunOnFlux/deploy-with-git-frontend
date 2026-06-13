@@ -46,12 +46,12 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>Orbit - Deploy to Flux with Git</title>
+        <title>Orbit — Deploy to Flux with Git</title>
         <meta
           name="description"
           content="Git-native deployment for the Flux decentralized cloud. Push code, auto-detect framework, deploy globally. Free tier forever."
         />
-        <meta property="og:title" content="Orbit - Deploy to Flux with Git" />
+        <meta property="og:title" content="Orbit — Deploy to Flux with Git" />
         <meta
           property="og:description"
           content="Push your code. Orbit builds and deploys to thousands of Flux nodes worldwide."

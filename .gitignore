@@ -91,3 +91,6 @@ pnpm-lock.yaml
 *.local
 .eslintcache
 .stylelintcache
+
+# local chromium download for prerender testing (not committed)
+chromium/

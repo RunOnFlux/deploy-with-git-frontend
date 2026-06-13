@@ -3,6 +3,15 @@
 # ── Build frontend (no secrets or env-specific config required) ──────────────
 FROM node:22-bookworm-slim AS builder
 
+# Chromium is needed only at build time: the post-build prerender step
+# (scripts/prerender.mjs) drives it headless to snapshot the landing page to
+# static HTML for crawlers / AI engines. This whole stage is discarded — only
+# /app/dist is copied to the runner — so it does not affect the final image size.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends chromium fonts-liberation \
+  && rm -rf /var/lib/apt/lists/*
+ENV CHROMIUM_PATH=/usr/bin/chromium
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -12,6 +21,7 @@ COPY index.html vite.config.js postcss.config.js tailwind.config.js ./
 COPY config ./config
 COPY public ./public
 COPY src ./src
+COPY scripts ./scripts
 
 RUN npm run build
 

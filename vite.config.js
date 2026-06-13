@@ -24,6 +24,25 @@ export default defineConfig(({ mode }) => {
     transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', siteUrl),
   }
 
+  // AI / answer-engine crawlers. We welcome them explicitly (no crawl-delay) so
+  // they can fully ingest the marketing pages and cite Orbit in generated
+  // answers (ChatGPT, Perplexity, Gemini/AI Overviews, Claude, etc.). Note: a
+  // bot that matches its own User-agent group ignores the `*` group entirely, so
+  // each must re-state the /dashboard/ disallow.
+  const aiCrawlers = [
+    'GPTBot', // OpenAI — model training
+    'OAI-SearchBot', // OpenAI — ChatGPT Search index
+    'ChatGPT-User', // OpenAI — user-triggered browsing
+    'ClaudeBot', // Anthropic — crawling
+    'Claude-User', // Anthropic — user-triggered browsing
+    'anthropic-ai', // Anthropic — legacy UA
+    'PerplexityBot', // Perplexity — index
+    'Perplexity-User', // Perplexity — user-triggered fetch
+    'Google-Extended', // Google — Gemini training & AI Overviews grounding
+    'Applebot-Extended', // Apple Intelligence
+    'CCBot', // Common Crawl — feeds many open LLMs
+  ]
+
   return {
     plugins: [
       react(),
@@ -40,12 +59,19 @@ export default defineConfig(({ mode }) => {
         priority: 0.7,
         lastmod: new Date(),
         robots: [
+          // Generic crawlers: index everything except the app, gentle pacing.
           {
             userAgent: '*',
             allow: '/',
             disallow: ['/dashboard/'],
             crawlDelay: 1,
           },
+          // AI engines: same access, but no crawl-delay throttle.
+          ...aiCrawlers.map((userAgent) => ({
+            userAgent,
+            allow: '/',
+            disallow: ['/dashboard/'],
+          })),
         ],
       }),
       ViteImageOptimizer({
