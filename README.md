@@ -240,7 +240,7 @@ Browser  →  Vite dev proxy (dev)  →  BFF :3001
 |---|---|---|
 | `GET` | `/api/flux/*` | Proxy to `api.runonflux.io` |
 | `POST` | `/api/flux/apps/registerapplication` | Register app on Flux |
-| `GET` | `/api/screenshot?url=` | Capture site screenshot via thum.io |
+| `GET` | `/api/screenshot?url=` | Capture site screenshot via headless Chromium |
 | `POST` | `/api/orbit-deploy` | HMAC-signed redeploy webhook trigger |
 
 ---
