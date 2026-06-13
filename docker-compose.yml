@@ -3,25 +3,14 @@ services:
     build: .
     ports:
       - "${PORT:-4000}:4000"
-    environment:
-      NODE_ENV: production
-      PORT: 4000
-      CHROMIUM_PATH: /usr/bin/chromium
-      # SSO (required for email/Google auth with SSO_PROVIDER=self)
-      SSO_PROVIDER: ${SSO_PROVIDER:-self}
-      SSO_SIGNING_SECRET: ${SSO_SIGNING_SECRET:?SSO_SIGNING_SECRET is required}
-      # Public client config — served via GET /api/config at runtime
-      VITE_APP_URL: ${VITE_APP_URL:-http://localhost:4000}
-      VITE_PAYMENT_BRIDGE_URL: ${VITE_PAYMENT_BRIDGE_URL:-https://fiatpaymentsbridge.runonflux.io}
-      VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
-      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
-      VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
-      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
-      VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET:-}
-      VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-}
-      VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
-      VITE_FIREBASE_MEASUREMENT_ID: ${VITE_FIREBASE_MEASUREMENT_ID:-}
-      VITE_ENABLE_ANALYTICS: ${VITE_ENABLE_ANALYTICS:-false}
-      VITE_GA_MEASUREMENT_ID: ${VITE_GA_MEASUREMENT_ID:-}
+    # No environment variables required. The image runs against the shared FluxOS
+    # defaults (config/defaults.js) with SSO delegated to service.fluxcore.ai.
+    # NODE_ENV / PORT / CHROMIUM_PATH are baked into the Dockerfile.
+    # Override any public value below only when self-hosting:
+    #   environment:
+    #     SSO_PROVIDER: self            # self-sign instead of using fluxcore.ai
+    #     SSO_SIGNING_SECRET: <hex>     # required only when SSO_PROVIDER=self
+    #     VITE_FIREBASE_PROJECT_ID: ... # to use your own Firebase project
+    #     VITE_STRIPE_PUBLISHABLE_KEY: pk_live_...
     shm_size: "256mb"
     restart: unless-stopped
