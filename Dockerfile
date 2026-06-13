@@ -33,18 +33,30 @@ ENV NODE_ENV=production \
     PORT=4000 \
     CHROMIUM_PATH=/usr/bin/chromium
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
-COPY server.js docker-entrypoint.sh ./
-COPY config ./config
-COPY --from=builder /app/dist ./dist
-
-RUN chmod +x docker-entrypoint.sh \
-  && mkdir -p /data \
-  && chown -R node:node /opt/orbit-ui /data
+# /data is the persistence mount. Own both it and the app dir as the unprivileged
+# node user *before* installing, so node_modules is created node-owned and we
+# never need a `chown -R` (which would duplicate the whole layer).
+RUN mkdir -p /data && chown node:node /opt/orbit-ui /data
 
 USER node
+
+# The Express BFF (server.js) imports only express, cors and puppeteer-core at
+# runtime. Every other production dependency is client-only and already compiled
+# into dist/, so we don't ship it here — this keeps the image small and the pull
+# fast. Keep this list in sync with server.js's imports + package.json ranges.
+# (puppeteer-core does NOT download a browser; it uses the system chromium above.)
+RUN npm install --omit=dev --no-package-lock --no-audit --no-fund \
+      express@^5.2.1 \
+      cors@^2.8.6 \
+      puppeteer-core@^24.42.0 \
+  && npm pkg set type=module \
+  && npm cache clean --force
+
+COPY --chown=node:node server.js docker-entrypoint.sh ./
+COPY --chown=node:node config ./config
+COPY --chown=node:node --from=builder /app/dist ./dist
+
+RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 4000
 
