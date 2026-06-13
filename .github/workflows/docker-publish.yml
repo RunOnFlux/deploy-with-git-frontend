@@ -5,7 +5,7 @@ on:
     types: [published]
 
 env:
-  DOCKERHUB_REPO: runonflux/orbit-website
+  DOCKERHUB_REPO: runonflux/website-orbit
 
 jobs:
   build-and-push:
