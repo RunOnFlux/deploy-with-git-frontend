@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import sitemap from 'vite-plugin-sitemap'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
+import { DEFAULT_APP_URL } from './config/defaults.js'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -10,7 +11,12 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       sitemap({
-        hostname: env.VITE_APP_URL || 'http://localhost:4000',
+        // The sitemap is a public SEO asset: its <loc> URLs must always point to
+        // the canonical production origin, never the dev proxy target. Decoupled
+        // from VITE_APP_URL (= localhost in .env) so a plain `npm run build` — and
+        // the Docker build, which has no .env — still emits the prod hostname.
+        // Override per-deployment with VITE_SITEMAP_HOSTNAME if needed.
+        hostname: env.VITE_SITEMAP_HOSTNAME || DEFAULT_APP_URL,
         exclude: [
           '/dashboard',
           '/dashboard/deployments',
