@@ -10,7 +10,7 @@ import express from 'express';
 import cors from 'cors';
 import { createServer as createHttpServer } from 'http';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, sep } from 'path';
 import crypto from 'crypto';
 import puppeteer from 'puppeteer-core';
 import {
@@ -30,9 +30,27 @@ app.use(cors());
 // JSON parsing only for routes that explicitly need it (see below).
 // The Flux API proxy forwards raw bodies to preserve content-type.
 
-// In production, serve the built frontend
+// In production, serve the built frontend with cache headers tuned for SEO and
+// repeat-visit performance (Core Web Vitals):
+//  - /assets/* are content-hashed by Vite, so cache them forever (immutable).
+//  - *.html (incl. the prerendered landing page) must revalidate every time so
+//    deploys propagate instantly and crawlers never serve stale content.
+//  - other unhashed public files (favicons, og-banner, robots.txt, sitemap.xml)
+//    get a short cache so updates still appear within the hour.
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(join(__dirname, 'dist')));
+  app.use(
+    express.static(join(__dirname, 'dist'), {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else if (filePath.includes(`${sep}assets${sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+      },
+    }),
+  );
 }
 
 /**
@@ -644,6 +662,8 @@ app.get('/api/screenshot', async (req, res) => {
 
 if (process.env.NODE_ENV === 'production') {
   app.get('/*splat', (_req, res) => {
+    // SPA fallback: always revalidate so a new deploy is picked up immediately.
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(join(__dirname, 'dist', 'index.html'));
   });
 }
