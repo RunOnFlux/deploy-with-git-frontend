@@ -18,7 +18,8 @@ out/
 *.tsbuildinfo
 
 # ── Environment & secrets ─────────────────────────────────────────────────────
-.env
+# .env holds only non-secret dev defaults (committed, like the other *website
+# projects). Local overrides / any secrets go in .env.local (ignored below).
 .env.local
 .env.development
 .env.development.local
