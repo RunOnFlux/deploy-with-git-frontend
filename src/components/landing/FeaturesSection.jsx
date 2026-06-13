@@ -1,72 +1,29 @@
 import { motion } from 'framer-motion';
 import {
-  Infinity, Server, Layers, Zap, GitBranch, Globe,
+  Infinity as InfinityIcon, Server, Layers, Zap, GitBranch, Globe,
   MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield,
 } from 'lucide-react';
 import BokehBackground, { BOKEH_FEATURES } from './BokehBackground';
+import { FEATURES } from '../../content/landingContent';
 
-const features = [
-  {
-    icon: Infinity,
-    title: 'Unlimited Builds',
-    description: 'No limit on build count or build duration. Ship as often as you need.',
-  },
-  {
-    icon: Server,
-    title: 'Dedicated Resources',
-    description: 'No shared hardware. Your rented resources are exclusively for your app.',
-  },
-  {
-    icon: Layers,
-    title: '100+ Frameworks',
-    description: 'Node.js, Python, Rust, Go, Java, .NET, PHP and more, auto-detected every time.',
-  },
-  {
-    icon: Zap,
-    title: 'Zero Configuration',
-    description: 'Auto-detects project type, installs dependencies, and builds automatically.',
-  },
-  {
-    icon: GitBranch,
-    title: 'Built-in CI/CD',
-    description: 'GitHub, GitLab, and Bitbucket webhooks plus polling mode. Your workflow, your choice.',
-  },
-  {
-    icon: Globe,
-    title: 'Custom Domain + SSL',
-    description: "Connect your own domain with automatic SSL via Flux's reverse proxy network.",
-  },
-  {
-    icon: MapPin,
-    title: 'Geolocation Selection',
-    description: 'Deploy to specific regions worldwide or let Orbit distribute automatically.',
-  },
-  {
-    icon: Eye,
-    title: 'Deploy Previews',
-    description: 'Automatic preview deployments for branches and pull requests.',
-  },
-  {
-    icon: RotateCcw,
-    title: 'Auto Rollback',
-    description: 'Failed deployments automatically revert to the last known-good version.',
-  },
-  {
-    icon: FolderGit2,
-    title: 'Monorepo Support',
-    description: 'Deploy specific folders from a monorepo using the PROJECT_PATH variable.',
-  },
-  {
-    icon: Activity,
-    title: 'Health Monitoring',
-    description: 'Built-in health checks and process supervision keep your app always available.',
-  },
-  {
-    icon: Shield,
-    title: 'Enhanced Security',
-    description: 'Non-root execution, automatic log rotation, and encrypted app specs.',
-  },
-];
+// Icons live with the component (they're React nodes, not serialisable content);
+// the titles/descriptions come from the shared source, joined here by `key`.
+const FEATURE_ICONS = {
+  'unlimited-builds': InfinityIcon,
+  'dedicated-resources': Server,
+  'frameworks': Layers,
+  'zero-config': Zap,
+  'cicd': GitBranch,
+  'custom-domain': Globe,
+  'geolocation': MapPin,
+  'deploy-previews': Eye,
+  'auto-rollback': RotateCcw,
+  'monorepo': FolderGit2,
+  'health-monitoring': Activity,
+  'enhanced-security': Shield,
+};
+
+const features = FEATURES.map((f) => ({ ...f, icon: FEATURE_ICONS[f.key] }));
 
 const containerVariants = {
   hidden: {},

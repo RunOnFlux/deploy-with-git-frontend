@@ -2,33 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import BokehBackground, { BOKEH_FAQ } from './BokehBackground';
-
-const faqs = [
-  {
-    q: 'What is Orbit?',
-    a: 'Orbit is a Git-native deployment platform built on the Flux decentralized cloud network. Push your code and Orbit automatically builds, deploys, and scales your app across thousands of nodes worldwide. No server management required.',
-  },
-  {
-    q: 'How is my data kept secure?',
-    a: "Enterprise apps run inside ArcaneOS, Flux's hardened execution environment, where all data is encrypted at rest. Your code, secrets, and persistent storage are fully isolated and encrypted, with no shared tenancy at the infrastructure level.",
-  },
-  {
-    q: 'What frameworks are supported?',
-    a: 'Orbit supports 100+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.',
-  },
-  {
-    q: 'Is the free tier really free forever?',
-    a: 'Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances.',
-  },
-  {
-    q: 'How is Orbit different from Vercel or Netlify?',
-    a: "Orbit deploys to the Flux decentralized network, meaning no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in.",
-  },
-  {
-    q: 'Can I use a custom domain?',
-    a: 'Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
-  },
-];
+import { FAQS as faqs } from '../../content/landingContent';
 
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false);

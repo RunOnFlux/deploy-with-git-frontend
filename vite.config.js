@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import sitemap from 'vite-plugin-sitemap'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 import { DEFAULT_APP_URL } from './config/defaults.js'
+import { buildJsonLd, buildNoscript } from './scripts/buildSeoContent.mjs'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -15,13 +16,20 @@ export default defineConfig(({ mode }) => {
   // Defaults to DEFAULT_APP_URL; override per-deployment with VITE_SITE_URL.
   const siteUrl = (env.VITE_SITE_URL || DEFAULT_APP_URL).replace(/\/+$/, '')
 
-  // Replace the __SITE_URL__ token in index.html with the canonical origin. We use
-  // a custom token rather than Vite's %VITE_APP_URL% syntax precisely so it is
-  // immune to VITE_APP_URL: Vite never touches __SITE_URL__, so this is the single
-  // source of truth for the page's SEO origin.
-  const htmlSeoOrigin = {
-    name: 'html-seo-origin',
-    transformIndexHtml: (html) => html.replaceAll('__SITE_URL__', siteUrl),
+  // Inject the generated SEO blocks into index.html, then resolve the origin
+  // token. Order matters: the generated JSON-LD itself contains __SITE_URL__
+  // tokens, so injection must happen before the replacement — doing both in one
+  // pass guarantees that. The JSON-LD/noscript are built from the same data the
+  // live components use (scripts/buildSeoContent.mjs), so they can't drift.
+  // We use a custom __SITE_URL__ token rather than Vite's %VITE_APP_URL% syntax
+  // so the SEO origin is immune to VITE_APP_URL and has a single source of truth.
+  const htmlSeo = {
+    name: 'html-seo',
+    transformIndexHtml: (html) =>
+      html
+        .replace('<!--SEO:JSONLD-->', buildJsonLd())
+        .replace('<!--SEO:NOSCRIPT-->', buildNoscript())
+        .replaceAll('__SITE_URL__', siteUrl),
   }
 
   // AI / answer-engine crawlers. We welcome them explicitly (no crawl-delay) so
@@ -46,7 +54,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      htmlSeoOrigin,
+      htmlSeo,
       sitemap({
         hostname: siteUrl,
         exclude: [
