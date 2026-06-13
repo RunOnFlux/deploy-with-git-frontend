@@ -11,6 +11,6 @@ services:
     #     SSO_PROVIDER: self            # self-sign instead of using fluxcore.ai
     #     SSO_SIGNING_SECRET: <hex>     # required only when SSO_PROVIDER=self
     #     VITE_FIREBASE_PROJECT_ID: ... # to use your own Firebase project
-    #     VITE_STRIPE_PUBLISHABLE_KEY: pk_live_...
+    #     VITE_PAYMENT_BRIDGE_URL: ...  # to point Stripe/pricing at your own bridge
     shm_size: "256mb"
     restart: unless-stopped

@@ -10,7 +10,6 @@ import {
  * @property {'self' | 'fluxcore'} ssoProvider
  * @property {string} appUrl
  * @property {string} paymentBridgeUrl
- * @property {string} stripePublishableKey
  * @property {typeof DEFAULT_FIREBASE} firebase
  * @property {{ enabled: boolean, measurementId: string }} analytics
  */
@@ -29,7 +28,6 @@ function configFromImportMetaEnv() {
     ssoProvider: 'fluxcore',
     appUrl: import.meta.env.VITE_APP_URL || DEFAULT_APP_URL,
     paymentBridgeUrl: import.meta.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
-    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
     firebase: {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY || DEFAULT_FIREBASE.apiKey,
       authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE.authDomain,

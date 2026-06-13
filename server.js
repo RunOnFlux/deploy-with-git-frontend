@@ -198,7 +198,6 @@ app.get('/api/config', (_req, res) => {
     ssoProvider: process.env.SSO_PROVIDER || 'fluxcore',
     appUrl: process.env.VITE_APP_URL || DEFAULT_APP_URL,
     paymentBridgeUrl: process.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
-    stripePublishableKey: process.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
     firebase: {
       apiKey: process.env.VITE_FIREBASE_API_KEY || DEFAULT_FIREBASE.apiKey,
       authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE.authDomain,

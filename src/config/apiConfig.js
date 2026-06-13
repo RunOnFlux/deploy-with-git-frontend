@@ -48,13 +48,6 @@ export const apiConfig = {
     },
   },
 
-  // Stripe
-  stripe: {
-    get publishableKey() {
-      return getRuntimeConfig().stripePublishableKey;
-    },
-  },
-
   settings: {
     timeout: 10000,
     retryAttempts: 3,
