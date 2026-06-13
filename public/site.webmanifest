@@ -1,0 +1,15 @@
+{
+  "name": "Orbit by Flux",
+  "short_name": "Orbit",
+  "description": "Deploy any git repository to the Flux decentralized cloud. Auto-detect frameworks, global nodes, free tier available.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#080c18",
+  "background_color": "#080c18",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
