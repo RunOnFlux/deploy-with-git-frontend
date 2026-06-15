@@ -34,7 +34,7 @@ const PLAN_RESOURCES = {
 
 const PERIODS = [
   { id: 'monthly', label: 'Monthly',  months: 1,  discount: 0    },
-  { id: 'annual',  label: 'Annual',   months: 12, discount: 0.15 },
+  { id: 'annual',  label: 'Annual',   months: 12, discount: 0.12 },
 ];
 
 const containerVariants = {
@@ -169,7 +169,7 @@ export default function PricingSection({ onLoginSuccess }) {
                       className="absolute top-5 -right-9 w-36 text-white text-xs font-bold text-center py-1.5 rotate-45 shadow-md pointer-events-none"
                       style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%)' }}
                     >
-                      Save 15%
+                      Save 12%
                     </div>
                   )}
 

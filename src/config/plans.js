@@ -72,9 +72,9 @@ export const ENTERPRISE_SURCHARGE = {
 /** Billing period multipliers for expire calculation */
 export const BILLING_PERIODS = [
   { months: 1,  label: '1 month',   discount: 0,    blocksPerMonth: 88000 },
-  { months: 3,  label: '3 months',  discount: 0.05, blocksPerMonth: 88000 },
-  { months: 6,  label: '6 months',  discount: 0.10, blocksPerMonth: 88000 },
-  { months: 12, label: '12 months', discount: 0.15, blocksPerMonth: 88000 },
+  { months: 3,  label: '3 months',  discount: 0.03, blocksPerMonth: 88000 },
+  { months: 6,  label: '6 months',  discount: 0.06, blocksPerMonth: 88000 },
+  { months: 12, label: '12 months', discount: 0.12, blocksPerMonth: 88000 },
 ];
 
 /** Convert months → expire blocks */

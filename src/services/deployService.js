@@ -81,9 +81,9 @@ export function normalizeCustomPlan(plan) {
 // ─── Billing periods ─────────────────────────────────────────────────────────
 export const BILLING_PERIODS = [
   { months: 1, label: '1 month', discount: 0 },
-  { months: 3, label: '3 months', discount: 5 },
-  { months: 6, label: '6 months', discount: 10 },
-  { months: 12, label: '12 months', discount: 15 },
+  { months: 3, label: '3 months', discount: 3 },
+  { months: 6, label: '6 months', discount: 6 },
+  { months: 12, label: '12 months', discount: 12 },
 ];
 
 export const BLOCKS_PER_MONTH = 88000;
