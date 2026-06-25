@@ -197,9 +197,29 @@ export default function DeployWizard() {
   }
 
   // ── Validation guards ───────────────────────────────────────────────────────
+  function isRepoValidated() {
+    const hasHttpUrl = Boolean(repo.url?.trim().startsWith('http'));
+    const isPublicRepo = repo.repoStatus === 'public';
+    const isAuthenticatedPrivateRepo =
+      repo.repoStatus === 'inaccessible' && repo.authTestStatus === 'success';
+
+    return hasHttpUrl && (isPublicRepo || isAuthenticatedPrivateRepo);
+  }
+
+  function getRepoValidationHint() {
+    if (!repo.url?.trim()) return 'Repository URL required';
+    if (!repo.url.trim().startsWith('http')) return 'Enter an HTTPS repository URL';
+    if (repo.repoStatus === 'checking') return 'Checking repository access';
+    if (repo.repoStatus === 'inaccessible' && repo.authTestStatus !== 'success') {
+      return 'Validate repository access to continue';
+    }
+    if (repo.repoStatus === 'unknown') return 'Repository access could not be verified';
+    return 'Validate repository to continue';
+  }
+
   function canProceed() {
     if (step === 1) return Boolean(plan);
-    if (step === 2) return Boolean(repo.url?.startsWith('http'));
+    if (step === 2) return isRepoValidated();
     if (step === 3) {
       const db = config.database;
       const dbValid = !db?.enabled || plan?.id !== 'custom' || (
@@ -314,6 +334,9 @@ export default function DeployWizard() {
             <div className="flex items-center gap-3">
               {step === 4 && !termsAccepted && (
                 <span className="text-xs text-text-muted">Accept the terms to continue</span>
+              )}
+              {step === 2 && !isRepoValidated() && (
+                <span className="text-xs text-text-muted">{getRepoValidationHint()}</span>
               )}
               {step === 3 && !config.contactEmail?.trim() && (
                 <span className="text-xs text-text-muted">Contact email required</span>

@@ -42,8 +42,8 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   // Local detection state
-  const [repoStatus, setRepoStatus] = useState('idle'); // idle|checking|public|inaccessible|unknown
-  const [authTestStatus, setAuthTestStatus] = useState('idle'); // idle|testing|success|error
+  const [repoStatus, setRepoStatus] = useState(repo.repoStatus || 'idle'); // idle|checking|public|inaccessible|unknown
+  const [authTestStatus, setAuthTestStatus] = useState(repo.authTestStatus || 'idle'); // idle|testing|success|error
   const [authTestError, setAuthTestError] = useState('');
   const [branches, setBranches] = useState([]);
   const [branchOpen, setBranchOpen] = useState(false);
@@ -77,6 +77,36 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
       setAuthTestError('');
     }
   }, [repo.authTestStatus]);
+
+  useEffect(() => {
+    if (repo.repoStatus && repo.repoStatus !== repoStatus) {
+      setRepoStatus(repo.repoStatus);
+    }
+  }, [repo.repoStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    onChangeRef.current({
+      repoStatus,
+      authTestStatus,
+      portAutoDetected,
+      detectedFramework,
+      monorepo,
+      compatibilityStatus,
+      compatibilityMessage,
+      configImportSource,
+      requiresRunCommand,
+    });
+  }, [
+    repoStatus,
+    authTestStatus,
+    portAutoDetected,
+    detectedFramework,
+    monorepo,
+    compatibilityStatus,
+    compatibilityMessage,
+    configImportSource,
+    requiresRunCommand,
+  ]);
 
   // ── Intelligence pipeline ────────────────────────────────────────────────────
   // Not memoized — generation counter prevents stale results from being applied.
@@ -183,23 +213,29 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
     }
 
     const p = parseRepoUrl(repo.url);
-    if (!p) return;
-
-    urlDebounceRef.current = setTimeout(async () => {
-      const gen = ++evalGenRef.current;
-      setRepoStatus('checking');
+    if (!p) {
+      setRepoStatus('idle');
       setAuthTestStatus('idle');
       setAuthTestError('');
-      setBranches([]);
-      setDirectories([]);
-      setMonorepo(null);
-      setCompatibilityStatus('idle');
-      setPortAutoDetected(false);
-      setConfigImportSource('');
-      setDetectedFramework(null);
-      setRequiresRunCommand(false);
       onChangeRef.current({ isPrivate: false });
+      return;
+    }
 
+    const gen = ++evalGenRef.current;
+    setRepoStatus('checking');
+    setAuthTestStatus('idle');
+    setAuthTestError('');
+    setBranches([]);
+    setDirectories([]);
+    setMonorepo(null);
+    setCompatibilityStatus('idle');
+    setPortAutoDetected(false);
+    setConfigImportSource('');
+    setDetectedFramework(null);
+    setRequiresRunCommand(false);
+    onChangeRef.current({ isPrivate: false });
+
+    urlDebounceRef.current = setTimeout(async () => {
       const status = await checkRepoAccess(p);
       if (evalGenRef.current !== gen) return;
 
