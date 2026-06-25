@@ -44,19 +44,21 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     ? Math.max(displayPlan.instances, DB_MIN_INSTANCES)
     : displayPlan.instances;
   const displayUrl = showCreds ? repo.url : maskGitUrl(repo.url);
-  const pollingLabel = POLLING_LABELS[config.pollingInterval] || config.pollingInterval || '24 hours';
 
-  // Normalize repo URL for comparison (strip creds, trailing slash, .git)
-  function normalizeRepoUrl(url) {
+  // Canonical identity of a git repo for "same project" comparison.
+  // Reduces any URL to `host/owner/repo` (lowercased), ignoring scheme, embedded
+  // credentials, a www. prefix, a .git suffix, trailing slashes and case. Handles
+  // https/http and scp-like ssh (git@host:owner/repo). Must stay byte-for-byte
+  // identical to the backend's canonicalGitRepo so both decide eligibility the same way.
+  function canonicalGitRepo(url) {
     if (!url) return '';
-    try {
-      const u = new URL(url);
-      u.username = '';
-      u.password = '';
-      return u.toString().replace(/\.git$/, '').replace(/\/$/, '');
-    } catch {
-      return url.replace(/\.git$/, '').replace(/\/$/, '');
-    }
+    let s = String(url).trim();
+    s = s.replace(/^[^@/]+@([^:/]+):/, '$1/'); // scp-like ssh -> host/path
+    s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, ''); // strip scheme://
+    s = s.replace(/^[^/@]+@/, ''); // strip user:pass@ credentials
+    s = s.replace(/^www\./i, ''); // strip www.
+    s = s.replace(/\.git$/i, '').replace(/\/+$/, ''); // drop .git and trailing slashes
+    return s.toLowerCase();
   }
 
   // Determine free-first-month eligibility. Both checks read the owner's on-chain history
@@ -78,7 +80,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       onEligibilityChecked?.(true);
     };
 
-    const currentRepo = normalizeRepoUrl(repo?.url);
+    const currentRepo = canonicalGitRepo(repo?.url);
 
     (async () => {
       try {
@@ -107,7 +109,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           const spec = m.appSpecifications;
           if (!spec?.compose?.length || spec.compose[0]?.repotag !== 'runonflux/orbit:latest') return false;
           const { gitRepo } = extractGitInfo(spec.compose);
-          return normalizeRepoUrl(gitRepo) === currentRepo;
+          return currentRepo && canonicalGitRepo(gitRepo) === currentRepo;
         });
 
         setEligible(!duplicate);
