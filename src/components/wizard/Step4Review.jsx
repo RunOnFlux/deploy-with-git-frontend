@@ -32,8 +32,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   const [jsonOpen, setJsonOpen] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
-  const [hasDuplicate, setHasDuplicate] = useState(false);
+  const [eligible, setEligible] = useState(true);
   const [existingAppName, setExistingAppName] = useState(null);
+
+  // Enterprise apps (private repos are auto-encrypted) follow a stricter free-first-month rule.
+  const isEnterprise = !!(repo?.isPrivate || config?.enterprise);
 
   const billingLabel = BILLING_PERIODS.find((b) => b.months === config.billingPeriod?.months)?.label ?? '1 month';
   const displayPlan = normalizeCustomPlan(plan);
@@ -56,7 +59,12 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     }
   }
 
-  // Check if the user has already deployed this same repo → not eligible for free first month
+  // Determine free-first-month eligibility. Both checks read the owner's on-chain history
+  // from /apps/permanentmessages (the same source the appsMonitor backend uses), so the UI
+  // and the backend agree on who gets charged.
+  // - Enterprise apps: offered only to brand-new customers — any app the owner has ever
+  //   registered disqualifies them.
+  // - Non-enterprise apps: only re-deploying the same git repo disqualifies them.
   useEffect(() => {
     if (!zelid) {
       onEligibilityChecked?.(true);
@@ -65,41 +73,53 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     }
     setDupCheckStatus('checking');
 
+    const markEligible = () => {
+      setEligible(true);
+      onEligibilityChecked?.(true);
+    };
+
     const currentRepo = normalizeRepoUrl(repo?.url);
 
     (async () => {
       try {
         const resp = await fetch(
-          `/api/flux/apps/globalappsspecifications?owner=${zelid}`,
+          `/api/flux/apps/permanentmessages?appowner=${zelid}`,
           { headers: { 'x-apicache-bypass': 'true' } },
         );
         const json = await resp.json();
         if (json.status !== 'success' || !Array.isArray(json.data)) {
-          onEligibilityChecked?.(true); // fail open
-          setDupCheckStatus('done');
+          markEligible(); // fail open
           return;
         }
 
-        // Only look at non-enterprise Orbit apps (enterprise apps can't easily be compared)
-        const orbitApps = json.data.filter(
-          (app) => app.compose?.length > 0 && app.compose[0]?.repotag === 'runonflux/orbit:latest',
-        );
+        const registerMessages = json.data.filter((m) => m.type === 'fluxappregister');
 
-        const duplicate = orbitApps.find((app) => {
-          const { gitRepo } = extractGitInfo(app.compose);
+        if (isEnterprise) {
+          // New-customer rule: any previously registered app disqualifies the free first month.
+          const hasAnyApp = registerMessages.length > 0;
+          setEligible(!hasAnyApp);
+          onEligibilityChecked?.(!hasAnyApp);
+          return;
+        }
+
+        // Same-repo rule: disqualify if the owner already registered an Orbit app with this git repo.
+        const duplicate = registerMessages.find((m) => {
+          const spec = m.appSpecifications;
+          if (!spec?.compose?.length || spec.compose[0]?.repotag !== 'runonflux/orbit:latest') return false;
+          const { gitRepo } = extractGitInfo(spec.compose);
           return normalizeRepoUrl(gitRepo) === currentRepo;
         });
 
-        setHasDuplicate(!!duplicate);
-        setExistingAppName(duplicate?.name ?? null);
+        setEligible(!duplicate);
+        setExistingAppName(duplicate?.appSpecifications?.name ?? null);
         onEligibilityChecked?.(!duplicate);
       } catch {
-        onEligibilityChecked?.(true); // fail open
+        markEligible(); // fail open
       } finally {
         setDupCheckStatus('done');
       }
     })();
-  }, [zelid, repo?.url]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zelid, repo?.url, isEnterprise]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -117,7 +137,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking deployment eligibility…
         </div>
       )}
-      {dupCheckStatus === 'done' && hasDuplicate && (
+      {dupCheckStatus === 'done' && !eligible && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -145,7 +165,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
             plan?.priceMonthly === 0
               ? 'Free'
               : plan?.priceMonthly
-              ? `$${plan.priceMonthly}/mo${!hasDuplicate ? ' (first month free)' : ''}`
+              ? `$${plan.priceMonthly}/mo${eligible ? ' (first month free)' : ''}`
               : 'Calculated at checkout'
           }
         />
