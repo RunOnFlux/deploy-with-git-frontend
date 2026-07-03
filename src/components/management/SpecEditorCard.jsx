@@ -952,13 +952,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                     placeholder="KEY"
                     disabled={isSaving}
                   />
-                  <input
-                    className="input flex-[2] text-xs font-mono"
-                    value={row.value}
-                    onChange={(e) => updateRow(idx, 'value', e.target.value)}
-                    placeholder="value"
-                    disabled={isSaving}
-                  />
+                  <div className="flex-[2]">
+                    <PasswordInput
+                      value={row.value}
+                      onChange={(e) => updateRow(idx, 'value', e.target.value)}
+                      placeholder="value"
+                      disabled={isSaving}
+                    />
+                  </div>
                   <button
                     onClick={() => removeRow(idx)}
                     disabled={isSaving}
