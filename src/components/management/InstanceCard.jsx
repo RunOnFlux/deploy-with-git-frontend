@@ -3,12 +3,13 @@ import toast from 'react-hot-toast';
 import {
   RotateCcw, Play, Square, PauseCircle, PlayCircle, Trash2,
   ChevronDown, ChevronUp, Loader2, AlertCircle, CheckCircle2, Terminal, Wrench, GitCommit,
-  RefreshCcw, GitMerge, Zap, ScrollText,
+  RefreshCcw, GitMerge, Zap, ScrollText, Database, Server,
 } from 'lucide-react';
 import StatusBadge from '../dashboard/StatusBadge';
 import LogsPanel from './LogsPanel';
 import { performNodeAction, nodeBaseUrl, fetchNodeOrbitStatus, triggerOrbitDeploy } from '../../services/managementService';
 import { useAuth } from '../../context/AuthContext';
+import { DB_TYPES, REDIS_ADDON } from '../../services/databaseSpec';
 
 const ACTION_BUTTONS = [
   { id: 'redeploy',      label: 'Redeploy',      icon: RefreshCcw,   variant: 'secondary' },
@@ -26,6 +27,40 @@ const LOG_TABS = [
   { id: 'orbit-app',  label: 'App Logs',        icon: ScrollText  },
   { id: 'app',        label: 'Container Logs',  icon: Terminal    },
 ];
+
+function getAddonLogTabs(spec, appName) {
+  return (spec?.compose ?? [])
+    .slice(1)
+    .map((compose, offset) => {
+      const index = offset + 1;
+      const image = String(compose?.repotag ?? '').toLowerCase();
+      const name = String(compose?.name ?? '').toLowerCase();
+      const isDb =
+        image === DB_TYPES.postgres.image.toLowerCase() ||
+        image === DB_TYPES.mongodb.image.toLowerCase() ||
+        image.includes('flux-pg-cluster') ||
+        image.includes('flux-mongodb-cluster') ||
+        name === 'pg' ||
+        name === 'mongo';
+      const isRedis =
+        image === REDIS_ADDON.image.toLowerCase() ||
+        image.includes('flux-redis-cluster') ||
+        name === 'redis';
+      if (!isDb && !isRedis) return null;
+
+      const componentName = compose?.name;
+      if (!componentName) return null;
+
+      return {
+        id: `${isRedis ? 'redis' : 'db'}-${index}`,
+        label: isRedis ? 'Redis Logs' : 'DB Logs',
+        icon: isRedis ? Server : Database,
+        container: `${componentName}_${appName}`,
+        downloadName: `${appName}-${componentName}`,
+      };
+    })
+    .filter(Boolean);
+}
 
 function mapRunningStatus(runningstatus) {
   switch (runningstatus?.toLowerCase()) {
@@ -45,7 +80,7 @@ function variantClass(variant) {
   }
 }
 
-export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, branch, apiKey }) {
+export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSecret, branch, apiKey }) {
   const { zelidauth } = useAuth();
   const [logsOpen, setLogsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('build');
@@ -77,7 +112,6 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
   async function runAction(actionId) {
     if (CONFIRM_REQUIRED.has(actionId) && confirmAction !== actionId) {
       setConfirmAction(actionId);
-      setConfirmRemove(false);
       return;
     }
     setConfirmAction(null);
@@ -121,6 +155,9 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
   }
 
   const status = mapRunningStatus(node.runningstatus);
+  const addonLogTabs = getAddonLogTabs(spec, appName);
+  const logTabs = [...LOG_TABS, ...addonLogTabs];
+  const selectedAddonLog = addonLogTabs.find((tab) => tab.id === activeTab);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
@@ -179,7 +216,8 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
         <div className="w-px bg-border mx-0.5 self-stretch" />
 
         {/* Flux node actions */}
-        {ACTION_BUTTONS.map(({ id, label, icon: Icon, variant }) => {
+        {ACTION_BUTTONS.map(({ id, label, icon, variant }) => {
+          const Icon = icon;
           const isLoading = loadingAction === id;
           const isConfirm = confirmAction === id;
           const confirmLabel = id === 'remove' ? 'Confirm Remove'
@@ -237,20 +275,23 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
         <div className="border-t border-border">
           {/* Tab bar */}
           <div className="flex border-b border-border bg-surface-hover">
-            {LOG_TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
-                  activeTab === id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-muted hover:text-text'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
+            {logTabs.map(({ id, label, icon }) => {
+              const Icon = icon;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                    activeTab === id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-text-muted hover:text-text'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           <LogsPanel
@@ -262,6 +303,7 @@ export default function InstanceCard({ node, appName, mgmtPort, webhookSecret, b
             activeTab={activeTab}
             mgmtPort={mgmtPort}
             apiKey={apiKey}
+            addonLog={selectedAddonLog}
           />
         </div>
       )}
