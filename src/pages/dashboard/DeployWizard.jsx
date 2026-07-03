@@ -175,6 +175,8 @@ export default function DeployWizard() {
     if (payload.appName && !config.appName?.trim()) updates.appName = payload.appName;
     if (payload.prPreviewEnabled != null) updates.prPreviewEnabled = Boolean(payload.prPreviewEnabled);
     if (payload.database) updates.database = payload.database;
+    if (payload.redis) updates.redis = payload.redis;
+    if (payload.database?.enabled || payload.redis?.enabled) updates.enterprise = true;
 
     const importedGeo = geolocationFromImport(payload);
     if (importedGeo.length) updates.geolocation = importedGeo;
@@ -222,17 +224,25 @@ export default function DeployWizard() {
     if (step === 2) return isRepoValidated();
     if (step === 3) {
       const db = config.database;
+      const redis = config.redis;
       const dbValid = !db?.enabled || plan?.id !== 'custom' || (
         db.componentName?.length >= 1 &&
         (db.type !== 'postgres' || db.dbName?.length >= 1) &&
         plan?.instances >= 3
       );
+      const redisValid = !redis?.enabled || plan?.id !== 'custom' || (
+        redis.componentName?.length >= 1 &&
+        plan?.instances >= 3
+      );
+      const uniqueAddonNames = !(db?.enabled && redis?.enabled) || db.componentName !== redis.componentName;
       return (
         config.appName?.length >= 3 &&
         /^[a-z][a-z0-9-]*[a-z0-9]$/.test(config.appName) &&
         config.port &&
         Boolean(config.contactEmail?.trim()) &&
-        dbValid
+        dbValid &&
+        redisValid &&
+        uniqueAddonNames
       );
     }
     if (step === 4) return termsAccepted;

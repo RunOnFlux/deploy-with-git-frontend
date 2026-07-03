@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList, Info } from 'lucide-react';
 import { maskGitUrl, BILLING_PERIODS, normalizeCustomPlan } from '../../services/deployService';
 import { formatGeoRows } from '../../services/geolocationSpec';
-import { DB_MIN_INSTANCES, DB_TYPES, getDatabaseConnectionString, formatRamMb } from '../../services/databaseSpec';
+import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb } from '../../services/databaseSpec';
 import { extractGitInfo } from '../../services/appsService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,6 +11,36 @@ function Row({ label, value, mono }) {
     <div className="flex gap-4 py-2 border-b border-border last:border-0">
       <span className="text-xs text-text-muted w-36 shrink-0 pt-0.5">{label}</span>
       <span className={`text-sm text-text break-all ${mono ? 'font-mono' : ''}`}>{value || '—'}</span>
+    </div>
+  );
+}
+
+function EnvRow({ envKey, value, revealed, info, onToggleReveal }) {
+  return (
+    <div className="flex gap-4 py-2 border-b border-border">
+      <span className="text-xs text-text-muted w-36 shrink-0 pt-0.5">{envKey}</span>
+      <div className="flex-1 flex items-start gap-2 min-w-0">
+        <span className="text-sm text-text font-mono break-all flex-1">
+          {envKey}={revealed ? value : redactConnectionPassword(value)}
+        </span>
+        <button
+          type="button"
+          className="text-text-muted hover:text-text shrink-0"
+          title={info}
+          aria-label={`${envKey} usage info`}
+        >
+          <Info className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleReveal}
+          className="text-text-muted hover:text-text shrink-0"
+          title={revealed ? `Hide ${envKey}` : `Show ${envKey}`}
+          aria-label={revealed ? `Hide ${envKey}` : `Show ${envKey}`}
+        >
+          {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -31,19 +61,25 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
 
   const [jsonOpen, setJsonOpen] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
+  const [showAddonEnv, setShowAddonEnv] = useState({});
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
   const [eligible, setEligible] = useState(true);
   const [existingAppName, setExistingAppName] = useState(null);
 
-  // Enterprise apps (private repos are auto-encrypted) follow a stricter free-first-month rule.
-  const isEnterprise = !!(repo?.isPrivate || config?.enterprise);
+  const clusterAddonEnabled = !!(config.database?.enabled || config.redis?.enabled);
+  // Enterprise apps (private repos and cluster add-ons are auto-encrypted) follow a stricter free-first-month rule.
+  const isEnterprise = !!(repo?.isPrivate || config?.enterprise || clusterAddonEnabled);
 
   const billingLabel = BILLING_PERIODS.find((b) => b.months === config.billingPeriod?.months)?.label ?? '1 month';
   const displayPlan = normalizeCustomPlan(plan);
-  const displayInstances = config.database?.enabled && plan?.id === 'custom'
+  const displayInstances = clusterAddonEnabled && plan?.id === 'custom'
     ? Math.max(displayPlan.instances, DB_MIN_INSTANCES)
     : displayPlan.instances;
   const displayUrl = showCreds ? repo.url : maskGitUrl(repo.url);
+
+  function toggleAddonEnv(key) {
+    setShowAddonEnv((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   // Canonical identity of a git repo for "same project" comparison.
   // Reduces any URL to `host/owner/repo` (lowercased), ignoring scheme, embedded
@@ -191,7 +227,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         <Row label="Branch" value={repo.branch || 'main'} mono />
         {repo.subdirectory && <Row label="Subdirectory" value={repo.subdirectory} mono />}
         <Row label="Access" value={repo.isPrivate ? '🔒 Private' : '🌐 Public'} />
-        <Row label="Enterprise" value={(repo.isPrivate || config.enterprise) ? '🔐 Encrypted' : '—'} />
+        <Row label="Enterprise" value={isEnterprise ? 'Encrypted' : '—'} />
       </section>
 
       {config.database?.enabled && plan?.id === 'custom' && (
@@ -203,19 +239,38 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <Row label="CPU" value={`${config.database.resources?.cpu} vCPU`} />
           <Row label="RAM" value={formatRamMb(config.database.resources?.ram)} />
           <Row label="Storage" value={`${config.database.resources?.hdd} GB`} />
-          <div className="flex gap-4 py-2 border-b border-border">
-            <span className="text-xs text-text-muted w-36 shrink-0 pt-0.5">
-              {DB_TYPES[config.database.type]?.envKey ?? 'Connection'}
-            </span>
-            <span className="text-sm text-text font-mono break-all">
-              {getDatabaseConnectionString({
+          <EnvRow
+            envKey={DB_TYPES[config.database.type]?.envKey ?? 'DATABASE_URL'}
+            value={getDatabaseConnectionString({
                 type: config.database.type,
                 componentName: config.database.componentName,
                 password: config.database.password,
                 dbName: config.database.dbName,
               })}
-            </span>
-          </div>
+            revealed={!!showAddonEnv.database}
+            info={`${DB_TYPES[config.database.type]?.envKey ?? 'DATABASE_URL'} is injected into your app container. Use process.env.${DB_TYPES[config.database.type]?.envKey ?? 'DATABASE_URL'} in your application to connect to this ${DB_TYPES[config.database.type]?.label ?? 'database'} component.`}
+            onToggleReveal={() => toggleAddonEnv('database')}
+          />
+        </section>
+      )}
+
+      {config.redis?.enabled && plan?.id === 'custom' && (
+        <section className="card p-4 mb-4">
+          <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Redis</h3>
+          <Row label="Component" value={config.redis.componentName} mono />
+          <Row label="CPU" value={`${config.redis.resources?.cpu} vCPU`} />
+          <Row label="RAM" value={formatRamMb(config.redis.resources?.ram)} />
+          <Row label="Storage" value={`${config.redis.resources?.hdd} GB`} />
+          <EnvRow
+            envKey={REDIS_ADDON.envKey}
+            value={getRedisConnectionString({
+                componentName: config.redis.componentName,
+                password: config.redis.password,
+              })}
+            revealed={!!showAddonEnv.redis}
+            info={`${REDIS_ADDON.envKey} is injected into your app container. Use process.env.${REDIS_ADDON.envKey} in your application to connect to Redis through the TLS proxy on port 6380.`}
+            onToggleReveal={() => toggleAddonEnv('redis')}
+          />
         </section>
       )}
 

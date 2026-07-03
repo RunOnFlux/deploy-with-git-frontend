@@ -8,6 +8,7 @@ import { PLANS, normalizeCustomPlan } from './deployService';
 import {
   DB_MIN_INSTANCES,
   databaseConfigFromFluxSchema,
+  redisConfigFromFluxSchema,
 } from './databaseSpec';
 
 const ORBIT_POLLING_INTERVAL_ALIASES = {
@@ -192,6 +193,16 @@ export function parseFluxConfig(data) {
     }
   }
 
+  const redisBlock = data.redis && typeof data.redis === 'object'
+    ? data.redis
+    : (!payload.database && data.database?.type && typeof data.database === 'object' ? data.database : null);
+  const redis = redisConfigFromFluxSchema(redisBlock, payload.database?.ports ?? []);
+  if (redis) {
+    payload.redis = redis;
+    payload.planId = 'custom';
+    payload.instances = Math.max(payload.instances ?? DB_MIN_INSTANCES, DB_MIN_INSTANCES);
+  }
+
   if (data.envVars) {
     const envVars = parseStructuredEnvVars(data.envVars);
     if (envVars.length) payload.envVars = envVars;
@@ -225,7 +236,8 @@ export function parseFluxConfig(data) {
 export function resolvePlanFromImport(payload) {
   if (!payload) return null;
 
-  const planId = payload.database?.enabled ? 'custom' : payload.planId;
+  const hasClusterAddon = payload.database?.enabled || payload.redis?.enabled;
+  const planId = hasClusterAddon ? 'custom' : payload.planId;
   if (!planId || !FLUX_PLAN_IDS.has(planId)) return null;
 
   const template = PLANS.find((p) => p.id === planId);
@@ -237,7 +249,7 @@ export function resolvePlanFromImport(payload) {
       cpu: payload.cpu,
       ram: payload.ram,
       hdd: payload.hdd,
-      instances: payload.database?.enabled
+      instances: hasClusterAddon
         ? Math.max(payload.instances ?? DB_MIN_INSTANCES, DB_MIN_INSTANCES)
         : payload.instances,
     });

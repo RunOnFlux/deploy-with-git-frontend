@@ -62,6 +62,14 @@ const INITIAL_STATE = {
       resources: { cpu: 1, ram: 4000, hdd: 20 },
       ports: null,
     },
+    redis: {
+      enabled: false,
+      componentName: 'redis',
+      password: '',
+      sslPassphrase: '',
+      resources: { cpu: 0.5, ram: 1000, hdd: 5 },
+      ports: null,
+    },
   },
 
   // Terms acceptance (required before Step 5)

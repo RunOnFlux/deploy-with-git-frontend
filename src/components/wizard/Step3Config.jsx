@@ -20,7 +20,7 @@ const POLLING_OPTIONS = [
 const RESERVED_ENV_KEYS = new Set([
   'BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND',
   'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED',
-  'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL',
+  'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL', 'REDIS_URL',
 ]);
 
 function EnvImporter({ onImport }) {
@@ -203,15 +203,15 @@ function ConfigSection({ title, description, children }) {
   );
 }
 
-function EnterpriseModeBlock({ enterprise, isEnterpriseForced, onToggle }) {
+function EnterpriseModeBlock({ enterprise, isEnterpriseForced, forceReason, onToggle }) {
   if (isEnterpriseForced) {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
         <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-text">Enterprise mode — required</p>
+          <p className="text-sm font-semibold text-text">Enterprise mode enabled</p>
           <p className="text-xs text-text-secondary mt-0.5">
-            Private repositories require encrypted specs on ArcaneOS nodes. Environment variables are end-to-end encrypted.
+            {forceReason || 'Private repositories require encrypted specs on ArcaneOS nodes. Environment variables are end-to-end encrypted.'}
           </p>
         </div>
       </div>
@@ -245,7 +245,7 @@ function EnterpriseModeBlock({ enterprise, isEnterpriseForced, onToggle }) {
 }
 
 
-function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, configured, children }) {
+function CollapsibleCard({ title, description, icon, expanded, onToggle, configured, children }) {
   return (
     <div className="rounded-xl border border-border bg-surface/40 overflow-hidden">
       <button
@@ -253,7 +253,7 @@ function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, c
         onClick={onToggle}
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface-hover/40 transition-colors"
       >
-        <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        {icon}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-text">{title}</p>
@@ -277,13 +277,13 @@ function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, c
 
 export default function Step3Config({ plan, config, onChange, onPlanChange, portAutoDetected, isEnterpriseForced, appPorts }) {
   const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
-          contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
-          buildCommand, runCommand, installCommand, webhookSecret, apiKey,
+          contactEmail, customDomain, pollingInterval, webhookSecret, apiKey,
           prPreviewEnabled, enterprise } = config;
   const [nameState, setNameState] = useState('idle');
   const [nameError, setNameError] = useState('');
   const [showPreviewBuilds, setShowPreviewBuilds] = useState(false);
   const debounceRef = useRef(null);
+  const addonEnterpriseRequired = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
 
   // Debounced name availability check
   useEffect(() => {
@@ -308,6 +308,13 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
   useEffect(() => {
     if (prPreviewEnabled) setShowPreviewBuilds(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Generated database/Redis credentials must be encrypted in Enterprise specs.
+  useEffect(() => {
+    if (addonEnterpriseRequired && !enterprise) {
+      onChange({ ...config, enterprise: true });
+    }
+  }, [addonEnterpriseRequired, enterprise]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field, value) {
     onChange({ ...config, [field]: value });
@@ -509,7 +516,12 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
 
         <EnterpriseModeBlock
           enterprise={enterprise}
-          isEnterpriseForced={isEnterpriseForced}
+          isEnterpriseForced={isEnterpriseForced || addonEnterpriseRequired}
+          forceReason={
+            addonEnterpriseRequired
+              ? 'Cluster add-ons store generated connection secrets in environment variables, so the app spec is encrypted.'
+              : undefined
+          }
           onToggle={(v) => update('enterprise', v)}
         />
       </ConfigSection>
@@ -591,7 +603,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
       <CollapsibleCard
         title="Preview builds"
         description="Deploy a preview for each pull request. Static sites only."
-        icon={GitPullRequest}
+        icon={<GitPullRequest className="w-5 h-5 text-primary shrink-0 mt-0.5" />}
         expanded={showPreviewBuilds}
         onToggle={() => setShowPreviewBuilds((v) => !v)}
         configured={!!prPreviewEnabled}
