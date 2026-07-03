@@ -5,6 +5,7 @@ import { fetchAppLogPolling, nodeBaseUrl, containerName, fetchNodeOrbitStatus, f
 const POLL_INTERVAL_MS = 60_000;
 
 // Strip ANSI/VT100 escape codes (e.g. [0;32m, [0m)
+// eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 const stripAnsi = (s) => s.replace(ANSI_RE, '');
 
@@ -264,6 +265,7 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const isMountedRef = useRef(true);
   const bottomRef = useRef(null);
 
@@ -304,7 +306,7 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
       ctrl.abort();
       clearInterval(interval);
     };
-  }, [base, container, zelidauth]);
+  }, [base, container, zelidauth, refreshKey]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
@@ -329,7 +331,10 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
           )}
           {error && <span className="text-xs text-danger truncate max-w-xs" title={error}>{error}</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
           {lines.length > 0 && (
             <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
               <Download className="w-3.5 h-3.5" />
