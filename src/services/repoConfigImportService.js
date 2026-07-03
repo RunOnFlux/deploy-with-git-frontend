@@ -248,9 +248,7 @@ export function parseFluxConfig(data) {
     }
   }
 
-  const redisBlock = data.redis && typeof data.redis === 'object'
-    ? data.redis
-    : (!payload.database && data.database?.type && typeof data.database === 'object' ? data.database : null);
+  const redisBlock = data.redis && typeof data.redis === 'object' ? data.redis : null;
   const redis = redisConfigFromFluxSchema(redisBlock, payload.database?.ports ?? []);
   if (redis) {
     payload.redis = redis;
