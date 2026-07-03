@@ -209,6 +209,17 @@ export function generatePortPair() {
   return [ext, mgmt];
 }
 
+export function isValidPort(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d+$/.test(text)) return false;
+  const port = Number(text);
+  return Number.isInteger(port) && port > 0 && port <= 65535;
+}
+
+export function supportsAdditionalAppPort(plan) {
+  return Boolean(plan?.id && plan.id !== 'free');
+}
+
 // ─── App name validation ─────────────────────────────────────────────────────
 export const APP_NAME_REGEX = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
@@ -308,18 +319,40 @@ export function redactSpecCredentials(spec) {
  * @param {string} params.email
  * @param {object} params.plan - { cpu, ram (MB), hdd, instances }
  * @param {object} params.repo - { url, branch, subdirectory }
- * @param {object} params.config - { appName, port, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
- * @param {[number, number]} params.ports - [extPort, mgmtPort]
+ * @param {object} params.config - { appName, port, additionalPort, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
+ * @param {[number, number, number?]} params.ports - [extPort, additionalExtPort?, mgmtPort]
  */
 export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
   const plan = normalizeCustomPlan(rawPlan);
-  const [extPort, mgmtPort] = ports;
+  const [extPort] = ports;
   const {
-    appName, port, billingPeriod, geolocation = [], extraEnvVars = [],
+    appName, port, additionalPort, billingPeriod, geolocation = [], extraEnvVars = [],
     pollingInterval, runtime, runtimeVersion,
     buildCommand, runCommand, installCommand, prPreviewEnabled,
     webhookSecret, apiKey,
   } = config;
+  const database = config.database;
+  const redis = config.redis;
+  const primaryAppPort = parseInt(port, 10);
+  const extraAppPort = parseInt(String(additionalPort ?? ''), 10);
+  const extraAppPortEnabled =
+    supportsAdditionalAppPort(plan) &&
+    isValidPort(additionalPort) &&
+    extraAppPort !== primaryAppPort &&
+    extraAppPort !== 9001;
+  const mgmtPort = extraAppPortEnabled ? (ports[2] ?? ports[1]) : ports[1];
+  const orbitExternalPorts = [extPort];
+  const orbitContainerPorts = [primaryAppPort];
+  if (extraAppPortEnabled) {
+    orbitExternalPorts.push(ports[2] ? ports[1] : generatePort([
+      ...ports,
+      ...(database?.ports ?? []),
+      ...(redis?.ports ?? []),
+    ]));
+    orbitContainerPorts.push(extraAppPort);
+  }
+  orbitExternalPorts.push(mgmtPort);
+  orbitContainerPorts.push(9001);
 
   // Core env vars
   const envParams = [
@@ -363,12 +396,10 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
     }
   }
 
-  const database = config.database;
-  const redis = config.redis;
   const dbEnabled = plan?.id === 'custom' && database?.enabled;
   const redisEnabled = plan?.id === 'custom' && redis?.enabled;
   const addonEnabled = dbEnabled || redisEnabled;
-  const usedPorts = [...ports];
+  const usedPorts = [...orbitExternalPorts];
   let dbPorts = database?.ports;
   let redisPorts = redis?.ports;
 
@@ -420,11 +451,11 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
         name: 'cloudgit',
         description: 'cloudgit',
         repotag: 'runonflux/orbit:latest',
-        ports: [extPort, mgmtPort],
-        domains: ['', ''],
+        ports: orbitExternalPorts,
+        domains: orbitExternalPorts.map(() => ''),
         environmentParameters: envParams,
         commands: [],
-        containerPorts: [parseInt(port, 10), 9001],
+        containerPorts: orbitContainerPorts,
         containerData: '/app',
         cpu: plan.cpu,
         ram: plan.ram,   // already in MB

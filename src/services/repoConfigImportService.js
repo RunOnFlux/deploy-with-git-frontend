@@ -67,7 +67,14 @@ function parseStructuredEnvVars(envVars) {
 }
 
 function coerceYamlScalar(raw) {
-  const val = raw.replace(/^['"]|['"]$/g, '');
+  const text = String(raw ?? '').trim();
+  if (/^\[.*\]$/.test(text)) {
+    const inner = text.slice(1, -1).trim();
+    if (!inner) return [];
+    return inner.split(',').map((part) => coerceYamlScalar(part.trim()));
+  }
+
+  const val = text.replace(/^['"]|['"]$/g, '');
   if (val === 'true') return true;
   if (val === 'false') return false;
   if (/^\d+$/.test(val)) return parseInt(val, 10);
@@ -101,6 +108,29 @@ function parseFluxYaml(content) {
     const inlineVal = topMatch[2].trim();
 
     if (inlineVal === '') {
+      const list = [];
+      let listIndex = i + 1;
+      while (listIndex < lines.length) {
+        const subRaw = lines[listIndex];
+        const subTrimmed = subRaw.trim();
+        if (!subTrimmed || subTrimmed.startsWith('#')) {
+          listIndex++;
+          continue;
+        }
+        if (!/^\s+/.test(subRaw)) break;
+        if (!subTrimmed.startsWith('-')) {
+          list.length = 0;
+          break;
+        }
+        list.push(coerceYamlScalar(subTrimmed.replace(/^-\s*/, '')));
+        listIndex++;
+      }
+      if (list.length > 0) {
+        result[key] = list;
+        i = listIndex;
+        continue;
+      }
+
       const nested = {};
       i++;
       while (i < lines.length) {
@@ -137,6 +167,29 @@ function parsePositiveInt(value) {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+function parseAppPorts(value) {
+  const pending = Array.isArray(value) ? [...value] : [value];
+  const ports = [];
+
+  while (pending.length && ports.length < 2) {
+    const next = pending.shift();
+    if (Array.isArray(next)) {
+      pending.unshift(...next);
+      continue;
+    }
+
+    const text = String(next ?? '').trim();
+    if (!/^\d+$/.test(text)) continue;
+
+    const port = Number(text);
+    if (port > 0 && port <= 65535 && !ports.includes(port)) {
+      ports.push(port);
+    }
+  }
+
+  return ports.map(String);
+}
+
 /**
  * Parse a flux.json / flux.yaml (simple key-value subset) config object
  * into a wizard prefill payload.
@@ -146,10 +199,12 @@ export function parseFluxConfig(data) {
 
   const payload = {};
 
-  const port = data.appPort || data.port || data.APP_PORT;
-  if (port) {
-    const p = parseInt(String(port), 10);
-    if (p > 0 && p <= 65535) payload.appPort = String(p);
+  let appPorts = parseAppPorts(data.appPort);
+  if (!appPorts.length) appPorts = parseAppPorts(data.port);
+  if (!appPorts.length) appPorts = parseAppPorts(data.APP_PORT);
+  if (appPorts[0]) payload.appPort = appPorts[0];
+  if (appPorts[1] && appPorts[1] !== '9001') {
+    payload.additionalPort = appPorts[1];
   }
 
   const polling = data.pollingInterval || data.ORBIT_CHECK_INTERVAL || data.checkInterval;

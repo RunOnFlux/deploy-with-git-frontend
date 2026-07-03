@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Eye, EyeOff, AlertTriangle, CheckSquare, Square, Loader2, ClipboardList, Info } from 'lucide-react';
-import { maskGitUrl, BILLING_PERIODS, normalizeCustomPlan } from '../../services/deployService';
+import {
+  maskGitUrl,
+  BILLING_PERIODS,
+  normalizeCustomPlan,
+  isValidPort,
+  supportsAdditionalAppPort,
+} from '../../services/deployService';
 import { formatGeoRows } from '../../services/geolocationSpec';
 import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb } from '../../services/databaseSpec';
 import { extractGitInfo } from '../../services/appsService';
@@ -76,6 +82,20 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     ? Math.max(displayPlan.instances, DB_MIN_INSTANCES)
     : displayPlan.instances;
   const displayUrl = showCreds ? repo.url : maskGitUrl(repo.url);
+  const additionalAppPortEnabled =
+    supportsAdditionalAppPort(plan) &&
+    isValidPort(config.additionalPort) &&
+    Number(config.additionalPort) !== Number(config.port) &&
+    Number(config.additionalPort) !== 9001;
+  const mgmtExternalPort = ports?.length ? ports[ports.length - 1] : null;
+  const secondAppExternalPort = additionalAppPortEnabled && ports?.length > 2 ? ports[1] : null;
+  const externalPortRows = ports
+    ? [
+        String(ports[0]),
+        ...(secondAppExternalPort ? [`${secondAppExternalPort} (second app)`] : []),
+        `${mgmtExternalPort} (mgmt)`,
+      ].join(' / ')
+    : '—';
 
   function toggleAddonEnv(key) {
     setShowAddonEnv((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -278,8 +298,15 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       <section className="card p-4 mb-4">
         <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Configuration</h3>
         <Row label="App name" value={config.appName} mono />
-        <Row label="App port" value={config.port} mono />
-        <Row label="External ports" value={ports ? `${ports[0]} / ${ports[1]} (mgmt)` : '—'} mono />
+        <Row label="App port" value={ports?.[0] ? `${config.port} -> ${ports[0]}` : config.port} mono />
+        {additionalAppPortEnabled && (
+          <Row
+            label="Second app port"
+            value={secondAppExternalPort ? `${config.additionalPort} -> ${secondAppExternalPort}` : config.additionalPort}
+            mono
+          />
+        )}
+        <Row label="External ports" value={externalPortRows} mono />
         {config.contactEmail && <Row label="Contact email" value={config.contactEmail} />}
         {config.customDomain && <Row label="Custom domain" value={config.customDomain} mono />}
         <Row label="Auto-redeploy" value={POLLING_LABELS[config.pollingInterval] || config.pollingInterval || '24 hours'} />
@@ -314,6 +341,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
             repo: { url: maskGitUrl(repo.url), branch: repo.branch, subdirectory: repo.subdirectory },
             config: {
               appName: config.appName, port: config.port,
+              additionalPort: additionalAppPortEnabled ? config.additionalPort : undefined,
               billingPeriod: config.billingPeriod?.months,
               pollingInterval: config.pollingInterval,
               runtime: config.runtime,

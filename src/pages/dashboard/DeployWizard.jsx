@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
-import { PLANS, normalizeCustomPlan } from '../../services/deployService';
+import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
 import { geolocationFromImport } from '../../services/geolocationSpec';
 import Step1Plan from '../../components/wizard/Step1Plan';
@@ -99,6 +99,7 @@ export default function DeployWizard() {
     const projectPath = get('projectPath') || get('path') || get('subdirectory');
     const planAlias = (get('plan') || get('tier')).toLowerCase();
     const appPort = get('appPort') || get('port');
+    const additionalAppPort = get('additionalAppPort') || get('appPort2') || get('port2');
     const pollingRaw = (get('pollingInterval') || get('polling')).toLowerCase();
     const runtimeRaw = (get('runtime') || '').toLowerCase();
     const runtimeVersion = get('runtimeVersion') || get('runtime_version');
@@ -107,7 +108,7 @@ export default function DeployWizard() {
     const polling = POLLING_ALIASES[pollingRaw] || pollingRaw;
     const runtime = RUNTIME_ALIASES[runtimeRaw];
 
-    const hasAny = repoUrl || planId || appPort || polling || runtime || heroPrefill?.url;
+    const hasAny = repoUrl || planId || appPort || additionalAppPort || polling || runtime || heroPrefill?.url;
     if (!hasAny) return;
 
     if (planId) {
@@ -143,6 +144,10 @@ export default function DeployWizard() {
 
     const configUpdates = {};
     if (appPort) configUpdates.port = appPort;
+    if (additionalAppPort) {
+      configUpdates.additionalPort = additionalAppPort;
+      configUpdates.additionalPortTouched = true;
+    }
     if (polling) configUpdates.pollingInterval = polling;
     if (runtime) configUpdates.runtime = runtime;
     if (runtimeVersion && runtime) configUpdates.runtimeVersion = runtimeVersion;
@@ -155,6 +160,13 @@ export default function DeployWizard() {
       setConfig({ enterprise: true });
     }
   }, [repo.isPrivate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The Free plan exposes only the primary app port.
+  useEffect(() => {
+    if (plan?.id === 'free' && (config.additionalPort || config.additionalPortTouched)) {
+      setConfig({ additionalPort: '', additionalPortTouched: false });
+    }
+  }, [plan?.id, config.additionalPort, config.additionalPortTouched]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -169,6 +181,10 @@ export default function DeployWizard() {
   function handleConfigImported(payload) {
     const updates = {};
     if (payload.appPort && !config.portTouched) updates.port = payload.appPort;
+    if (payload.additionalPort) {
+      updates.additionalPort = payload.additionalPort;
+      updates.additionalPortTouched = false;
+    }
     if (payload.pollingInterval) updates.pollingInterval = payload.pollingInterval;
     if (payload.runtime) updates.runtime = payload.runtime;
     if (payload.runtimeVersion) updates.runtimeVersion = payload.runtimeVersion;
@@ -225,6 +241,18 @@ export default function DeployWizard() {
     if (step === 3) {
       const db = config.database;
       const redis = config.redis;
+      const primaryPort = Number(config.port);
+      const additionalPort = Number(config.additionalPort);
+      const appPortValid = isValidPort(config.port);
+      const additionalPortValid = (
+        !config.additionalPort ||
+        (
+          supportsAdditionalAppPort(plan) &&
+          isValidPort(config.additionalPort) &&
+          additionalPort !== primaryPort &&
+          additionalPort !== 9001
+        )
+      );
       const dbValid = !db?.enabled || plan?.id !== 'custom' || (
         db.componentName?.length >= 1 &&
         (db.type !== 'postgres' || db.dbName?.length >= 1) &&
@@ -238,7 +266,8 @@ export default function DeployWizard() {
       return (
         config.appName?.length >= 3 &&
         /^[a-z][a-z0-9-]*[a-z0-9]$/.test(config.appName) &&
-        config.port &&
+        appPortValid &&
+        additionalPortValid &&
         Boolean(config.contactEmail?.trim()) &&
         dbValid &&
         redisValid &&

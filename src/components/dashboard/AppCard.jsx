@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { GitBranch, GitCommit, Cpu, HardDrive, Layers, ExternalLink, Globe, Lock, RefreshCw } from 'lucide-react';
 import { FaGithub, FaGitlab, FaBitbucket } from 'react-icons/fa';
 import StatusBadge from './StatusBadge';
-import { fetchNodeOrbitStatus, getSpecEnvValue } from '../../services/managementService';
+import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 
 function Skel({ className }) {
   return <div className={`animate-pulse rounded bg-surface-hover ${className}`} />;
@@ -76,8 +76,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
   const ramGb = app.ram ? (app.ram / 1000).toFixed(1) : null;
   const RepoIcon = getRepoIcon(app.gitRepo);
 
-  // mgmt port is the second port in the first compose service
-  const mgmtPort = app._decryptFailed ? null : (app.compose?.[0]?.ports?.[1] ?? null);
+  const mgmtPort = app._decryptFailed ? null : getMgmtPort(app);
   // API_KEY from env params — needed for authenticated management endpoints
   const apiKey = getSpecEnvValue(app, 'API_KEY') || undefined;
   // Use the first running node IP attached by useAppsWithStatus
@@ -217,4 +216,3 @@ export default function AppCard({ app, compact = false, onRetry }) {
     </div>
   );
 }
-

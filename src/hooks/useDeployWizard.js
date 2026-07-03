@@ -1,5 +1,10 @@
 import { useReducer, useCallback } from 'react';
-import { generatePortPair } from '../services/deployService';
+import {
+  generatePort,
+  generatePortPair,
+  isValidPort,
+  supportsAdditionalAppPort,
+} from '../services/deployService';
 
 const INITIAL_STATE = {
   step: 1,
@@ -34,6 +39,8 @@ const INITIAL_STATE = {
     appName: '',
     port: '3000',
     portTouched: false, // user manually edited the port
+    additionalPort: '',
+    additionalPortTouched: false,
     billingPeriod: { months: 1, label: '1 month', discount: 0 },
     geolocation: [],
     extraEnvVars: [], // [{ key, value }]
@@ -76,7 +83,7 @@ const INITIAL_STATE = {
   termsAccepted: false,
 
   // Generated once per wizard session
-  ports: null, // [extPort, mgmtPort]
+  ports: null, // [extPort, additionalExtPort?, mgmtPort]
 
   // Step 4/5 — registration
   verifiedSpec: null,
@@ -199,13 +206,45 @@ export function useDeployWizard() {
 
   // ── Ensure ports are generated once ─────────────────────────────────────────
   const ensurePorts = useCallback(() => {
+    const primaryPort = parseInt(state.config.port, 10);
+    const additionalPort = parseInt(String(state.config.additionalPort ?? ''), 10);
+    const needsAdditionalPort =
+      supportsAdditionalAppPort(state.plan) &&
+      isValidPort(state.config.additionalPort) &&
+      additionalPort !== primaryPort &&
+      additionalPort !== 9001;
+    const addonPorts = [
+      ...(state.config.database?.ports ?? []),
+      ...(state.config.redis?.ports ?? []),
+    ];
+
     if (!state.ports) {
       const ports = generatePortPair();
+      if (needsAdditionalPort) {
+        ports.splice(1, 0, generatePort([...ports, ...addonPorts]));
+      }
       dispatch({ type: 'SET_PORTS', payload: ports });
       return ports;
     }
+
+    if (needsAdditionalPort && state.ports.length < 3) {
+      const ports = [
+        state.ports[0],
+        generatePort([...state.ports, ...addonPorts]),
+        state.ports[1],
+      ];
+      dispatch({ type: 'SET_PORTS', payload: ports });
+      return ports;
+    }
+
+    if (!needsAdditionalPort && state.ports.length > 2) {
+      const ports = [state.ports[0], state.ports[state.ports.length - 1]];
+      dispatch({ type: 'SET_PORTS', payload: ports });
+      return ports;
+    }
+
     return state.ports;
-  }, [state.ports]);
+  }, [state.config.additionalPort, state.config.database?.ports, state.config.port, state.config.redis?.ports, state.plan, state.ports]);
 
   return {
     state,

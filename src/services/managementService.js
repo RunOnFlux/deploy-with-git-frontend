@@ -175,11 +175,12 @@ export async function fetchNodeLogs(nodeBase, container, zelidauth, lines = 100)
 
 /**
  * Extract the management (webhook) server external port from an app spec.
- * Orbit always exposes the webhook server as the second port in the compose ports array.
+ * Orbit exposes the webhook server as the last port in the compose ports array.
  */
 export function getMgmtPort(spec) {
   const compose = spec?.compose?.[0] ?? {};
-  return compose.ports?.[1] ?? null;
+  const ports = compose.ports ?? [];
+  return ports.length ? ports[ports.length - 1] : null;
 }
 
 /**

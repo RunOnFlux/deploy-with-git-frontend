@@ -143,7 +143,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
       if (configResult?.payload) {
         setConfigImportSource(configResult.filePath);
         onConfigImportedRef.current?.(configResult.payload);
-        if (configResult.payload.appPort) setPortAutoDetected(true);
+        if (configResult.payload.appPort || configResult.payload.additionalPort) setPortAutoDetected(true);
       } else {
         setConfigImportSource('');
         if (portResult?.port) {
