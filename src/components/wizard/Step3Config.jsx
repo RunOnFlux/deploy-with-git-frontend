@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal, Clock } from 'lucide-react';
-import { BILLING_PERIODS, validateAppName, checkAppNameAvailable } from '../../services/deployService';
+import {
+  BILLING_PERIODS,
+  validateAppName,
+  checkAppNameAvailable,
+  isValidPort,
+  supportsAdditionalAppPort,
+} from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
 import DatabaseAddon from './DatabaseAddon';
 import CustomPlanResources, { PlanResourceSummary } from './CustomPlanResources';
@@ -20,7 +26,7 @@ const POLLING_OPTIONS = [
 const RESERVED_ENV_KEYS = new Set([
   'BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND',
   'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED',
-  'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL',
+  'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL', 'REDIS_URL',
 ]);
 
 function EnvImporter({ onImport }) {
@@ -203,15 +209,15 @@ function ConfigSection({ title, description, children }) {
   );
 }
 
-function EnterpriseModeBlock({ enterprise, isEnterpriseForced, onToggle }) {
+function EnterpriseModeBlock({ enterprise, isEnterpriseForced, forceReason, onToggle }) {
   if (isEnterpriseForced) {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
         <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-text">Enterprise mode — required</p>
+          <p className="text-sm font-semibold text-text">Enterprise mode enabled</p>
           <p className="text-xs text-text-secondary mt-0.5">
-            Private repositories require encrypted specs on ArcaneOS nodes. Environment variables are end-to-end encrypted.
+            {forceReason || 'Private repositories require encrypted specs on ArcaneOS nodes. Environment variables are end-to-end encrypted.'}
           </p>
         </div>
       </div>
@@ -245,7 +251,7 @@ function EnterpriseModeBlock({ enterprise, isEnterpriseForced, onToggle }) {
 }
 
 
-function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, configured, children }) {
+function CollapsibleCard({ title, description, icon, expanded, onToggle, configured, children }) {
   return (
     <div className="rounded-xl border border-border bg-surface/40 overflow-hidden">
       <button
@@ -253,7 +259,7 @@ function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, c
         onClick={onToggle}
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface-hover/40 transition-colors"
       >
-        <Icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        {icon}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-text">{title}</p>
@@ -276,14 +282,25 @@ function CollapsibleCard({ title, description, icon: Icon, expanded, onToggle, c
 
 
 export default function Step3Config({ plan, config, onChange, onPlanChange, portAutoDetected, isEnterpriseForced, appPorts }) {
-  const { appName, port, portTouched, billingPeriod, geolocation, extraEnvVars,
-          contactEmail, customDomain, pollingInterval, runtime, runtimeVersion,
-          buildCommand, runCommand, installCommand, webhookSecret, apiKey,
+  const { appName, port, portTouched, additionalPort, additionalPortTouched, billingPeriod, geolocation, extraEnvVars,
+          contactEmail, customDomain, pollingInterval, webhookSecret, apiKey,
           prPreviewEnabled, enterprise } = config;
   const [nameState, setNameState] = useState('idle');
   const [nameError, setNameError] = useState('');
   const [showPreviewBuilds, setShowPreviewBuilds] = useState(false);
   const debounceRef = useRef(null);
+  const addonEnterpriseRequired = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
+  const additionalPortSupported = supportsAdditionalAppPort(plan);
+  const primaryPortNumber = Number(port);
+  const additionalPortNumber = Number(additionalPort);
+  const additionalPortOpen = additionalPortSupported && (additionalPortTouched || Boolean(additionalPort));
+  const additionalPortValid =
+    !additionalPort ||
+    (
+      isValidPort(additionalPort) &&
+      additionalPortNumber !== primaryPortNumber &&
+      additionalPortNumber !== 9001
+    );
 
   // Debounced name availability check
   useEffect(() => {
@@ -308,6 +325,13 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
   useEffect(() => {
     if (prPreviewEnabled) setShowPreviewBuilds(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Generated database/Redis credentials must be encrypted in Enterprise specs.
+  useEffect(() => {
+    if (addonEnterpriseRequired && !enterprise) {
+      onChange({ ...config, enterprise: true });
+    }
+  }, [addonEnterpriseRequired, enterprise]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function update(field, value) {
     onChange({ ...config, [field]: value });
@@ -340,6 +364,18 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
 
   function removeEnvVar(idx) {
     update('extraEnvVars', extraEnvVars.filter((_, i) => i !== idx));
+  }
+
+  function openAdditionalPort() {
+    onChange({ ...config, additionalPortTouched: true });
+  }
+
+  function updateAdditionalPort(value) {
+    onChange({ ...config, additionalPort: value, additionalPortTouched: true });
+  }
+
+  function removeAdditionalPort() {
+    onChange({ ...config, additionalPort: '', additionalPortTouched: false });
   }
 
   const nameStatusIcon = {
@@ -444,6 +480,59 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           <p className="text-xs text-text-muted mt-1">
             The port your app listens on inside the container (e.g. 3000, 8080, 5000).
           </p>
+
+          {additionalPortSupported && (
+            <div className="mt-3">
+              {additionalPortOpen ? (
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
+                    Second app port <span className="text-text-muted font-normal">(optional)</span>
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="number"
+                      min="1" max="65535"
+                      placeholder="8080"
+                      value={additionalPort ?? ''}
+                      onChange={(e) => updateAdditionalPort(e.target.value)}
+                      className={`input-base w-36 ${additionalPort && !additionalPortValid ? 'border-red-500/50 focus:ring-red-500' : ''}`}
+                    />
+                    {additionalPort && !additionalPortTouched && (
+                      <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
+                        <Zap className="w-3.5 h-3.5" /> Auto-detected
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={removeAdditionalPort}
+                      className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                      title="Remove second app port"
+                      aria-label="Remove second app port"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-text-muted mt-1">
+                    Exposes one extra port for your app container and maps it to a random Flux external port.
+                  </p>
+                  {additionalPort && !additionalPortValid && (
+                    <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Use a valid port different from {port || 'the primary app port'} and 9001.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openAdditionalPort}
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Add second app port
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </ConfigSection>
 
@@ -509,7 +598,12 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
 
         <EnterpriseModeBlock
           enterprise={enterprise}
-          isEnterpriseForced={isEnterpriseForced}
+          isEnterpriseForced={isEnterpriseForced || addonEnterpriseRequired}
+          forceReason={
+            addonEnterpriseRequired
+              ? 'Cluster add-ons store generated connection secrets in environment variables, so the app spec is encrypted.'
+              : undefined
+          }
           onToggle={(v) => update('enterprise', v)}
         />
       </ConfigSection>
@@ -591,7 +685,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
       <CollapsibleCard
         title="Preview builds"
         description="Deploy a preview for each pull request. Static sites only."
-        icon={GitPullRequest}
+        icon={<GitPullRequest className="w-5 h-5 text-primary shrink-0 mt-0.5" />}
         expanded={showPreviewBuilds}
         onToggle={() => setShowPreviewBuilds((v) => !v)}
         configured={!!prPreviewEnabled}

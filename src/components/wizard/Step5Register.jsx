@@ -11,7 +11,6 @@ import {
   signWithZelCore,
   uploadContacts,
   streamTestInstall,
-  maskGitUrl,
   buildPrivateRepoUrl,
   redactSpecCredentials,
 } from '../../services/deployService';
@@ -99,7 +98,8 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       // 3. Verify spec with Flux backend → get normalized spec to sign
       //    Falls back to local spec if verify times out or fails (like minecraft)
-      const isEnterprise = repo.isPrivate || !!config.enterprise;
+      const requiresEnterpriseAddon = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
+      const isEnterprise = repo.isPrivate || !!config.enterprise || requiresEnterpriseAddon;
       let normalizedSpec;
       try {
         normalizedSpec = await verifySpec(localSpec);
@@ -232,7 +232,8 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
     });
   }
 
-  const isEnterprise = repo.isPrivate || !!config.enterprise;
+  const requiresEnterpriseAddon = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
+  const isEnterprise = repo.isPrivate || !!config.enterprise || requiresEnterpriseAddon;
   const phaseSteps = isEnterprise
     ? ['verify', 'encrypt', 'sign', 'register', 'install']
     : ['verify', 'sign', 'register', 'install'];

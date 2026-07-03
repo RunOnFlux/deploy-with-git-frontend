@@ -5,6 +5,7 @@ import { fetchAppLogPolling, nodeBaseUrl, containerName, fetchNodeOrbitStatus, f
 const POLL_INTERVAL_MS = 60_000;
 
 // Strip ANSI/VT100 escape codes (e.g. [0;32m, [0m)
+// eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 const stripAnsi = (s) => s.replace(ANSI_RE, '');
 
@@ -259,16 +260,18 @@ function OrbitAppLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
 
 // ── Container-logs sub-panel (Flux node API) ─────────────────────────────────
 
-function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
+function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth, container, downloadName }) {
   const [lines, setLines] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const isMountedRef = useRef(true);
   const bottomRef = useRef(null);
 
   const base = nodeBaseUrl(nodeIp, nodePort);
-  const container = containerName(appName);
+  const logContainer = container ?? containerName(appName);
+  const filePrefix = downloadName ?? `${appName}-app`;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -279,7 +282,7 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
 
     async function poll() {
       try {
-        const data = await fetchAppLogPolling(base, container, zelidauth, 200, 0);
+        const data = await fetchAppLogPolling(base, logContainer, zelidauth, 200, 0);
         if (ctrl.signal.aborted) return;
         if (data?.status === 'success') {
           setLines(Array.isArray(data.logs) ? data.logs.filter(Boolean).map(stripAnsi) : []);
@@ -304,7 +307,7 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
       ctrl.abort();
       clearInterval(interval);
     };
-  }, [base, container, zelidauth]);
+  }, [base, logContainer, zelidauth, refreshKey]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
@@ -313,7 +316,7 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${appName}-app-${Date.now()}.log`;
+    a.download = `${filePrefix}-${Date.now()}.log`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -329,7 +332,10 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
           )}
           {error && <span className="text-xs text-danger truncate max-w-xs" title={error}>{error}</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
           {lines.length > 0 && (
             <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
               <Download className="w-3.5 h-3.5" />
@@ -363,14 +369,21 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth }) {
 
 // ── Public component ──────────────────────────────────────────────────────────
 
-export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, activeTab, mgmtPort, apiKey }) {
+export default function LogsPanel({ nodeIp, nodePort, appName, zelidauth, activeTab, mgmtPort, apiKey, addonLog }) {
   return (
     <div className="flex h-64">
       {activeTab === 'build'
         ? <BuildLogsPanel appName={appName} mgmtPort={mgmtPort} nodeIp={nodeIp} apiKey={apiKey} />
         : activeTab === 'orbit-app'
           ? <OrbitAppLogsPanel appName={appName} mgmtPort={mgmtPort} nodeIp={nodeIp} apiKey={apiKey} />
-          : <AppLogsPanel nodeIp={nodeIp} nodePort={nodePort} appName={appName} zelidauth={zelidauth} />
+          : <AppLogsPanel
+              nodeIp={nodeIp}
+              nodePort={nodePort}
+              appName={appName}
+              zelidauth={zelidauth}
+              container={addonLog?.container}
+              downloadName={addonLog?.downloadName}
+            />
       }
     </div>
   );

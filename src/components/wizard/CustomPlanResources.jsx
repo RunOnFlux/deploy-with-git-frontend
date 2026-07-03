@@ -33,7 +33,7 @@ function InstancesPicker({ value, min, onChange }) {
       </div>
       <p className="text-[11px] text-text-muted">
         {min > 1
-          ? `At least ${min} instances required when a database is enabled.`
+          ? `At least ${min} instances required when a database or Redis addon is enabled.`
           : 'Multiple instances improve uptime on the decentralized network.'}
       </p>
     </div>
@@ -79,8 +79,8 @@ export default function CustomPlanResources({ plan, config, onPlanChange }) {
   if (plan?.id !== 'custom') return null;
 
   const custom = normalizeCustomPlan(plan);
-  const dbEnabled = config?.database?.enabled;
-  const minInstances = dbEnabled ? DB_MIN_INSTANCES : 1;
+  const clusterAddonEnabled = config?.database?.enabled || config?.redis?.enabled;
+  const minInstances = clusterAddonEnabled ? DB_MIN_INSTANCES : 1;
 
   function handleField(field, value) {
     onPlanChange?.(normalizeCustomPlan({ ...custom, [field]: value }));

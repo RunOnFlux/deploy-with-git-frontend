@@ -145,6 +145,7 @@ export default function AppDetail() {
                   key={`${node.ip}-${node.port}`}
                   node={node}
                   appName={appName}
+                  spec={spec}
                   mgmtPort={getMgmtPort(spec)}
                   webhookSecret={getSpecEnvValue(spec, 'WEBHOOK_SECRET')}
                   branch={getSpecEnvValue(spec, 'GIT_BRANCH', 'BRANCH') || 'main'}

@@ -4,9 +4,13 @@
  */
 import qs from 'qs';
 import {
+  DB_MIN_INSTANCES,
   buildDatabaseCompose,
+  buildRedisAddonCompose,
   generateDbPorts,
+  generateRedisPorts,
   getDatabaseEnvVar,
+  getRedisEnvVar,
 } from './databaseSpec';
 import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
 
@@ -205,6 +209,17 @@ export function generatePortPair() {
   return [ext, mgmt];
 }
 
+export function isValidPort(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d+$/.test(text)) return false;
+  const port = Number(text);
+  return Number.isInteger(port) && port > 0 && port <= 65535;
+}
+
+export function supportsAdditionalAppPort(plan) {
+  return Boolean(plan?.id && plan.id !== 'free');
+}
+
 // ─── App name validation ─────────────────────────────────────────────────────
 export const APP_NAME_REGEX = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
@@ -304,18 +319,40 @@ export function redactSpecCredentials(spec) {
  * @param {string} params.email
  * @param {object} params.plan - { cpu, ram (MB), hdd, instances }
  * @param {object} params.repo - { url, branch, subdirectory }
- * @param {object} params.config - { appName, port, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
- * @param {[number, number]} params.ports - [extPort, mgmtPort]
+ * @param {object} params.config - { appName, port, additionalPort, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
+ * @param {[number, number, number?]} params.ports - [extPort, additionalExtPort?, mgmtPort]
  */
 export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
   const plan = normalizeCustomPlan(rawPlan);
-  const [extPort, mgmtPort] = ports;
+  const [extPort] = ports;
   const {
-    appName, port, billingPeriod, geolocation = [], extraEnvVars = [],
+    appName, port, additionalPort, billingPeriod, geolocation = [], extraEnvVars = [],
     pollingInterval, runtime, runtimeVersion,
     buildCommand, runCommand, installCommand, prPreviewEnabled,
     webhookSecret, apiKey,
   } = config;
+  const database = config.database;
+  const redis = config.redis;
+  const primaryAppPort = parseInt(port, 10);
+  const extraAppPort = parseInt(String(additionalPort ?? ''), 10);
+  const extraAppPortEnabled =
+    supportsAdditionalAppPort(plan) &&
+    isValidPort(additionalPort) &&
+    extraAppPort !== primaryAppPort &&
+    extraAppPort !== 9001;
+  const mgmtPort = extraAppPortEnabled ? (ports[2] ?? ports[1]) : ports[1];
+  const orbitExternalPorts = [extPort];
+  const orbitContainerPorts = [primaryAppPort];
+  if (extraAppPortEnabled) {
+    orbitExternalPorts.push(ports[2] ? ports[1] : generatePort([
+      ...ports,
+      ...(database?.ports ?? []),
+      ...(redis?.ports ?? []),
+    ]));
+    orbitContainerPorts.push(extraAppPort);
+  }
+  orbitExternalPorts.push(mgmtPort);
+  orbitContainerPorts.push(9001);
 
   // Core env vars
   const envParams = [
@@ -352,21 +389,25 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
   if (prPreviewEnabled) envParams.push('PR_PREVIEW_ENABLED=true');
 
   // Extra user-defined env vars (reserved keys are filtered out at the UI layer)
-  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED', 'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL']);
+  const RESERVED = new Set(['BUILD_COMMAND', 'RUN_COMMAND', 'INSTALL_COMMAND', 'GIT_REPO_URL', 'APP_PORT', 'ORBIT_CHECK_INTERVAL', 'PR_PREVIEW_ENABLED', 'WEBHOOK_SECRET', 'API_KEY', 'DATABASE_URL', 'MONGO_URL', 'REDIS_URL']);
   for (const { key, value } of extraEnvVars) {
     if (key?.trim() && !RESERVED.has(key.trim().toUpperCase())) {
       envParams.push(`${key.trim()}=${value || ''}`);
     }
   }
 
-  const database = config.database;
   const dbEnabled = plan?.id === 'custom' && database?.enabled;
+  const redisEnabled = plan?.id === 'custom' && redis?.enabled;
+  const addonEnabled = dbEnabled || redisEnabled;
+  const usedPorts = [...orbitExternalPorts];
   let dbPorts = database?.ports;
+  let redisPorts = redis?.ports;
 
   if (dbEnabled) {
     if (!dbPorts?.length) {
-      dbPorts = generateDbPorts(database.type, ports);
+      dbPorts = generateDbPorts(database.type, usedPorts);
     }
+    usedPorts.push(...dbPorts);
     const dbEnv = getDatabaseEnvVar({
       type: database.type,
       componentName: database.componentName,
@@ -375,6 +416,20 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
     });
     if (!envParams.some((p) => p.startsWith(`${dbEnv.key}=`))) {
       envParams.push(`${dbEnv.key}=${dbEnv.value}`);
+    }
+  }
+
+  if (redisEnabled) {
+    if (!redisPorts?.length) {
+      redisPorts = generateRedisPorts(usedPorts);
+    }
+    usedPorts.push(...redisPorts);
+    const redisEnv = getRedisEnvVar({
+      componentName: redis.componentName,
+      password: redis.password,
+    });
+    if (!envParams.some((p) => p.startsWith(`${redisEnv.key}=`))) {
+      envParams.push(`${redisEnv.key}=${redisEnv.value}`);
     }
   }
 
@@ -396,11 +451,11 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
         name: 'cloudgit',
         description: 'cloudgit',
         repotag: 'runonflux/orbit:latest',
-        ports: [extPort, mgmtPort],
-        domains: ['', ''],
+        ports: orbitExternalPorts,
+        domains: orbitExternalPorts.map(() => ''),
         environmentParameters: envParams,
         commands: [],
-        containerPorts: [parseInt(port, 10), 9001],
+        containerPorts: orbitContainerPorts,
         containerData: '/app',
         cpu: plan.cpu,
         ram: plan.ram,   // already in MB
@@ -411,8 +466,11 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
       ...(dbEnabled
         ? [buildDatabaseCompose({ ...database, ports: dbPorts }, appName)].filter(Boolean)
         : []),
+      ...(redisEnabled
+        ? [buildRedisAddonCompose({ ...redis, ports: redisPorts })].filter(Boolean)
+        : []),
     ],
-    instances: dbEnabled ? Math.max(plan.instances, 3) : plan.instances,
+    instances: addonEnabled ? Math.max(plan.instances, DB_MIN_INSTANCES) : plan.instances,
     contacts,
     geolocation: geoArray,
     expire: expireBlocks,
@@ -565,7 +623,7 @@ export async function getPaymentAddress(zelidauth) {
  * POST /apps/calculatefiatandfluxprice  (direct — CORS *)
  * Returns { usd, flux }.
  */
-export async function calculatePrice(spec, zelidauth) {
+export async function calculatePrice(spec, _zelidauth) {
   const resp = await fetch(`${FLUX_API}/apps/calculatefiatandfluxprice`, {
     method: 'POST',
     body: JSON.stringify(spec),

@@ -19,8 +19,18 @@ export const DB_TYPES = {
   },
 };
 
+export const REDIS_ADDON = {
+  id: 'redis',
+  label: 'Redis',
+  image: 'runonflux/flux-redis-cluster:latest',
+  defaultComponentName: 'redis',
+  defaultResources: { cpu: 0.5, ram: 1000, hdd: 5 },
+  envKey: 'REDIS_URL',
+};
+
 const PG_CONTAINER_PORTS = [5432, 5433, 8008, 2379, 2380];
 const MONGO_CONTAINER_PORTS = [27017, 3000];
+const REDIS_CONTAINER_PORTS = [6379, 26379, 6380];
 
 export function generateSecret(length = 24) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -34,6 +44,16 @@ export function generateDbPorts(type, existingPorts = []) {
   const used = [...existingPorts];
   const ports = [];
   for (let i = 0; i < count; i++) {
+    ports.push(generatePort(used));
+    used.push(ports[i]);
+  }
+  return ports;
+}
+
+export function generateRedisPorts(existingPorts = []) {
+  const used = [...existingPorts];
+  const ports = [];
+  for (let i = 0; i < REDIS_CONTAINER_PORTS.length; i++) {
     ports.push(generatePort(used));
     used.push(ports[i]);
   }
@@ -56,6 +76,17 @@ export function createDefaultDatabaseConfig(type = 'postgres') {
   };
 }
 
+export function createDefaultRedisConfig() {
+  return {
+    enabled: false,
+    componentName: REDIS_ADDON.defaultComponentName,
+    password: generateSecret(20),
+    sslPassphrase: generateSecret(16),
+    resources: { ...REDIS_ADDON.defaultResources },
+    ports: null,
+  };
+}
+
 export function buildPostgresCompose({
   componentName,
   resources,
@@ -65,7 +96,7 @@ export function buildPostgresCompose({
   replicationPassword,
   sslPassphrase,
 }) {
-  const [pgPort, proxyPort, patroniPort, etcdClientPort, etcdPeerPort] = ports;
+  const [pgPort, , patroniPort, etcdClientPort, etcdPeerPort] = ports;
 
   return {
     name: componentName,
@@ -127,6 +158,38 @@ export function buildMongoCompose({
   };
 }
 
+export function buildRedisCompose({
+  componentName,
+  resources,
+  ports,
+  password,
+  sslPassphrase,
+}) {
+  const [redisPort, sentinelPort] = ports;
+
+  return {
+    name: componentName,
+    description: 'Redis HA cluster',
+    repotag: REDIS_ADDON.image,
+    ports,
+    domains: ['', '', ''],
+    environmentParameters: [
+      `HOST_REDIS_PORT=${redisPort}`,
+      `HOST_SENTINEL_PORT=${sentinelPort}`,
+      `REDIS_PASSWORD=${password}`,
+      `SSL_PASSPHRASE=${sslPassphrase}`,
+    ],
+    commands: [],
+    containerPorts: REDIS_CONTAINER_PORTS,
+    containerData: '/var/lib/redis/data',
+    cpu: resources.cpu,
+    ram: resources.ram,
+    hdd: resources.hdd,
+    repoauth: '',
+    tiered: false,
+  };
+}
+
 export const DB_MIN_INSTANCES = 3;
 
 /** Flux specs use MB; UI shows GB (÷1000) with sensible rounding. */
@@ -144,6 +207,14 @@ export function mapFluxDatabaseType(fluxType) {
   const key = String(fluxType).toLowerCase().trim();
   if (key === 'pg' || key === 'postgres' || key === 'postgresql') return 'postgres';
   if (key === 'mongo' || key === 'mongodb') return 'mongodb';
+  return null;
+}
+
+/** Map flux.deploy.schema redis.type to the wizard Redis addon. */
+export function mapFluxRedisType(fluxType) {
+  if (!fluxType) return 'redis';
+  const key = String(fluxType).toLowerCase().trim();
+  if (key === 'redis' || key === 'cache') return 'redis';
   return null;
 }
 
@@ -180,6 +251,37 @@ export function databaseConfigFromFluxSchema(dbBlock, appPorts = []) {
   };
 }
 
+/**
+ * Build wizard Redis config from flux.deploy.schema `redis` block.
+ * Generates secrets and ports; never reuse credentials from repo files.
+ */
+export function redisConfigFromFluxSchema(redisBlock, appPorts = []) {
+  if (!redisBlock || typeof redisBlock !== 'object') return null;
+  if (!mapFluxRedisType(redisBlock.type)) return null;
+
+  const defaults = createDefaultRedisConfig();
+  const cpu = Number(redisBlock.cpu);
+  const ram = parseInt(String(redisBlock.ram ?? ''), 10);
+  const hdd = parseInt(String(redisBlock.hdd ?? ''), 10);
+  const componentName = String(redisBlock.componentName || redisBlock.name || defaults.componentName)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '') || defaults.componentName;
+
+  return {
+    enabled: true,
+    componentName,
+    password: generateSecret(20),
+    sslPassphrase: generateSecret(16),
+    resources: {
+      cpu: Number.isFinite(cpu) && cpu > 0 ? cpu : defaults.resources.cpu,
+      ram: Number.isFinite(ram) && ram >= 128 ? ram : defaults.resources.ram,
+      hdd: Number.isFinite(hdd) && hdd >= 1 ? hdd : defaults.resources.hdd,
+    },
+    ports: generateRedisPorts(appPorts),
+  };
+}
+
 export function getDatabaseConnectionString({ type, componentName, password, dbName }) {
   if (type === 'mongodb') {
     const encoded = encodeURIComponent(password);
@@ -197,6 +299,23 @@ export function getDatabaseEnvVar({ type, componentName, password, dbName }) {
     key: meta.envKey,
     value: getDatabaseConnectionString({ type, componentName, password, dbName }),
   };
+}
+
+export function getRedisConnectionString({ componentName, password }) {
+  const encoded = encodeURIComponent(password);
+  return `rediss://:${encoded}@${componentName}:6380`;
+}
+
+export function getRedisEnvVar({ componentName, password }) {
+  return {
+    key: REDIS_ADDON.envKey,
+    value: getRedisConnectionString({ componentName, password }),
+  };
+}
+
+export function redactConnectionPassword(connectionString) {
+  if (!connectionString) return '';
+  return String(connectionString).replace(/\/\/([^/@]*:)?([^@/?#]+)@/, (_match, userPart = '') => `//${userPart}********@`);
 }
 
 export function buildDatabaseCompose(database, appName) {
@@ -222,6 +341,20 @@ export function buildDatabaseCompose(database, appName) {
     dbName,
     password,
     replicationPassword,
+    sslPassphrase,
+  });
+}
+
+export function buildRedisAddonCompose(redis) {
+  if (!redis?.enabled) return null;
+
+  const { componentName, resources, ports, password, sslPassphrase } = redis;
+
+  return buildRedisCompose({
+    componentName,
+    resources,
+    ports,
+    password,
     sslPassphrase,
   });
 }

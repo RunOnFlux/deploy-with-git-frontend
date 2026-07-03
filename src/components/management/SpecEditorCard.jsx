@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Settings2, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw, Upload, Clipboard, X, SlidersHorizontal, KeyRound, Globe } from 'lucide-react';
+import { Plus, Trash2, Settings2, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, Check, RefreshCw, Upload, Clipboard, X, SlidersHorizontal, KeyRound, Globe, Server, Database } from 'lucide-react';
 import { parseEnvText } from '../../utils/envParser';
-import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../utils/firebase';
 import {
@@ -13,12 +12,15 @@ import {
   signWithSSP,
   signWithZelCore,
   pollUpdate,
+  PLANS,
 } from '../../services/deployService';
 import { parseGeoSpec, buildGeoSpec } from '../../services/geolocationSpec';
 import GeoSelector from '../common/GeoSelector';
 import { encryptSpec } from '../../services/enterpriseCrypto';
 import { redeployAllInstances } from '../../services/managementService';
 import Step6Payment from '../wizard/Step6Payment';
+import ResourceSlider from '../wizard/ResourceSlider';
+import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON } from '../../services/databaseSpec';
 
 // Keys that are completely hidden — never shown, always preserved as-is
 const HIDDEN_KEYS = new Set([
@@ -53,6 +55,208 @@ const POLLING_OPTIONS = [
   { value: '86400', label: '24 hours'   },
 ];
 
+function fixedPlanForSpec(spec) {
+  const compose = spec?.compose?.[0];
+  if (!compose) return null;
+  return PLANS.find((plan) =>
+    plan.id !== 'custom' &&
+    plan.cpu === Number(compose.cpu) &&
+    plan.ram === Number(compose.ram) &&
+    plan.hdd === Number(compose.hdd) &&
+    plan.instances === Number(spec.instances ?? 1)
+  ) ?? null;
+}
+
+function hasAddonComponents(spec) {
+  return (spec?.compose?.length ?? 0) > 1;
+}
+
+function getAddonKind(compose) {
+  const image = String(compose?.repotag ?? '').toLowerCase();
+  const name = String(compose?.name ?? '').toLowerCase();
+  if (
+    image === DB_TYPES.postgres.image.toLowerCase() ||
+    image.includes('flux-pg-cluster') ||
+    name === 'pg'
+  ) {
+    return 'db';
+  }
+  if (
+    image === DB_TYPES.mongodb.image.toLowerCase() ||
+    image.includes('flux-mongodb-cluster') ||
+    name === 'mongo'
+  ) {
+    return 'db';
+  }
+  if (
+    image === REDIS_ADDON.image.toLowerCase() ||
+    image.includes('flux-redis-cluster') ||
+    name === 'redis'
+  ) {
+    return 'redis';
+  }
+  return null;
+}
+
+function getAddonComponents(spec) {
+  return (spec?.compose ?? [])
+    .map((compose, index) => {
+      const kind = index === 0 ? null : getAddonKind(compose);
+      if (!kind) return null;
+      return {
+        index,
+        kind,
+        title: kind === 'redis' ? 'Redis resources' : 'Database resources',
+        tabLabel: kind === 'redis' ? 'Redis' : 'DB',
+        compose,
+      };
+    })
+    .filter(Boolean);
+}
+
+function isCustomResourceSpec(spec) {
+  if (!spec?.compose?.[0]) return false;
+  if (hasAddonComponents(spec)) return true;
+  return !fixedPlanForSpec(spec);
+}
+
+function normalizeComponentResources(resources) {
+  return {
+    cpu: Math.min(15, Math.max(0.1, Number(resources.cpu) || 0.1)),
+    ram: Math.min(59000, Math.max(100, Math.round(Number(resources.ram) || 100))),
+    hdd: Math.min(820, Math.max(1, Math.round(Number(resources.hdd) || 1))),
+  };
+}
+
+function normalizeAppResources(resources, minInstances = 1) {
+  return {
+    ...normalizeComponentResources(resources),
+    instances: Math.min(3, Math.max(minInstances, Math.round(Number(resources.instances) || minInstances))),
+  };
+}
+
+function ResourceSliderWithInput({
+  label,
+  value,
+  min,
+  max,
+  step,
+  inputValue,
+  inputSuffix,
+  disabled,
+  onChange,
+}) {
+  return (
+    <div>
+      <ResourceSlider
+        label={label}
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        disabled={disabled}
+        onChange={onChange}
+        valueControl={(
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={min}
+              max={max}
+              step={step}
+              value={inputValue}
+              onChange={(e) => {
+                if (e.target.value === '') return;
+                const next = Number(e.target.value);
+                if (Number.isFinite(next)) onChange(next);
+              }}
+              disabled={disabled}
+              className="input h-6 w-20 px-2 py-0 text-[11px] font-mono text-right disabled:opacity-40"
+            />
+            <span className="w-9 text-[11px] text-text-muted">{inputSuffix}</span>
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
+function InstancesPicker({ value, min, disabled, onChange }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-text-muted">Instances</span>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map((n) => {
+            const isDisabled = disabled || n < min;
+            return (
+              <button
+                key={n}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => onChange(n)}
+                className={`w-8 h-8 rounded-lg text-sm font-semibold border transition-colors ${
+                  value === n
+                    ? 'bg-primary text-white border-primary'
+                    : isDisabled
+                    ? 'bg-surface-hover/50 text-text-muted/40 border-border cursor-not-allowed'
+                    : 'bg-surface-hover text-text-secondary border-border hover:border-primary/50'
+                }`}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <p className="text-[11px] text-text-muted">
+        {min > 1
+          ? `At least ${min} instances required when a database or Redis addon is enabled.`
+          : 'Multiple instances improve uptime on the decentralized network.'}
+      </p>
+    </div>
+  );
+}
+
+function ResourceControls({ values, disabled, onChange }) {
+  return (
+    <div className="space-y-3">
+      <ResourceSliderWithInput
+        label="CPU"
+        value={values.cpu}
+        inputValue={values.cpu}
+        inputSuffix="vCPU"
+        min={0.1}
+        max={15}
+        step={0.1}
+        disabled={disabled}
+        onChange={(cpu) => onChange('cpu', Number(cpu.toFixed(1)))}
+      />
+      <ResourceSliderWithInput
+        label="RAM"
+        value={values.ram / 1000}
+        inputValue={values.ram / 1000}
+        inputSuffix="GB"
+        min={0.1}
+        max={59}
+        step={0.5}
+        disabled={disabled}
+        onChange={(ramGb) => onChange('ram', Math.round(ramGb * 1000))}
+      />
+      <ResourceSliderWithInput
+        label="SSD"
+        value={values.hdd}
+        inputValue={values.hdd}
+        inputSuffix="GB"
+        min={1}
+        max={820}
+        step={1}
+        disabled={disabled}
+        onChange={(hdd) => onChange('hdd', hdd)}
+      />
+    </div>
+  );
+}
+
 function parseEnvParams(params = []) {
   return params.map((e) => {
     const idx = e.indexOf('=');
@@ -64,13 +268,6 @@ function parseEnvParams(params = []) {
 
 function buildEnvParams(rows) {
   return rows.map(({ key, value }) => `${key}=${value}`);
-}
-
-// Return the ORBIT_SETTINGS_DEF that owns this env key (canonical or alias)
-function orbitDefFor(key) {
-  return ORBIT_SETTINGS_DEFS.find(
-    (d) => d.key === key || (d.aliases ?? []).includes(key),
-  );
 }
 
 function EnvImporter({ onImport, disabled }) {
@@ -168,22 +365,6 @@ function EnvImporter({ onImport, disabled }) {
   );
 }
 
-function SectionHeader({ title, expanded, onToggle }) {
-  return (
-    <button
-      className="flex items-center justify-between w-full text-left py-2 group"
-      onClick={onToggle}
-    >
-      <span className="font-medium text-sm text-text">{title}</span>
-      {expanded ? (
-        <ChevronUp className="w-4 h-4 text-text-muted group-hover:text-text transition-colors" />
-      ) : (
-        <ChevronDown className="w-4 h-4 text-text-muted group-hover:text-text transition-colors" />
-      )}
-    </button>
-  );
-}
-
 // ── Geo helpers ──────────────────────────────────────────────────────────────
 
 function PasswordInput({ value, onChange, placeholder, disabled }) {
@@ -219,15 +400,12 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const [customDomain, setCustomDomain] = useState('');
   const [userEnvRows, setUserEnvRows]   = useState([]); // { key, value }
   const [hiddenEnvRows, setHiddenEnvRows] = useState([]); // { key, value } — preserved, never shown
+  const [appResources, setAppResources] = useState({ cpu: 1, ram: 2000, hdd: 10, instances: 1 });
+  const [addonResources, setAddonResources] = useState({});
   // orbit settings: keyed by the actual env key found in spec (could be alias)
   // e.g. { POLLING_INTERVAL: '60', APP_PORT: '3000', BRANCH: 'main', ... }
   const [orbitSettings, setOrbitSettings] = useState({});
 
-  // Sections collapse state
-  const [settingsOpen, setSettingsOpen]   = useState(true);
-  const [orbitOpen, setOrbitOpen]         = useState(true);
-  const [userEnvOpen, setUserEnvOpen]     = useState(true);
-  const [geoOpen, setGeoOpen]             = useState(true); // kept for future use
   const [activeTab, setActiveTab]         = useState('general');
 
   const [geolocation, setGeolocation] = useState([]);
@@ -251,6 +429,22 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     setDescription(spec.description ?? '');
     const compose = spec.compose?.[0] ?? {};
     setCustomDomain(compose.domains?.[0] ?? '');
+    setAppResources({
+      cpu: Number(compose.cpu) || 1,
+      ram: Number(compose.ram) || 2000,
+      hdd: Number(compose.hdd) || 10,
+      instances: Number(spec.instances) || 1,
+    });
+    setAddonResources(Object.fromEntries(
+      getAddonComponents(spec).map(({ index, compose: addonCompose }) => [
+        index,
+        normalizeComponentResources({
+          cpu: addonCompose.cpu,
+          ram: addonCompose.ram,
+          hdd: addonCompose.hdd,
+        }),
+      ]),
+    ));
 
     const all = parseEnvParams(compose.environmentParameters ?? []);
     const hidden = [];
@@ -279,6 +473,20 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     const compose = spec.compose?.[0] ?? {};
     if (description !== (spec.description ?? '')) return true;
     if (customDomain !== (compose.domains?.[0] ?? '')) return true;
+    if (isCustomResourceSpec(spec)) {
+      const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
+      const resources = normalizeAppResources(appResources, minInstances);
+      if (resources.cpu !== Number(compose.cpu)) return true;
+      if (resources.ram !== Number(compose.ram)) return true;
+      if (resources.hdd !== Number(compose.hdd)) return true;
+      if (resources.instances !== Number(spec.instances ?? 1)) return true;
+    }
+    for (const { index, compose: addonCompose } of getAddonComponents(spec)) {
+      const resources = normalizeComponentResources(addonResources[index] ?? addonCompose);
+      if (resources.cpu !== Number(addonCompose.cpu)) return true;
+      if (resources.ram !== Number(addonCompose.ram)) return true;
+      if (resources.hdd !== Number(addonCompose.hdd)) return true;
+    }
 
     const allOrig = parseEnvParams(compose.environmentParameters ?? []);
     const origOrbit = {};
@@ -292,11 +500,29 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     if (JSON.stringify(origUser)  !== JSON.stringify(userEnvRows))   return true;
     if (JSON.stringify(buildGeoSpec(geolocation)) !== JSON.stringify(spec.geolocation ?? [])) return true;
     return false;
-  }, [spec, description, customDomain, orbitSettings, userEnvRows]);
+  }, [spec, description, customDomain, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
 
   // ── Helpers ───────────────────────────────────────────────────────────
   function updateOrbit(key, value) {
     setOrbitSettings((s) => ({ ...s, [key]: value }));
+  }
+
+  function updateAppResource(field, value) {
+    const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
+    setAppResources((resources) => normalizeAppResources(
+      { ...resources, [field]: field === 'instances' ? Math.round(value) : value },
+      minInstances,
+    ));
+  }
+
+  function updateAddonResource(index, field, value) {
+    setAddonResources((resources) => ({
+      ...resources,
+      [index]: normalizeComponentResources({
+        ...(resources[index] ?? spec?.compose?.[index] ?? {}),
+        [field]: value,
+      }),
+    }));
   }
 
   function addRow() {
@@ -322,20 +548,44 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       .map(([k, v]) => ({ key: k, value: v }));
     const validUser = userEnvRows.filter((r) => r.key.trim());
     const allRows   = [...hiddenEnvRows, ...orbitRows, ...validUser];
+    const resourcesEditable = isCustomResourceSpec(spec);
+    const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
+    const resources = normalizeAppResources(appResources, minInstances);
+    const addonEntries = getAddonComponents(spec);
+    const addonIndexes = new Set(addonEntries.map(({ index }) => index));
 
     const updatedSpec = {
       ...spec,
       description,
+      ...(resourcesEditable ? { instances: resources.instances } : {}),
       geolocation: buildGeoSpec(geolocation),
-      compose: spec.compose.map((c, i) =>
-        i === 0
-          ? {
-              ...c,
-              domains: [customDomain, c.domains?.[1] ?? ''],
-              environmentParameters: buildEnvParams(allRows),
-            }
-          : c,
-      ),
+      compose: spec.compose.map((c, i) => {
+        if (i === 0) {
+          return (() => {
+              const domainCount = Math.max(c.domains?.length ?? 0, c.ports?.length ?? 0, 1);
+              const domains = Array.from({ length: domainCount }, (_, idx) => c.domains?.[idx] ?? '');
+              domains[0] = customDomain;
+              return {
+                ...c,
+                ...(resourcesEditable
+                  ? { cpu: resources.cpu, ram: resources.ram, hdd: resources.hdd }
+                  : {}),
+                domains,
+                environmentParameters: buildEnvParams(allRows),
+              };
+            })();
+        }
+        if (addonIndexes.has(i)) {
+          const addonResourceValues = normalizeComponentResources(addonResources[i] ?? c);
+          return {
+            ...c,
+            cpu: addonResourceValues.cpu,
+            ram: addonResourceValues.ram,
+            hdd: addonResourceValues.hdd,
+          };
+        }
+        return c;
+      }),
     };
 
     setSavePhase('verifying');
@@ -472,11 +722,20 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     );
   }
 
+  const resourcesEditable = isCustomResourceSpec(spec);
+  const minResourceInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
+  const resourceValues = normalizeAppResources(appResources, minResourceInstances);
+  const addonComponents = getAddonComponents(spec);
+  const dbAddon = addonComponents.find(({ kind }) => kind === 'db');
+  const redisAddon = addonComponents.find(({ kind }) => kind === 'redis');
+
   const TABS = [
-    { id: 'general',  label: 'General',      icon: SlidersHorizontal },
-    { id: 'geo',      label: 'Geolocation',  icon: Globe },
-    { id: 'deploy',   label: 'Deploy',       icon: Settings2 },
-    { id: 'env',      label: `Env (${userEnvRows.length})`, icon: KeyRound },
+    { id: 'general',  label: 'General',      icon: <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" /> },
+    ...(dbAddon ? [{ id: 'db', label: 'DB', icon: <Database className="w-3.5 h-3.5 shrink-0" /> }] : []),
+    ...(redisAddon ? [{ id: 'redis', label: 'Redis', icon: <Server className="w-3.5 h-3.5 shrink-0" /> }] : []),
+    { id: 'geo',      label: 'Geolocation',  icon: <Globe className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'deploy',   label: 'Deploy',       icon: <Settings2 className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'env',      label: `Env (${userEnvRows.length})`, icon: <KeyRound className="w-3.5 h-3.5 shrink-0" /> },
   ];
 
   return (
@@ -485,7 +744,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
       {/* Tab bar */}
       <div className="flex gap-1 mb-3 shrink-0 bg-background/40 rounded-lg p-1">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({ id, label, icon }) => (
           <button
             key={id}
             type="button"
@@ -496,7 +755,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                 : 'text-text-muted hover:text-text-secondary'
             }`}
           >
-            <Icon className="w-3.5 h-3.5 shrink-0" />
+            {icon}
             <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
@@ -536,6 +795,70 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                 before applying changes.
               </p>
             </div>
+            {resourcesEditable && (
+              <div className="pt-3 border-t border-border/50">
+                <div className="flex items-start gap-2 mb-3">
+                  <Server className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-text">App resources</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Changes are registered on-chain and apply after redeploy.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <ResourceControls
+                    values={resourceValues}
+                    disabled={isSaving}
+                    onChange={updateAppResource}
+                  />
+                  <InstancesPicker
+                    value={resourceValues.instances}
+                    disabled={isSaving}
+                    min={minResourceInstances}
+                    onChange={(instances) => updateAppResource('instances', instances)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {dbAddon && activeTab === 'db' && (
+          <div className="space-y-3 py-1">
+            <div className="flex items-start gap-2">
+              <Database className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-text">Database resources</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Adjust CPU, RAM, and SSD for the {dbAddon.compose.name || 'database'} component.
+                </p>
+              </div>
+            </div>
+            <ResourceControls
+              values={normalizeComponentResources(addonResources[dbAddon.index] ?? dbAddon.compose)}
+              disabled={isSaving}
+              onChange={(field, value) => updateAddonResource(dbAddon.index, field, value)}
+            />
+          </div>
+        )}
+
+        {redisAddon && activeTab === 'redis' && (
+          <div className="space-y-3 py-1">
+            <div className="flex items-start gap-2">
+              <Server className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-text">Redis resources</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Adjust CPU, RAM, and SSD for the {redisAddon.compose.name || 'redis'} component.
+                </p>
+              </div>
+            </div>
+            <ResourceControls
+              values={normalizeComponentResources(addonResources[redisAddon.index] ?? redisAddon.compose)}
+              disabled={isSaving}
+              onChange={(field, value) => updateAddonResource(redisAddon.index, field, value)}
+            />
           </div>
         )}
 
@@ -545,7 +868,12 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             <p className="text-xs text-text-muted mb-3">
               Select regions to allow (✓) or forbid (✗). Leave blank for global deployment.
             </p>
-            <GeoSelector selected={geolocation} onChange={setGeolocation} disabled={isSaving} instances={spec?.instances ?? 1} />
+            <GeoSelector
+              selected={geolocation}
+              onChange={setGeolocation}
+              disabled={isSaving}
+              instances={resourcesEditable ? resourceValues.instances : (spec?.instances ?? 1)}
+            />
           </div>
         )}
 
@@ -624,13 +952,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                     placeholder="KEY"
                     disabled={isSaving}
                   />
-                  <input
-                    className="input flex-[2] text-xs font-mono"
-                    value={row.value}
-                    onChange={(e) => updateRow(idx, 'value', e.target.value)}
-                    placeholder="value"
-                    disabled={isSaving}
-                  />
+                  <div className="flex-[2]">
+                    <PasswordInput
+                      value={row.value}
+                      onChange={(e) => updateRow(idx, 'value', e.target.value)}
+                      placeholder="value"
+                      disabled={isSaving}
+                    />
+                  </div>
                   <button
                     onClick={() => removeRow(idx)}
                     disabled={isSaving}
@@ -737,4 +1066,3 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     </div>
   );
 }
-

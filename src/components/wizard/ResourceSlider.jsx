@@ -1,9 +1,11 @@
-export default function ResourceSlider({ label, value, valueLabel, min, max, step, unit, onChange }) {
+export default function ResourceSlider({ label, value, valueLabel, valueControl, min, max, step, unit, onChange, disabled = false }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-text-muted">{label}</span>
-        <span className="text-xs font-mono text-text">{valueLabel ?? `${value}${unit ?? ''}`}</span>
+        {valueControl ?? (
+          <span className="text-xs font-mono text-text">{valueLabel ?? `${value}${unit ?? ''}`}</span>
+        )}
       </div>
       <input
         type="range"
@@ -12,7 +14,8 @@ export default function ResourceSlider({ label, value, valueLabel, min, max, ste
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full accent-primary"
+        disabled={disabled}
+        className="w-full accent-primary disabled:opacity-40 disabled:cursor-not-allowed"
       />
     </div>
   );
