@@ -229,6 +229,7 @@ export function buildStaticHome() {
           <h2>Simple, transparent pricing</h2>
           <p>Start free. Scale as you grow. All plans include unlimited builds and the full Orbit feature set, with the first month free on paid plans.</p>
           <ul>${pricing}</ul>
+          <p><a href="/vercel-netlify-alternative">See how Orbit compares to Vercel &amp; Netlify →</a></p>
         </section>
 
         <section id="faq">

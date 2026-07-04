@@ -69,6 +69,21 @@ export default function Home() {
           <ComparisonSection />
           <GlobalNetworkSection />
           <PricingSection onLoginSuccess={handleLoginSuccess} />
+          <div className="px-6 -mt-8 lg:-mt-12 mb-4">
+            <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-2xl bg-surface border border-primary/30 shadow-lg shadow-primary/10">
+              <div className="text-center sm:text-left">
+                <p className="text-lg font-semibold text-text">Weighing your options?</p>
+                <p className="text-sm text-text-secondary">See exactly how Orbit stacks up against the big centralized platforms.</p>
+              </div>
+              <a
+                href="/vercel-netlify-alternative"
+                className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-semibold shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow"
+              >
+                See how Orbit compares to Vercel &amp; Netlify
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
           <FAQSection />
           <RelatedLinksSection />
           <CTASection onLoginSuccess={handleLoginSuccess} />
