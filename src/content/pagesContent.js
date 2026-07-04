@@ -242,7 +242,7 @@ export const MARKETING_PAGES = {
               ['Resources', 'Dedicated CPU / RAM per app', 'Shared, metered serverless', 'Shared, metered serverless', 'Shared edge / Workers'],
               ['Backends & long-running servers', 'Native — full containers', 'Serverless functions, limited', 'Serverless functions, limited', 'Workers only, no full servers'],
               ['Free tier', 'Free forever, no card, commercial OK', 'Hobby (non-commercial)', 'Free (build-minute limits)', 'Free (build/request limits)'],
-              ['Paid entry price', 'From $0.99–$3.99/mo', 'Paid Pro tier (higher, metered)', 'Paid Pro tier (higher, metered)', 'Paid Workers tier'],
+              ['Paid entry price', 'From $0.99–$3.99/mo', 'Pro ~$20/mo (metered)', 'Pro ~$19/mo (metered)', 'Workers ~$5/mo'],
               ['Vendor lock-in', 'None — portable containers', 'Proprietary runtime & config', 'Proprietary build & edge config', 'Proprietary Workers runtime'],
             ],
           },
@@ -257,7 +257,7 @@ export const MARKETING_PAGES = {
         blocks: [
           {
             type: 'p',
-            html: 'Vercel is the gold standard for front-end and Next.js, with deep framework integration and a polished dashboard. Its trade-offs are cost and model: the paid Pro plan is considerably more expensive on shared, metered serverless where heavy traffic can trigger overage charges, and long-running servers or background workers are awkward at best. Orbit gives you dedicated CPU and RAM from $0.99–$3.99/month, runs full long-running containers so backends work natively, and its free tier — unlike Vercel’s Hobby plan — allows commercial use. See the deep dive in our <a href="/vs/vercel">Orbit vs. Vercel comparison</a>.',
+            html: 'Vercel is the gold standard for front-end and Next.js, with deep framework integration and a polished dashboard. Its trade-offs are cost and model: the Pro plan runs about $20/month on shared, metered serverless where heavy traffic can trigger overage charges, and long-running servers or background workers are awkward at best. Orbit gives you dedicated CPU and RAM from $0.99–$3.99/month, runs full long-running containers so backends work natively, and its free tier — unlike Vercel’s Hobby plan — allows commercial use. See the deep dive in our <a href="/vs/vercel">Orbit vs. Vercel comparison</a>.',
           },
         ],
       },
@@ -266,7 +266,7 @@ export const MARKETING_PAGES = {
         blocks: [
           {
             type: 'p',
-            html: 'Netlify pioneered the Jamstack deploy experience and is superb for static sites, forms, and serverless functions. Like Vercel it meters usage — build minutes, bandwidth, and function invocations — and its paid Pro plan is considerably more expensive, with backend workloads pushed into short-lived serverless functions. Orbit runs your app as a persistent container instead, so a Django, FastAPI, Rails, Express, Go or Rust service — including WebSockets and background jobs — runs exactly as it would on a normal server, on decentralized infrastructure, at a lower fixed price.',
+            html: 'Netlify pioneered the Jamstack deploy experience and is superb for static sites, forms, and serverless functions. Like Vercel it meters usage — build minutes, bandwidth, and function invocations — and its Pro plan runs about $19/month, with backend workloads pushed into short-lived serverless functions. Orbit runs your app as a persistent container instead, so a Django, FastAPI, Rails, Express, Go or Rust service — including WebSockets and background jobs — runs exactly as it would on a normal server, on decentralized infrastructure, at a lower fixed price.',
           },
         ],
       },
@@ -336,7 +336,7 @@ export const MARKETING_PAGES = {
       },
       {
         q: 'How is Orbit cheaper than Vercel, Netlify and Cloudflare Pages?',
-        a: 'Orbit’s paid plans start at $0.99–$3.99/month for dedicated CPU and RAM, versus the incumbents’ considerably pricier paid Pro tiers on shared, metered infrastructure. Orbit’s free tier is also genuinely free forever, with no credit card and no non-commercial restriction.',
+        a: 'Orbit’s paid plans start at $0.99–$3.99/month for dedicated CPU and RAM, versus Vercel Pro (~$20/mo), Netlify Pro (~$19/mo) and Cloudflare Workers (~$5/mo) on shared, metered infrastructure. Orbit’s free tier is also genuinely free forever, with no credit card and no non-commercial restriction.',
       },
       {
         q: 'Do I have to change my code to move from Vercel or Netlify to Orbit?',
