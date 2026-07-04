@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import AnalyticsTracker from './components/common/AnalyticsTracker';
 import AnalyticsConsentBanner from './components/common/AnalyticsConsentBanner';
+import ScrollToTop from './components/ScrollToTop';
 
 import LoadingSpinner from './components/common/LoadingSpinner';
 
@@ -105,6 +106,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <Router>
+              <ScrollToTop />
               <AnalyticsTracker />
               <div className="min-h-screen bg-background text-text">
                 <Suspense fallback={<PageLoader />}>

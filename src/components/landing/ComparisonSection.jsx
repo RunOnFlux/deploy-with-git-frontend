@@ -152,8 +152,18 @@ export default function ComparisonSection() {
           </table>
         </motion.div>
 
-        <p className="text-center text-text-secondary text-sm mt-5">
-          Prices as of 2026. Orbit Developer plan: dedicated resources, decentralised infrastructure.
+        <div className="text-center mt-6">
+          <a
+            href="/vercel-netlify-alternative"
+            className="inline-flex items-center gap-1.5 text-primary font-medium hover:underline"
+          >
+            See the full comparison
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <p className="text-center text-text-muted text-xs leading-relaxed mt-5 max-w-2xl mx-auto">
+          Comparison accurate as of July 2026. Competitor prices and features change frequently — verify current details on each provider's official website. All product names, logos and brands are the property of their respective owners; this is an independent comparison and we are not affiliated with, endorsed by, or sponsored by any listed provider.
         </p>
       </div>
     </section>

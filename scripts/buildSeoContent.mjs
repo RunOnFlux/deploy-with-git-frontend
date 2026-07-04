@@ -222,7 +222,7 @@ export function buildStaticHome() {
 
         <section id="comparison">
           <h2>Orbit vs. Vercel, Netlify and Render</h2>
-          <p>Centralized platforms like Vercel and Netlify are polished, but they run your app on shared, metered infrastructure inside one company's cloud, with paid tiers starting around $19–$20/month and real limits on backends and long-running servers. Orbit gives you dedicated CPU and RAM on the decentralized Flux network for $0.99–$3.99/month, native support for full-stack backends, and a genuinely free-forever tier with no non-commercial restriction. Read the full <a href="/vs/vercel">Orbit vs. Vercel comparison</a> for a side-by-side breakdown.</p>
+          <p>Centralized platforms like Vercel and Netlify are polished, but they run your app on shared, metered infrastructure inside one company's cloud, with paid tiers starting around $19–$20/month and real limits on backends and long-running servers. Orbit gives you dedicated CPU and RAM on the decentralized Flux network for $0.99–$3.99/month, native support for full-stack backends, and a genuinely free-forever tier with no non-commercial restriction. Read the full <a href="/vs/vercel">Orbit vs. Vercel comparison</a> for a side-by-side breakdown, or <a href="/vercel-netlify-alternative">see the full comparison</a> against Vercel, Netlify and Cloudflare Pages together.</p>
         </section>
 
         <section id="pricing">
