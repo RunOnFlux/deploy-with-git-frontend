@@ -45,6 +45,38 @@ export const FAQS = [
     q: 'Can I use a custom domain?',
     a: 'Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
   },
+  {
+    q: 'Is Orbit really decentralized, and where does my app actually run?',
+    a: 'Yes. Orbit deploys to the Flux network — thousands of independent nodes run by thousands of separate operators across the globe. Your container runs on real, dedicated hardware on those nodes rather than in one company’s data center, so there is no single point of control or failure. This is what makes Orbit a genuinely decentralized, censorship-resistant alternative to centralized clouds.',
+  },
+  {
+    q: 'Can I deploy a Next.js, React, or static site on Orbit?',
+    a: 'Absolutely. Orbit auto-detects Next.js, Remix, Nuxt, SvelteKit, Astro, Create React App, Vite and every other popular JavaScript framework, builds the production output, and serves it from the Flux network. Static sites and single-page apps deploy in the same zero-config flow as full-stack apps.',
+  },
+  {
+    q: 'Can I deploy a backend — Django, FastAPI, Go, or Rust — not just a static site?',
+    a: 'Yes, and this is a real advantage over static-first hosts. Orbit runs your app as a full long-running container, so backends and server frameworks like Django, Flask, FastAPI, Rails, Express, Go and Rust services work natively — including background workers and persistent processes that serverless platforms handle poorly or not at all.',
+  },
+  {
+    q: 'How does automatic deployment from GitHub work?',
+    a: 'Connect a GitHub, GitLab, or Bitbucket repository and Orbit sets up a webhook so every push to your chosen branch triggers a fresh build and deploy automatically. A polling mode is also available if you cannot install a webhook. Pull requests and branches can generate preview deployments.',
+  },
+  {
+    q: 'Do I need crypto to use Orbit, or can I pay with a card?',
+    a: 'Both work. You can pay with a normal debit or credit card via Stripe, or with FLUX cryptocurrency through the ZelCore or SSP wallets. You do not need to own any crypto to deploy — the free tier requires no payment method at all.',
+  },
+  {
+    q: 'What happens if a build fails?',
+    a: 'Nothing breaks for your users. A failed build never replaces a working deployment — Orbit keeps the last known-good version live and automatically rolls back, so a bad commit cannot take your site down. Build logs stream in real time so you can diagnose and fix the issue.',
+  },
+  {
+    q: 'How is Orbit cheaper than Vercel or Netlify?',
+    a: 'Orbit has a genuinely free-forever tier and paid plans that start at $0.99–$3.99/month for dedicated resources, versus roughly $19–$20/month for the comparable Vercel or Netlify Pro tiers on shared infrastructure. Because compute runs on the decentralized Flux network rather than a centralized provider’s margins, the same money buys dedicated CPU and RAM instead of a shared, metered allowance.',
+  },
+  {
+    q: 'Can I deploy from a monorepo?',
+    a: 'Yes. Set the PROJECT_PATH variable to the subfolder you want to deploy and Orbit builds just that package from your monorepo, so you can host multiple apps or services from a single repository.',
+  },
 ];
 
 /**
@@ -54,7 +86,7 @@ export const FAQS = [
  */
 export const FEATURES = [
   { key: 'unlimited-builds', title: 'Unlimited Builds', description: 'No limit on build count or build duration. Ship as often as you need.' },
-  { key: 'dedicated-resources', title: 'Dedicated Resources', description: 'No shared hardware. Your rented resources are exclusively for your app.' },
+  { key: 'dedicated-resources', title: 'Dedicated Resources', description: 'No shared hardware. Your rented CPU, RAM and storage are exclusively yours — not a metered slice of someone else’s server, so performance stays predictable and there is no vendor lock-in.' },
   { key: 'frameworks', title: '100+ Frameworks', description: 'Node.js, Python, Rust, Go, Java, .NET, PHP and more, auto-detected every time.' },
   { key: 'zero-config', title: 'Zero Configuration', description: 'Auto-detects project type, installs dependencies, and builds automatically.' },
   { key: 'cicd', title: 'Built-in CI/CD', description: 'GitHub, GitLab, and Bitbucket webhooks plus polling mode. Your workflow, your choice.' },

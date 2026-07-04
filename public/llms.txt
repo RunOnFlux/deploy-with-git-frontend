@@ -34,6 +34,8 @@ Orbit deploys to the Flux decentralized network, so no single company controls y
 ## Links
 
 - [Orbit](https://orbit.runonflux.com/): deploy any Git repository to the Flux decentralized cloud.
+- [What is decentralized hosting?](https://orbit.runonflux.com/decentralized-hosting): pillar guide to web3, censorship-resistant hosting and how to deploy on it with Git.
+- [Orbit vs. Vercel](https://orbit.runonflux.com/vs/vercel): honest comparison of the decentralized alternative vs. Vercel on price, dedicated resources, backends, and vendor lock-in.
 - [Deploy with Git docs](https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/): official documentation for deploying from Git.
 - [Guides](https://github.com/RunOnFlux/deploy-with-git): deployment guides and examples.
 - [Flux Network](https://runonflux.io): the decentralized cloud network that powers Orbit.

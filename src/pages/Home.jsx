@@ -11,6 +11,7 @@ import ComparisonSection from '../components/landing/ComparisonSection';
 import GlobalNetworkSection from '../components/landing/GlobalNetworkSection';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
+import RelatedLinksSection from '../components/landing/RelatedLinksSection';
 import CTASection from '../components/landing/CTASection';
 import MobileStickyCTA from '../components/landing/MobileStickyCTA';
 import Footer from '../components/landing/Footer';
@@ -69,6 +70,7 @@ export default function Home() {
           <GlobalNetworkSection />
           <PricingSection onLoginSuccess={handleLoginSuccess} />
           <FAQSection />
+          <RelatedLinksSection />
           <CTASection onLoginSuccess={handleLoginSuccess} />
           <MobileStickyCTA onLoginSuccess={handleLoginSuccess} />
           <Footer />

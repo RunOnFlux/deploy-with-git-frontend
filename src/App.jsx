@@ -12,6 +12,7 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
+const MarketingPage = lazy(() => import('./pages/MarketingPage'));
 const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
 const Overview = lazy(() => import('./pages/dashboard/Overview'));
 const Deployments = lazy(() => import('./pages/dashboard/Deployments'));
@@ -110,6 +111,8 @@ function App() {
                   <Routes>
                     {/* Public */}
                     <Route path="/" element={<Home />} />
+                    <Route path="/decentralized-hosting" element={<MarketingPage route="/decentralized-hosting" />} />
+                    <Route path="/vs/vercel" element={<MarketingPage route="/vs/vercel" />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/deploy" element={<DeployGateway />} />
                     <Route path="/successcheckout" element={<StripeSuccessPage />} />

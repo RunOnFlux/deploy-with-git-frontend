@@ -3,7 +3,7 @@
  * <noscript> crawler fallback from the SAME sources the live components use
  * (src/content/landingContent.js + src/config/plans.js), so the two can never
  * drift again. Consumed by vite.config.js, which injects the output into
- * index.html (replacing the <!--SEO:JSONLD--> / <!--SEO:NOSCRIPT--> markers) and
+ * index.html (replacing the <!--SEO:JSONLD--> / <!--SEO:ROOT--> markers) and
  * then resolves the __SITE_URL__ origin token.
  *
  * Output keeps the __SITE_URL__ token literal — vite.config replaces it after
@@ -12,8 +12,15 @@
 
 import { SITE_FACTS, FAQS, FEATURES } from '../src/content/landingContent.js'
 import { ORBIT_PLANS } from '../src/config/plans.js'
+import { MARKETING_PAGES } from '../src/content/pagesContent.js'
 
 const ORIGIN = '__SITE_URL__'
+
+// Sentinel comments wrap the in-#root static content so the post-build prerender
+// (scripts/prerender.mjs) can swap the home content for a subpage's content by a
+// simple, robust string replace. They survive into dist/index.html.
+export const ROOT_START = '<!--ORBIT_ROOT_START-->'
+export const ROOT_END = '<!--ORBIT_ROOT_END-->'
 
 /** "0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance" — or the custom ranges. */
 function specList(plan) {
@@ -91,11 +98,37 @@ export function buildJsonLd() {
   return `<script type="application/ld+json">${json}</script>`
 }
 
+// Minimal inline styling so the pre-hydration content is legible for the rare
+// JS-disabled human. Crawlers ignore it; React wipes #root on boot so JS users
+// never see it. Kept tiny and self-contained.
+const STATIC_STYLE =
+  '<style>#orbit-seo{max-width:880px;margin:0 auto;padding:40px 20px;font-family:Inter,system-ui,-apple-system,sans-serif;color:#c7d2e0;line-height:1.65}#orbit-seo h1{font-size:2.2rem;line-height:1.15;color:#e8eefc;margin:0 0 .6rem}#orbit-seo h2{font-size:1.4rem;color:#e8eefc;margin:2rem 0 .6rem}#orbit-seo h3{font-size:1.05rem;color:#e8eefc;margin:1.2rem 0 .3rem}#orbit-seo a{color:#7cc7ff}#orbit-seo table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}#orbit-seo th,#orbit-seo td{border:1px solid #26324a;padding:8px 10px;text-align:left}</style>'
+
+/** Render structured content blocks (from pagesContent.js) to semantic HTML. */
+function renderBlocks(blocks) {
+  return blocks
+    .map((b) => {
+      if (b.type === 'p') return `<p>${b.html}</p>`
+      if (b.type === 'h3') return `<h3>${b.text}</h3>`
+      if (b.type === 'ul') return `<ul>${b.items.map((i) => `<li>${i}</li>`).join('')}</ul>`
+      if (b.type === 'table') {
+        const head = `<tr>${b.headers.map((h) => `<th>${h}</th>`).join('')}</tr>`
+        const body = b.rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')
+        return `<table><thead>${head}</thead><tbody>${body}</tbody></table>`
+      }
+      return ''
+    })
+    .join('')
+}
+
 /**
- * Static crawler/AI fallback shown when JS is disabled. React replaces #root once
- * it boots, so JS-enabled visitors never see this. Mirrors the live page sections.
+ * The homepage's real, crawlable content — rendered INSIDE #root at build time so
+ * dist/index.html ships a populated DOM (not an empty SPA shell). React replaces
+ * #root entirely once it boots, so JS-enabled browsers never see this. Generated
+ * from the same content sources the live components use, so the two can't drift.
+ * Wrapped in ROOT_START/ROOT_END sentinels so the prerender can swap it per route.
  */
-export function buildNoscript() {
+export function buildStaticHome() {
   const features = FEATURES.map((f) => `<li><strong>${f.title}</strong> — ${f.description}</li>`).join('')
 
   const pricing = ORBIT_PLANS.map((plan) => {
@@ -105,31 +138,26 @@ export function buildNoscript() {
 
   const faq = FAQS.map((f) => `<dt>${f.q}</dt><dd>${f.a}</dd>`).join('')
 
-  return `<noscript>
-      <!--
-        Static fallback content for crawlers and AI engines that do not execute JavaScript.
-        Generated at build time from src/content/landingContent.js + src/config/plans.js.
-        React replaces #root entirely once the app boots; JS-enabled browsers never see this.
-      -->
+  const body = `${STATIC_STYLE}
+    <div id="orbit-seo">
       <header>
-        <nav>
-          <a href="/">Orbit by Flux</a>
-          <ul>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#pricing">Pricing</a></li>
-            <li><a href="#faq">FAQ</a></li>
-            <li><a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Docs</a></li>
-            <li><a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Guides</a></li>
-          </ul>
-        </nav>
+        <a href="/">Orbit by Flux</a>
       </header>
-
       <main>
         <section id="hero">
-          <h1>Deploy to Flux with Git</h1>
-          <p>Git-native deployment for the Flux decentralized network. Push any repo and Orbit automatically detects your framework, builds a container, and deploys across ${SITE_FACTS.nodeCount} of global nodes. Free tier, zero config, built-in CI/CD.</p>
-          <a href="/login">Start Deploying Free</a>
-          <a href="#features">See all features</a>
+          <h1>Deploy to Flux with Git — the decentralized Vercel alternative</h1>
+          <p>Orbit is a Git-native deployment platform for the <a href="/decentralized-hosting">Flux decentralized cloud</a>. Push any repository and Orbit automatically detects your framework, builds a container, and deploys it across ${SITE_FACTS.nodeCount} of independent nodes worldwide — with a free-forever tier, zero configuration, and built-in CI/CD. It is a censorship-resistant alternative to centralized hosts like Vercel and Netlify, with no single company controlling your infrastructure and no vendor lock-in.</p>
+          <p><a href="/login">Start deploying free</a> · <a href="#features">See all features</a></p>
+        </section>
+
+        <section id="why-decentralized">
+          <h2>Why deploy on a decentralized cloud?</h2>
+          <p>Most modern hosting concentrates your app inside one company's data centers — one provider's pricing, policies, and single point of failure. Orbit takes a different path. Your app runs on the <a href="/decentralized-hosting">Flux network</a>: ${SITE_FACTS.nodeCount} of independently operated nodes across dozens of countries, run by thousands of separate operators. Because no single party owns the infrastructure, there is no gatekeeper who can deplatform you, no vendor able to lock in your data, and no lone data center whose outage takes you offline. Your container runs on real, dedicated hardware — not a metered slice of a shared server — and it runs on several nodes at once, so the network absorbs failures that would cause downtime on a single-server setup. For dApp front-ends, indie projects, and teams who want genuine redundancy and censorship resistance, decentralized hosting delivers the reliability of a top-tier cloud without handing control to one corporation.</p>
+        </section>
+
+        <section id="how-it-works">
+          <h2>How Orbit works</h2>
+          <p>Deploying is a single Git push. First, connect a GitHub, GitLab, or Bitbucket repository. Orbit then inspects your project and automatically detects the framework, install step, build command, and start command using Nixpacks — no Dockerfile or YAML required. It packages your app into a container, builds it, and distributes it across ${SITE_FACTS.nodeCount} of Flux nodes in the regions you choose or spread automatically worldwide. From then on, every push to your chosen branch triggers a fresh build and redeploy through a webhook (or polling mode if you prefer). If a build fails, Orbit keeps the last known-good version live and rolls back automatically, so a bad commit can never take your site down. Branches and pull requests can generate preview deployments, and build logs stream in real time.</p>
         </section>
 
         <section id="features">
@@ -137,27 +165,111 @@ export function buildNoscript() {
           <ul>${features}</ul>
         </section>
 
+        <section id="frameworks">
+          <h2>100+ frameworks, auto-detected</h2>
+          <p>Orbit is not limited to static sites or a single ecosystem. Framework detection is automatic via Nixpacks, which reads your project files and infers exactly how to build and run your app. That means Node.js, Python, Go, Rust, Java, .NET, PHP, and Ruby all work out of the box. Front-end frameworks like Next.js, Remix, Nuxt, SvelteKit, Astro, Create React App, and Vite build and deploy in the same zero-config flow. Just as importantly, because Orbit runs your app as a full long-running container rather than serverless functions, backend frameworks that other platforms handle poorly — Django, Flask, FastAPI, Rails, Express, and Go or Rust services, including background workers and persistent processes — run natively. If it builds into a container, Orbit can deploy it.</p>
+        </section>
+
+        <section id="comparison">
+          <h2>Orbit vs. Vercel, Netlify and Render</h2>
+          <p>Centralized platforms like Vercel and Netlify are polished, but they run your app on shared, metered infrastructure inside one company's cloud, with paid tiers starting around $19–$20/month and real limits on backends and long-running servers. Orbit gives you dedicated CPU and RAM on the decentralized Flux network for $0.99–$3.99/month, native support for full-stack backends, and a genuinely free-forever tier with no non-commercial restriction. Read the full <a href="/vs/vercel">Orbit vs. Vercel comparison</a> for a side-by-side breakdown.</p>
+        </section>
+
         <section id="pricing">
           <h2>Simple, transparent pricing</h2>
-          <p>Start free. Scale as you grow. All plans include unlimited builds and the full Orbit feature set.</p>
+          <p>Start free. Scale as you grow. All plans include unlimited builds and the full Orbit feature set, with the first month free on paid plans.</p>
           <ul>${pricing}</ul>
         </section>
 
         <section id="faq">
-          <h2>Common questions</h2>
+          <h2>Frequently asked questions</h2>
           <dl>${faq}</dl>
+        </section>
+
+        <section id="learn-more">
+          <h2>Learn more</h2>
+          <ul>
+            <li><a href="/decentralized-hosting">What is decentralized (web3) hosting?</a> — the pillar guide to censorship-resistant, vendor-lock-in-free hosting.</li>
+            <li><a href="/vs/vercel">Orbit vs. Vercel</a> — how the decentralized alternative compares on price, resources, and backends.</li>
+            <li><a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Deploy with Git documentation</a></li>
+            <li><a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Deployment guides and samples</a></li>
+          </ul>
         </section>
       </main>
 
       <footer>
-        <p>© 2026 Flux Labs — Orbit</p>
+        <p>© 2026 InFlux Technologies — Orbit</p>
         <nav>
           <a href="https://runonflux.io" rel="noopener noreferrer">Flux Network</a>
           <a href="https://home.runonflux.io" rel="noopener noreferrer">FluxOS</a>
           <a href="https://github.com/runonflux" rel="noopener noreferrer">GitHub</a>
           <a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Docs</a>
-          <a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Guides</a>
         </nav>
       </footer>
-    </noscript>`
+    </div>`
+
+  return `${ROOT_START}${body}${ROOT_END}`
 }
+
+/** Static in-#root content for a marketing page (pillar / vs comparison). */
+export function buildMarketingRoot(page) {
+  const sections = page.sections
+    .map((s) => `<section><h2>${s.heading}</h2>${renderBlocks(s.blocks)}</section>`)
+    .join('')
+  const faq = page.faqs.map((f) => `<dt>${f.q}</dt><dd>${f.a}</dd>`).join('')
+
+  const body = `${STATIC_STYLE}
+    <div id="orbit-seo">
+      <nav aria-label="Breadcrumb"><a href="/">Orbit by Flux</a> › <span>${page.breadcrumb}</span></nav>
+      <main>
+        <article>
+          <h1>${page.h1}</h1>
+          <p>${page.intro}</p>
+          ${sections}
+          <section id="faq"><h2>Frequently asked questions</h2><dl>${faq}</dl></section>
+        </article>
+      </main>
+      <footer>
+        <p><a href="/">← Back to Orbit</a> · © 2026 InFlux Technologies — Orbit</p>
+      </footer>
+    </div>`
+
+  return `${ROOT_START}${body}${ROOT_END}`
+}
+
+/** Per-page @graph JSON-LD (BreadcrumbList + WebPage + FAQPage) for a subpage. */
+export function buildMarketingJsonLd(routePath, page) {
+  const url = `${ORIGIN}${routePath}`
+  const graph = [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: page.breadcrumb, item: url },
+      ],
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${url}#webpage`,
+      url,
+      name: page.title,
+      description: page.description,
+      isPartOf: { '@id': `${ORIGIN}/#website` },
+      breadcrumb: { '@id': `${url}#breadcrumb` },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: page.faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ]
+  const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })
+  return `<script type="application/ld+json">${json}</script>`
+}
+
+export { MARKETING_PAGES }

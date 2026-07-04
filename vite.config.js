@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import sitemap from 'vite-plugin-sitemap'
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 import { DEFAULT_APP_URL } from './config/defaults.js'
-import { buildJsonLd, buildNoscript } from './scripts/buildSeoContent.mjs'
+import { buildJsonLd, buildStaticHome } from './scripts/buildSeoContent.mjs'
+import { MARKETING_ROUTES } from './src/content/pagesContent.js'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -28,7 +29,7 @@ export default defineConfig(({ mode }) => {
     transformIndexHtml: (html) =>
       html
         .replace('<!--SEO:JSONLD-->', buildJsonLd())
-        .replace('<!--SEO:NOSCRIPT-->', buildNoscript())
+        .replace('<!--SEO:ROOT-->', buildStaticHome())
         .replaceAll('__SITE_URL__', siteUrl),
   }
 
@@ -57,6 +58,9 @@ export default defineConfig(({ mode }) => {
       htmlSeo,
       sitemap({
         hostname: siteUrl,
+        // Marketing/content routes that must appear in sitemap.xml. Auth and
+        // transactional routes are intentionally omitted (see exclude below).
+        dynamicRoutes: MARKETING_ROUTES,
         exclude: [
           '/dashboard',
           '/dashboard/deployments',

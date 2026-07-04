@@ -1,160 +1,90 @@
-// Post-build prerender: snapshot the client-rendered marketing routes to static
-// HTML so crawlers that DON'T execute JavaScript — most AI/answer engines
-// (GPTBot, ClaudeBot, PerplexityBot, CCBot) and the first pass of search bots —
-// receive the full page text, not an empty <div id="root"> + <noscript> stub.
+// Post-build prerender (string-based — no headless browser required).
 //
-// It serves the freshly built /dist over a local Express server, drives a
-// headless Chromium with puppeteer-core (already a runtime dependency; it does
-// NOT bundle a browser), waits for React to paint, and overwrites each route's
-// index.html with the rendered DOM. The client still boots normally on top of it.
+// Orbit's homepage content is baked directly into #root at build time by
+// vite.config.js (buildStaticHome), so dist/index.html already ships a populated
+// DOM for crawlers that don't run JS. This script generates the *additional*
+// marketing routes (the decentralized-hosting pillar and the /vs/* comparisons)
+// by taking that built index.html and swapping, per route:
+//   - the in-#root content region (between the ROOT_START/ROOT_END sentinels),
+//   - <title> + meta description + OG/Twitter title/description/url + canonical,
+//   - the JSON-LD @graph (home graph -> per-page BreadcrumbList/WebPage/FAQPage).
+// Each shell still boots the same SPA bundle, so JS clients get the live React
+// route; non-JS crawlers get real, keyword-relevant HTML in #root.
 //
-// Chromium resolution: CHROMIUM_PATH / PUPPETEER_EXECUTABLE_PATH, then common
-// system locations. If none is found the script logs a warning and exits 0 —
-// the build still succeeds with the plain SPA shell (the pre-prerender behaviour),
-// so a developer without Chromium is never blocked. The Docker builder installs
-// Chromium and sets CHROMIUM_PATH, so production images are always prerendered.
+// This deliberately replaces the previous puppeteer-based approach, which left
+// #root EMPTY whenever Chromium wasn't installed (the common case) — the whole
+// reason the site wasn't truly prerendered.
 
-import express from 'express'
-import puppeteer from 'puppeteer-core'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
-import path from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { DEFAULT_APP_URL } from '../config/defaults.js'
 import {
-  DEFAULT_APP_URL,
-  DEFAULT_PAYMENT_BRIDGE_URL,
-  DEFAULT_GA_MEASUREMENT_ID,
-  DEFAULT_FIREBASE,
-} from '../config/defaults.js'
+  MARKETING_PAGES,
+  buildMarketingRoot,
+  buildMarketingJsonLd,
+  ROOT_START,
+  ROOT_END,
+} from './buildSeoContent.mjs'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const distDir = path.resolve(__dirname, '..', 'dist')
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const distDir = join(__dirname, '..', 'dist')
+const indexPath = join(distDir, 'index.html')
 
-// Minimal stand-in for the BFF's GET /api/config. The app aborts bootstrap with
-// "Unable to start Orbit" if Firebase options are missing, so the prerender
-// server must answer this with a valid (secret-free) config. Mirrors server.js;
-// analytics is forced off so GA doesn't fire or mutate the DOM during capture.
-const prerenderConfig = {
-  appUrl: DEFAULT_APP_URL,
-  paymentBridgeUrl: DEFAULT_PAYMENT_BRIDGE_URL,
-  firebase: { ...DEFAULT_FIREBASE },
-  analytics: { enabled: false, measurementId: DEFAULT_GA_MEASUREMENT_ID },
+if (!existsSync(indexPath)) {
+  console.error('[prerender] dist/index.html not found — run `vite build` first.')
+  process.exit(1)
 }
 
-// Only public, content-bearing routes. Auth/transactional routes (/login,
-// /deploy, /dashboard/*) are intentionally excluded — they are not indexable.
-const ROUTES = ['/']
+const baseHtml = await readFile(indexPath, 'utf8')
 
-function resolveChromium() {
-  const candidates = [
-    process.env.CHROMIUM_PATH,
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-  ].filter(Boolean)
-  return candidates.find((c) => existsSync(c)) || null
+// Resolve the canonical origin exactly like vite.config.js does, so the routes
+// generated here match the origin baked into the built index.html.
+const siteUrl = (process.env.VITE_SITE_URL || DEFAULT_APP_URL).replace(/\/+$/, '')
+
+const esc = (s) =>
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
+const ROOT_REGION = new RegExp(`${ROOT_START}[\\s\\S]*?${ROOT_END}`)
+const JSONLD_SCRIPT = /<script type="application\/ld\+json">[\s\S]*?<\/script>/
+
+function buildRouteHtml(routePath, page) {
+  const canonical = `${siteUrl}${routePath}`
+  let html = baseHtml
+
+  // Swap the in-#root content region for this page's content.
+  html = html.replace(ROOT_REGION, buildMarketingRoot(page))
+
+  // Per-page structured data (resolve the __SITE_URL__ token to the real origin).
+  const jsonLd = buildMarketingJsonLd(routePath, page).replaceAll('__SITE_URL__', siteUrl)
+  html = html.replace(JSONLD_SCRIPT, jsonLd)
+
+  // Head meta.
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(page.title)}</title>`)
+  html = html.replace(/<meta name="description"[^>]*>/i, `<meta name="description" content="${esc(page.description)}" />`)
+  html = html.replace(/<meta property="og:title"[^>]*>/i, `<meta property="og:title" content="${esc(page.title)}" />`)
+  html = html.replace(/<meta property="og:description"[^>]*>/i, `<meta property="og:description" content="${esc(page.description)}" />`)
+  html = html.replace(/<meta property="og:url"[^>]*>/i, `<meta property="og:url" content="${esc(canonical)}" />`)
+  html = html.replace(/<meta name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${esc(page.title)}" />`)
+  html = html.replace(/<meta name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${esc(page.description)}" />`)
+  html = html.replace(/<meta name="twitter:url"[^>]*>/i, `<meta name="twitter:url" content="${esc(canonical)}" />`)
+  html = html.replace(/<link rel="canonical"[^>]*>/i, `<link rel="canonical" href="${esc(canonical)}" />`)
+
+  return html
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-
-async function main() {
-  if (!existsSync(path.join(distDir, 'index.html'))) {
-    console.error('[prerender] dist/index.html not found — run `vite build` first.')
-    process.exit(1)
-  }
-
-  const executablePath = resolveChromium()
-  if (!executablePath) {
-    console.warn(
-      '[prerender] No Chromium found (set CHROMIUM_PATH). Skipping prerender — ' +
-        'the build will ship the plain SPA shell. This is fine for local dev.',
-    )
-    process.exit(0)
-  }
-
-  // Serve the built bundle with an SPA fallback so client routing resolves.
-  const app = express()
-  // Unblock app bootstrap (Firebase needs real config).
-  app.get('/api/config', (_req, res) => res.json(prerenderConfig))
-  // The landing map pulls live node stats; short-circuit so the component takes
-  // its built-in "unavailable" path instead of hanging on the real Flux fetch.
-  // (Not indexable content — the surrounding section text is static.)
-  app.get('/api/network-stats', (_req, res) => res.status(503).end())
-  app.use(express.static(distDir, { index: 'index.html', extensions: ['html'] }))
-  app.use((req, res) => res.sendFile(path.join(distDir, 'index.html')))
-  const server = await new Promise((resolve) => {
-    const s = app.listen(0, '127.0.0.1', () => resolve(s))
-  })
-  const { port } = server.address()
-  const base = `http://127.0.0.1:${port}`
-
-  const browser = await puppeteer.launch({
-    executablePath,
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  })
-
-  let failures = 0
-  try {
-    for (const route of ROUTES) {
-      const page = await browser.newPage()
-      // Desktop viewport so the desktop layout (not the mobile variant) is captured.
-      await page.setViewport({ width: 1280, height: 900 })
-      try {
-        await page.goto(`${base}${route}`, { waitUntil: 'load', timeout: 45000 })
-        // The app mounts an <h1> once React has rendered the landing page.
-        await page.waitForSelector('#root h1', { timeout: 30000 })
-        // Let lazy chunks, Helmet head updates and initial animations settle.
-        await sleep(1500)
-
-        // react-helmet-async injects route meta (title/description/og:*) without
-        // removing the static index.html tags of the same key, so the rendered
-        // head ends up with duplicate <title> and meta. Crawlers should see one
-        // of each — collapse duplicates (keep first in document order) so the
-        // indexable HTML is clean. Only affects this snapshot, not the live app.
-        await page.evaluate(() => {
-          const head = document.head
-          const titles = head.querySelectorAll('title')
-          for (let i = 1; i < titles.length; i++) titles[i].remove()
-          const seen = new Set()
-          for (const m of head.querySelectorAll('meta[name], meta[property]')) {
-            const key = m.getAttribute('name') ? `n:${m.getAttribute('name')}` : `p:${m.getAttribute('property')}`
-            if (seen.has(key)) m.remove()
-            else seen.add(key)
-          }
-        })
-
-        const html = await page.content()
-        const outDir = route === '/' ? distDir : path.join(distDir, route)
-        await mkdir(outDir, { recursive: true })
-        await writeFile(path.join(outDir, 'index.html'), html, 'utf8')
-
-        const rootText = await page.$eval('#root', (el) => el.innerText.length).catch(() => 0)
-        console.log(`[prerender] ${route} -> ${path.relative(process.cwd(), path.join(outDir, 'index.html'))} (${rootText} chars of text)`)
-        if (rootText < 500) {
-          console.warn(`[prerender] WARNING: ${route} rendered only ${rootText} chars — content may be missing.`)
-        }
-      } catch (err) {
-        failures++
-        console.error(`[prerender] FAILED ${route}: ${err.message}`)
-      } finally {
-        await page.close()
-      }
-    }
-  } finally {
-    await browser.close()
-    server.close()
-  }
-
-  // Don't fail the build on a prerender hiccup — the SPA shell is a valid fallback.
-  if (failures) console.warn(`[prerender] completed with ${failures} failed route(s).`)
-  else console.log('[prerender] done.')
+let count = 0
+for (const [routePath, page] of Object.entries(MARKETING_PAGES)) {
+  const outPath = join(distDir, routePath.replace(/^\//, ''), 'index.html')
+  await mkdir(dirname(outPath), { recursive: true })
+  await writeFile(outPath, buildRouteHtml(routePath, page), 'utf8')
+  count++
+  console.log(`[prerender] wrote ${routePath} -> ${outPath.replace(distDir, 'dist')}`)
 }
 
-main().catch((err) => {
-  console.error('[prerender] fatal:', err)
-  // Soft-fail: a broken prerender must not break an otherwise-good build.
-  process.exit(0)
-})
+console.log(`[prerender] done — ${count} marketing route(s) generated.`)
