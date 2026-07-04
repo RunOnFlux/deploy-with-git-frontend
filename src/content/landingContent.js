@@ -19,6 +19,27 @@ export const SITE_FACTS = {
   frameworkCount: '100+',
 };
 
+/**
+ * Sibling Flux hosting sites + the cloud, cross-linked from the footer for SEO
+ * ("Explore other Flux hosting"). Keyword-rich anchors, opened in a new tab.
+ * These are real, followed links (no nofollow) to related Flux ecosystem
+ * properties — deliberately excludes Orbit itself. Consumed by BOTH the live
+ * React footer (src/components/landing/Footer.jsx) AND the build-time static
+ * footer (scripts/buildSeoContent.mjs) so the two never drift.
+ */
+export const FLUX_HOSTING_LINKS = [
+  { href: 'https://minecraft.runonflux.com', label: 'Minecraft Server Hosting' },
+  { href: 'https://palworld.runonflux.com', label: 'Palworld Server Hosting' },
+  { href: 'https://enshrouded.runonflux.com', label: 'Enshrouded Server Hosting' },
+  { href: 'https://rust.runonflux.com', label: 'Rust Server Hosting' },
+  { href: 'https://windrose.runonflux.com', label: 'Windrose Server Hosting' },
+  { href: 'https://wordpress.runonflux.com', label: 'Web3 WordPress Hosting' },
+  { href: 'https://n8n.runonflux.com', label: 'n8n Hosting' },
+  { href: 'https://openclaw.runonflux.com', label: 'OpenClaw AI Assistant Hosting' },
+  { href: 'https://hermes.runonflux.com', label: 'Hermes AI Agent Hosting' },
+  { href: 'https://cloud.runonflux.com', label: 'Flux Cloud' },
+];
+
 /** FAQ — rendered by FAQSection and emitted as schema.org FAQPage + noscript. */
 export const FAQS = [
   {

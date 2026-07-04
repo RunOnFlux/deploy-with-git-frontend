@@ -15,6 +15,12 @@ const LINKS = [
     external: false,
   },
   {
+    href: '/vercel-netlify-alternative',
+    title: 'Vercel, Netlify & Cloudflare Pages alternative',
+    desc: 'A decentralized web3 deploy platform compared head-to-head with all three incumbents.',
+    external: false,
+  },
+  {
     href: 'https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/',
     title: 'Deploy with Git docs',
     desc: 'Official documentation for deploying any repository to the Flux network.',

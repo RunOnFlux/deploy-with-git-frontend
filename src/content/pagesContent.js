@@ -14,7 +14,7 @@
  */
 
 /** Ordered list of marketing routes, reused by the sitemap and the prerender. */
-export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel'];
+export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative'];
 
 export const MARKETING_PAGES = {
   '/decentralized-hosting': {
@@ -179,7 +179,7 @@ export const MARKETING_PAGES = {
           },
           {
             type: 'p',
-            html: 'The good news: trying Orbit costs nothing. Connect a repository, let Orbit auto-detect your framework, and deploy to the Flux network on the free-forever tier in a few minutes.',
+            html: 'The good news: trying Orbit costs nothing. Connect a repository, let Orbit auto-detect your framework, and deploy to the Flux network on the free-forever tier in a few minutes. Weighing more than one platform? See how Orbit stacks up against Vercel, Netlify and Cloudflare Pages together in our <a href="/vercel-netlify-alternative">decentralized deploy platform comparison</a>.',
           },
         ],
       },
@@ -200,6 +200,143 @@ export const MARKETING_PAGES = {
       {
         q: 'What does “decentralized” give me over Vercel?',
         a: 'No single company controls your infrastructure, so there is no single point of failure and no deplatforming risk. Your app runs across many independent nodes worldwide, giving true redundancy and censorship resistance, with no vendor lock-in because you deploy standard portable containers.',
+      },
+    ],
+  },
+
+  '/vercel-netlify-alternative': {
+    slug: 'vercel-netlify-alternative',
+    title: 'Decentralized Vercel, Netlify & Cloudflare Pages Alternative | Orbit',
+    description:
+      'Looking for a decentralized Vercel, Netlify or Cloudflare Pages alternative? Compare Orbit — a Git-native web3 deploy platform on the Flux network — head-to-head on price, resources, backends, free tier and vendor lock-in.',
+    breadcrumb: 'Vercel, Netlify & Cloudflare Pages Alternative',
+    h1: 'The Decentralized Vercel, Netlify & Cloudflare Pages Alternative',
+    intro:
+      'Vercel, Netlify and Cloudflare Pages are the three big names in Git-based deployment — polished, popular, and all centralized. If you want the same push-to-deploy workflow without handing your infrastructure to a single company, Orbit is the decentralized alternative. It deploys any Git repository to the Flux network — thousands of independent nodes worldwide — with automatic framework detection, a free-forever tier, dedicated resources, and no vendor lock-in. This is an honest, side-by-side comparison of Orbit against all three, so you can decide which web3 deploy platform fits your project.',
+    sections: [
+      {
+        heading: 'What all three incumbents have in common',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Vercel, Netlify and Cloudflare Pages are excellent at what they do: connect a GitHub, GitLab or Bitbucket repository, auto-detect the framework, and give you a live URL on every push. But all three are <strong>centralized</strong>. Your app lives inside one company’s infrastructure — Vercel and Netlify build on AWS, Cloudflare Pages on Cloudflare’s own edge — under that company’s pricing, quotas, and terms of service. One policy change, price hike, quota cap, or deplatforming decision applies to your project instantly, and there is no one else to run to.',
+          },
+          {
+            type: 'p',
+            html: '<a href="/">Orbit</a> keeps the exact same Git workflow but changes who owns the machines. Your container runs on the <a href="/decentralized-hosting">decentralized Flux network</a>: thousands of independently operated nodes across dozens of countries, run by thousands of separate operators. No single company controls your infrastructure, so there is no single point of failure and no gatekeeper — the core reason to pick a decentralized deploy platform over a centralized one.',
+          },
+        ],
+      },
+      {
+        heading: 'Orbit vs. Vercel vs. Netlify vs. Cloudflare Pages at a glance',
+        blocks: [
+          {
+            type: 'table',
+            headers: ['', 'Orbit', 'Vercel', 'Netlify', 'Cloudflare Pages'],
+            rows: [
+              ['Infrastructure', 'Decentralized (Flux, thousands of nodes)', 'Centralized (on AWS)', 'Centralized (on AWS)', 'Centralized (Cloudflare edge)'],
+              ['Censorship-resistant', 'Yes — no single controller', 'No', 'No', 'No'],
+              ['Own the infrastructure?', 'No single owner — permissionless', 'Vercel owns it', 'Netlify owns it', 'Cloudflare owns it'],
+              ['Git deploy', 'GitHub, GitLab, Bitbucket', 'GitHub, GitLab, Bitbucket', 'GitHub, GitLab, Bitbucket', 'GitHub, GitLab'],
+              ['Framework autodetect', 'Yes — Nixpacks, 100+ stacks', 'Yes', 'Yes', 'Yes'],
+              ['Resources', 'Dedicated CPU / RAM per app', 'Shared, metered serverless', 'Shared, metered serverless', 'Shared edge / Workers'],
+              ['Backends & long-running servers', 'Native — full containers', 'Serverless functions, limited', 'Serverless functions, limited', 'Workers only, no full servers'],
+              ['Free tier', 'Free forever, no card, commercial OK', 'Hobby (non-commercial)', 'Free (build-minute limits)', 'Free (build/request limits)'],
+              ['Paid entry price', 'From $0.99–$3.99/mo', 'Pro from ~$20/mo', 'Pro from ~$19/mo', 'From ~$20/mo (Workers Paid)'],
+              ['Vendor lock-in', 'None — portable containers', 'Proprietary runtime & config', 'Proprietary build & edge config', 'Proprietary Workers runtime'],
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'Orbit vs. Vercel',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Vercel is the gold standard for front-end and Next.js, with deep framework integration and a polished dashboard. Its trade-offs are cost and model: the Pro plan starts around $20/month on shared, metered serverless where heavy traffic can trigger overage charges, and long-running servers or background workers are awkward at best. Orbit gives you dedicated CPU and RAM from $0.99–$3.99/month, runs full long-running containers so backends work natively, and its free tier — unlike Vercel’s Hobby plan — allows commercial use. See the deep dive in our <a href="/vs/vercel">Orbit vs. Vercel comparison</a>.',
+          },
+        ],
+      },
+      {
+        heading: 'Orbit vs. Netlify',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Netlify pioneered the Jamstack deploy experience and is superb for static sites, forms, and serverless functions. Like Vercel it meters usage — build minutes, bandwidth, and function invocations — and its Pro plan starts around $19/month, with backend workloads pushed into short-lived serverless functions. Orbit runs your app as a persistent container instead, so a Django, FastAPI, Rails, Express, Go or Rust service — including WebSockets and background jobs — runs exactly as it would on a normal server, on decentralized infrastructure, at a lower fixed price.',
+          },
+        ],
+      },
+      {
+        heading: 'Orbit vs. Cloudflare Pages',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Cloudflare Pages is fast and generous on its free static tier, backed by Cloudflare’s enormous edge network. But dynamic work has to run in Cloudflare Workers — a proprietary, V8-isolate runtime with its own APIs and limits, not a general-purpose container. If your app needs a real Node, Python, Go or Rust process, a database driver, a long-running connection, or anything outside the Workers model, you hit a wall. Orbit runs standard containers, so what builds locally deploys unchanged — no rewrite for a bespoke edge runtime, and no lock-in to one provider’s platform.',
+          },
+        ],
+      },
+      {
+        heading: 'Honest pros and cons',
+        blocks: [
+          {
+            type: 'h3',
+            text: 'Where Orbit wins',
+          },
+          {
+            type: 'ul',
+            items: [
+              '<strong>Decentralized & censorship-resistant:</strong> no single company can deplatform you or take the network down.',
+              '<strong>Dedicated resources, lower price:</strong> real CPU and RAM from $0.99–$3.99/mo instead of a metered serverless slice.',
+              '<strong>Real backends:</strong> full containers run Django, FastAPI, Rails, Go, Rust, workers and WebSockets natively.',
+              '<strong>Genuinely free forever:</strong> a free tier with no credit card and no non-commercial restriction.',
+              '<strong>No vendor lock-in:</strong> you deploy portable containers, not a proprietary runtime.',
+            ],
+          },
+          {
+            type: 'h3',
+            text: 'Where the incumbents still lead',
+          },
+          {
+            type: 'ul',
+            items: [
+              '<strong>Ecosystem polish:</strong> Vercel’s Next.js integration and preview UX are the most refined in the market.',
+              '<strong>Edge latency:</strong> Cloudflare’s global edge and instant cache invalidation are hard to beat for pure static delivery.',
+              '<strong>Maturity:</strong> Netlify and Vercel have larger plugin ecosystems, integrations, and enterprise tooling built up over years.',
+              '<strong>Brand familiarity:</strong> decentralized hosting is newer, so it is less familiar to teams than the incumbents.',
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'Which should you choose?',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Choose Vercel or Netlify if you want the most polished front-end ecosystem and you are happy on centralized, metered infrastructure. Choose Cloudflare Pages for pure static sites that live and die at the edge. Choose <a href="/">Orbit</a> if you want a <a href="/decentralized-hosting">decentralized, censorship-resistant</a> deploy platform with dedicated resources, native backend support, a truly free tier, and zero vendor lock-in — all from the same Git push you already know.',
+          },
+          {
+            type: 'p',
+            html: 'The best part: switching costs nothing to try. Connect a repository, let Orbit auto-detect your framework via Nixpacks, and deploy to the Flux network on the free-forever tier in a few minutes — no card, no rewrite, no lock-in.',
+          },
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: 'What is the best decentralized alternative to Vercel and Netlify?',
+        a: 'Orbit is a Git-native web3 deploy platform built on the Flux decentralized network. It offers the same push-to-deploy workflow as Vercel and Netlify — connect a repo, auto-detect the framework, redeploy on every push — but runs your app across thousands of independent nodes with dedicated resources, a free-forever tier, and no vendor lock-in.',
+      },
+      {
+        q: 'Is Orbit a Cloudflare Pages alternative for dynamic apps?',
+        a: 'Yes. Cloudflare Pages runs dynamic code only in its proprietary Workers runtime. Orbit runs standard long-running containers, so full Node, Python, Go and Rust servers — with databases, WebSockets and background jobs — deploy unchanged, without rewriting for a bespoke edge runtime.',
+      },
+      {
+        q: 'How is Orbit cheaper than Vercel, Netlify and Cloudflare Pages?',
+        a: 'Orbit’s paid plans start at $0.99–$3.99/month for dedicated CPU and RAM, versus roughly $19–$20/month for the incumbents’ Pro tiers on shared, metered infrastructure. Orbit’s free tier is also genuinely free forever, with no credit card and no non-commercial restriction.',
+      },
+      {
+        q: 'Do I have to change my code to move from Vercel or Netlify to Orbit?',
+        a: 'Rarely. Orbit deploys standard containers built from your existing repository via Nixpacks framework detection, so most Next.js, React, Vue, Svelte, static and full-stack backend projects deploy as-is. You keep the same GitHub, GitLab or Bitbucket workflow.',
       },
     ],
   },

@@ -10,9 +10,10 @@
  * injection, so this module stays origin-agnostic.
  */
 
-import { SITE_FACTS, FAQS, FEATURES } from '../src/content/landingContent.js'
+import { SITE_FACTS, FAQS, FEATURES, FLUX_HOSTING_LINKS } from '../src/content/landingContent.js'
 import { ORBIT_PLANS } from '../src/config/plans.js'
 import { MARKETING_PAGES } from '../src/content/pagesContent.js'
+import { REVIEWS, RATING_BEST } from '../src/config/reviews.js'
 
 const ORIGIN = '__SITE_URL__'
 
@@ -43,6 +44,39 @@ function priceText(plan) {
 function offerPrice(plan) {
   // schema.org Offer needs a numeric price; custom advertises its $0.99 floor.
   return plan.id === 'custom' ? '0.99' : String(plan.price)
+}
+
+/**
+ * schema.org AggregateRating + Review fragment for the SoftwareApplication node.
+ * Returns an EMPTY object when there are no real reviews, so no rating markup is
+ * emitted at all — never fabricate ratings (see src/config/reviews.js). When
+ * genuine reviews exist, computes the average + count and lists each Review.
+ */
+function ratingFragment() {
+  if (!Array.isArray(REVIEWS) || REVIEWS.length === 0) return {}
+  const count = REVIEWS.length
+  const avg = REVIEWS.reduce((sum, r) => sum + Number(r.rating), 0) / count
+  return {
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: Number(avg.toFixed(2)),
+      reviewCount: count,
+      bestRating: RATING_BEST,
+      worstRating: 1,
+    },
+    review: REVIEWS.map((r) => ({
+      '@type': 'Review',
+      author: { '@type': 'Person', name: r.author },
+      reviewRating: {
+        '@type': 'Rating',
+        ratingValue: Number(r.rating),
+        bestRating: RATING_BEST,
+        worstRating: 1,
+      },
+      reviewBody: r.body,
+      ...(r.datePublished ? { datePublished: r.datePublished } : {}),
+    })),
+  }
 }
 
 /** schema.org @graph as a <script type="application/ld+json"> string. */
@@ -82,6 +116,9 @@ export function buildJsonLd() {
         ...(plan.price === 0 ? {} : { billingPeriod: 'P1M' }),
       })),
       featureList: FEATURES.map((f) => f.title).join(', '),
+      // AggregateRating/Review — emitted ONLY when real reviews exist (empty
+      // otherwise; see src/config/reviews.js). Never fabricate ratings.
+      ...ratingFragment(),
     },
     {
       '@type': 'FAQPage',
@@ -103,6 +140,19 @@ export function buildJsonLd() {
 // never see it. Kept tiny and self-contained.
 const STATIC_STYLE =
   '<style>#orbit-seo{max-width:880px;margin:0 auto;padding:40px 20px;font-family:Inter,system-ui,-apple-system,sans-serif;color:#c7d2e0;line-height:1.65}#orbit-seo h1{font-size:2.2rem;line-height:1.15;color:#e8eefc;margin:0 0 .6rem}#orbit-seo h2{font-size:1.4rem;color:#e8eefc;margin:2rem 0 .6rem}#orbit-seo h3{font-size:1.05rem;color:#e8eefc;margin:1.2rem 0 .3rem}#orbit-seo a{color:#7cc7ff}#orbit-seo table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}#orbit-seo th,#orbit-seo td{border:1px solid #26324a;padding:8px 10px;text-align:left}</style>'
+
+/**
+ * Keyword-rich cross-links to sibling Flux hosting sites + the cloud, emitted
+ * into the static (crawlable) footer. Real, followed links (target=_blank,
+ * rel="noopener noreferrer") — deliberately excludes Orbit. Mirrors the live
+ * React footer so the prerendered HTML carries the same link equity.
+ */
+function crossLinksFooter() {
+  const links = FLUX_HOSTING_LINKS.map(
+    (l) => `<a href="${l.href}" target="_blank" rel="noopener noreferrer">${l.label}</a>`,
+  ).join(' · ')
+  return `<nav aria-label="Explore other Flux hosting"><h2>Explore other Flux hosting</h2>${links}</nav>`
+}
 
 /** Render structured content blocks (from pagesContent.js) to semantic HTML. */
 function renderBlocks(blocks) {
@@ -191,6 +241,7 @@ export function buildStaticHome() {
           <ul>
             <li><a href="/decentralized-hosting">What is decentralized (web3) hosting?</a> — the pillar guide to censorship-resistant, vendor-lock-in-free hosting.</li>
             <li><a href="/vs/vercel">Orbit vs. Vercel</a> — how the decentralized alternative compares on price, resources, and backends.</li>
+            <li><a href="/vercel-netlify-alternative">Vercel, Netlify &amp; Cloudflare Pages alternative</a> — a decentralized web3 deploy platform compared with all three incumbents.</li>
             <li><a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Deploy with Git documentation</a></li>
             <li><a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Deployment guides and samples</a></li>
           </ul>
@@ -205,6 +256,7 @@ export function buildStaticHome() {
           <a href="https://github.com/runonflux" rel="noopener noreferrer">GitHub</a>
           <a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Docs</a>
         </nav>
+        ${crossLinksFooter()}
       </footer>
     </div>`
 
@@ -231,6 +283,7 @@ export function buildMarketingRoot(page) {
       </main>
       <footer>
         <p><a href="/">← Back to Orbit</a> · © 2026 InFlux Technologies — Orbit</p>
+        ${crossLinksFooter()}
       </footer>
     </div>`
 

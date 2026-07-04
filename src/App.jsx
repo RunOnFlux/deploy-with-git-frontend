@@ -113,6 +113,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/decentralized-hosting" element={<MarketingPage route="/decentralized-hosting" />} />
                     <Route path="/vs/vercel" element={<MarketingPage route="/vs/vercel" />} />
+                    <Route path="/vercel-netlify-alternative" element={<MarketingPage route="/vercel-netlify-alternative" />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/deploy" element={<DeployGateway />} />
                     <Route path="/successcheckout" element={<StripeSuccessPage />} />

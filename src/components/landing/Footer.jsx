@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CookieSettingsDialog from '../common/CookieSettingsDialog';
+import { FLUX_HOSTING_LINKS } from '../../content/landingContent';
 import { version } from '../../../package.json';
 
 const YEAR = new Date().getFullYear();
@@ -43,6 +44,26 @@ export default function Footer() {
           >
             Cookie Settings
           </button>
+        </nav>
+      </div>
+
+      {/* Cross-links to sibling Flux hosting sites — keyword-rich, SEO. */}
+      <div className="max-w-5xl mx-auto mt-10 pt-8 border-t border-border">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 text-center sm:text-left">
+          Explore other Flux hosting
+        </h2>
+        <nav className="flex flex-wrap justify-center sm:justify-start gap-x-5 gap-y-2">
+          {FLUX_HOSTING_LINKS.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-text-muted hover:text-text transition-colors"
+            >
+              {l.label}
+            </a>
+          ))}
         </nav>
       </div>
 
