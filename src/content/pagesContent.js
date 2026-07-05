@@ -19,9 +19,9 @@ export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel', '/verce
 export const MARKETING_PAGES = {
   '/decentralized-hosting': {
     slug: 'decentralized-hosting',
-    title: 'What Is Decentralized (Web3) Hosting? A 2026 Guide | Orbit by Flux',
+    title: 'Decentralized (Web3) Hosting Explained: 2026 Guide | Orbit',
     description:
-      'Decentralized hosting runs your website across thousands of independent nodes instead of one company’s data center. Learn how web3 hosting works, why it is censorship-resistant, and how to deploy on it with Git.',
+      'Decentralized (web3) hosting runs your site across thousands of independent Flux nodes — censorship-resistant, no lock-in. Deploy free with Git via Orbit.',
     breadcrumb: 'Decentralized Hosting',
     h1: 'What Is Decentralized (Web3) Hosting?',
     intro:
@@ -116,9 +116,9 @@ export const MARKETING_PAGES = {
 
   '/vs/vercel': {
     slug: 'vs-vercel',
-    title: 'Orbit vs. Vercel: Decentralized vs. Centralized Deployment (2026)',
+    title: 'Orbit vs. Vercel: The Decentralized Alternative (2026)',
     description:
-      'An honest Orbit vs. Vercel comparison. See how a decentralized, Git-native alternative on the Flux network compares to Vercel on price, dedicated resources, backend support, and vendor lock-in.',
+      'Orbit vs. Vercel compared: dedicated CPU and RAM from $0.99/mo vs metered serverless, full container backends, a real free tier, and no vendor lock-in.',
     breadcrumb: 'Orbit vs. Vercel',
     h1: 'Orbit vs. Vercel: The Decentralized Alternative',
     intro:
@@ -206,9 +206,9 @@ export const MARKETING_PAGES = {
 
   '/vercel-netlify-alternative': {
     slug: 'vercel-netlify-alternative',
-    title: 'Decentralized Vercel, Netlify & Cloudflare Pages Alternative | Orbit',
+    title: 'Decentralized Vercel & Netlify Alternative | Orbit',
     description:
-      'Looking for a decentralized Vercel, Netlify or Cloudflare Pages alternative? Compare Orbit — a Git-native web3 deploy platform on the Flux network — head-to-head on price, resources, backends, free tier and vendor lock-in.',
+      'Compare Orbit with Vercel, Netlify and Cloudflare Pages: dedicated resources from $0.99/mo, container backends, a free-forever tier and no vendor lock-in.',
     breadcrumb: 'Vercel, Netlify & Cloudflare Pages Alternative',
     h1: 'The Decentralized Vercel, Netlify & Cloudflare Pages Alternative',
     intro:

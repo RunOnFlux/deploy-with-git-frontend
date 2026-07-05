@@ -96,7 +96,7 @@ export function buildJsonLd() {
       name: 'Orbit by Flux',
       url: `${ORIGIN}/`,
       description:
-        'Deploy any git repository to the Flux decentralized cloud. Auto-detect frameworks, global nodes, free tier available.',
+        'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes — free tier, paid plans from $0.99/mo.',
       publisher: { '@id': `${ORIGIN}/#organization` },
     },
     {
