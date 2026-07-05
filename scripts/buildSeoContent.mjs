@@ -88,7 +88,19 @@ export function buildJsonLd() {
       name: 'Flux Labs',
       url: 'https://runonflux.io',
       logo: `${ORIGIN}/orbit-logo.svg`,
-      sameAs: ['https://github.com/runonflux', 'https://x.com/RunOnFlux'],
+      // Canonical Flux entity profiles — keep identical across the whole site
+      // family so search engines/LLMs consolidate the entity.
+      sameAs: [
+        'https://twitter.com/RunOnFlux',
+        'https://github.com/RunOnFlux',
+        'https://runonflux.io',
+        'https://discord.com/invite/runonflux',
+      ],
+      parentOrganization: {
+        '@type': 'Organization',
+        name: 'InFlux Technologies',
+        url: 'https://runonflux.io',
+      },
     },
     {
       '@type': 'WebSite',
