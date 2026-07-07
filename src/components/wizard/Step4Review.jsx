@@ -141,7 +141,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     (async () => {
       try {
         const resp = await fetch(
-          `/api/flux/apps/permanentmessages?appowner=${zelid}`,
+          `/api/flux/apps/permanentmessages?owner=${zelid}`,
           { headers: { 'x-apicache-bypass': 'true' } },
         );
         const json = await resp.json();
