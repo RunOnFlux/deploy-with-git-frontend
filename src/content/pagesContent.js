@@ -14,7 +14,7 @@
  */
 
 /** Ordered list of marketing routes, reused by the sitemap and the prerender. */
-export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative'];
+export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
 
 export const MARKETING_PAGES = {
   '/decentralized-hosting': {
@@ -342,6 +342,183 @@ export const MARKETING_PAGES = {
         q: 'Do I have to change my code to move from Vercel or Netlify to Orbit?',
         a: 'Rarely. Orbit deploys standard containers built from your existing repository via Nixpacks framework detection, so most Next.js, React, Vue, Svelte, static and full-stack backend projects deploy as-is. You keep the same GitHub, GitLab or Bitbucket workflow.',
       },
+    ],
+  },
+
+  '/heroku-alternative': {
+    slug: '/heroku-alternative',
+    title: 'Decentralized Heroku Alternative | Orbit',
+    description:
+      'Looking for a Heroku alternative? Orbit is Git push-to-deploy on the decentralized Flux cloud: dedicated resources, no single point of failure, no egress fees, a free tier that stays free — from $0.99/mo.',
+    breadcrumb: 'Heroku Alternative',
+    h1: 'Looking for a Heroku Alternative?',
+    intro:
+      'Heroku popularised git push-to-deploy, but it runs on centralized cloud, retired its free tier, and locks you into one provider. Orbit brings the same push-to-deploy simplicity to the decentralized Flux cloud — with dedicated resources, no single point of failure, a free tier that stays free, and pricing from $0.99/mo.',
+    sections: [
+      {
+        heading: 'Why developers look for a Heroku alternative',
+        blocks: [
+          { type: 'p', html: 'Heroku is the platform that made "git push heroku main" famous, and the developer experience is still excellent. But the reasons teams migrate away are well known:' },
+          { type: 'ul', items: [
+            '<strong>No more free tier.</strong> Heroku removed its free dynos in November 2022, so hobby projects and demos now cost money.',
+            '<strong>Centralized on one cloud.</strong> Your app runs in a single provider\'s data centers — a single point of failure and a single company in control.',
+            '<strong>Dyno pricing and sleeping.</strong> Paid dynos and add-ons add up, and lower tiers historically slept when idle.',
+            '<strong>Vendor lock-in.</strong> Buildpacks and add-ons tie your workflow to the platform.',
+          ] },
+        ],
+      },
+      {
+        heading: 'How Orbit is different',
+        blocks: [
+          { type: 'p', html: 'Orbit keeps the part of Heroku everyone loves — connect a repo, push, get a live URL — and runs it on the <strong>Flux decentralized cloud</strong>: thousands of independent nodes across many countries with <strong>no single point of failure</strong>. Framework detection is automatic via Nixpacks, so most Node, Python, Go, Ruby, static and full-stack apps deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong> required. Every app gets <strong>dedicated CPU and RAM</strong>, there are <strong>no egress fees</strong>, the free tier is genuinely free forever, and paid plans start at <strong>$0.99/mo</strong> — no vendor lock-in.' },
+        ],
+      },
+      {
+        heading: 'Orbit vs Heroku at a glance',
+        blocks: [
+          { type: 'table', headers: ['Feature', 'Orbit', 'Heroku'], rows: [
+            ['Infrastructure', 'Decentralized (Flux, thousands of nodes)', 'Centralized (single cloud)'],
+            ['Single point of failure', 'No', 'Yes'],
+            ['Git push-to-deploy', 'Yes (GitHub/GitLab/Bitbucket)', 'Yes'],
+            ['Framework auto-detect', 'Yes (Nixpacks, no Dockerfile)', 'Yes (buildpacks)'],
+            ['Free tier', 'Free forever', 'Removed in 2022'],
+            ['Dedicated resources', 'Yes', 'Dyno-based'],
+            ['Egress / bandwidth fees', 'None', 'Possible'],
+            ['Vendor lock-in', 'None', 'Buildpacks & add-ons'],
+            ['Paid pricing', 'From $0.99/mo', 'Dyno tiers'],
+          ] },
+        ],
+      },
+      {
+        heading: 'Which should you choose?',
+        blocks: [
+          { type: 'p', html: 'If you want a mature, centralized PaaS with a large add-on marketplace, Heroku remains a capable choice. If you want the same push-to-deploy flow on decentralized infrastructure with no single point of failure, a free tier that stays free, no egress fees, and no lock-in, Orbit is built for that. Your repo is the source of truth — point Orbit at it and deploy.' },
+        ],
+      },
+    ],
+    faqs: [
+      { q: 'What is the best Heroku alternative?', a: 'Orbit is a decentralized Heroku alternative: git push-to-deploy on the Flux cloud with automatic framework detection, dedicated CPU and RAM, no single point of failure, no egress fees, and a free tier that stays free — paid plans from $0.99/mo.' },
+      { q: 'Does Orbit have a free tier like old Heroku?', a: 'Yes. Orbit has a free tier that is genuinely free forever — no credit card required — unlike Heroku, which removed its free dynos in 2022. Paid plans with dedicated resources start at $0.99/mo.' },
+      { q: 'Can I deploy my Heroku app to Orbit without a Dockerfile?', a: 'Yes. Orbit uses Nixpacks to detect your framework and build a container straight from your repository, so most apps deploy as-is from GitHub, GitLab or Bitbucket with no Dockerfile.' },
+      { q: 'Is Orbit really decentralized?', a: 'Yes. Orbit deploys your app to the Flux network — thousands of independent nodes run by many operators — so there is no single data center or company whose failure takes your app offline.' },
+    ],
+  },
+
+  '/railway-alternative': {
+    slug: '/railway-alternative',
+    title: 'Decentralized Railway Alternative | Orbit',
+    description:
+      'Looking for a Railway alternative? Orbit is Git push-to-deploy on the decentralized Flux cloud: dedicated resources, no single point of failure, no egress fees, a free tier that stays free — from $0.99/mo.',
+    breadcrumb: 'Railway Alternative',
+    h1: 'Looking for a Railway Alternative?',
+    intro:
+      'Railway is a slick modern PaaS with a great git-deploy flow, but it runs on centralized cloud with usage-metered pricing. Orbit brings push-to-deploy to the decentralized Flux cloud — with dedicated resources, no single point of failure, no egress fees, and pricing from $0.99/mo.',
+    sections: [
+      {
+        heading: 'Why developers look for a Railway alternative',
+        blocks: [
+          { type: 'p', html: 'Railway has a polished developer experience. The reasons teams evaluate alternatives are usually structural:' },
+          { type: 'ul', items: [
+            '<strong>Centralized infrastructure.</strong> Your app runs on one provider\'s cloud — a single point of failure.',
+            '<strong>Usage-metered billing.</strong> Pay-per-usage can be hard to predict, and a busy month means a bigger bill.',
+            '<strong>Egress costs.</strong> Bandwidth is metered on most centralized PaaS platforms.',
+            '<strong>Lock-in.</strong> Platform-specific config ties your workflow to one provider.',
+          ] },
+        ],
+      },
+      {
+        heading: 'How Orbit is different',
+        blocks: [
+          { type: 'p', html: 'Orbit keeps the push-to-deploy flow — connect a repo, push, get a live URL — and runs it on the <strong>Flux decentralized cloud</strong> with <strong>no single point of failure</strong>. Framework detection is automatic via Nixpacks, so most apps deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong>. Every app gets <strong>dedicated CPU and RAM</strong>, there are <strong>no egress fees</strong>, the free tier is free forever, and paid plans start at <strong>$0.99/mo</strong> — no vendor lock-in.' },
+        ],
+      },
+      {
+        heading: 'Orbit vs Railway at a glance',
+        blocks: [
+          { type: 'table', headers: ['Feature', 'Orbit', 'Railway'], rows: [
+            ['Infrastructure', 'Decentralized (Flux, thousands of nodes)', 'Centralized (single cloud)'],
+            ['Single point of failure', 'No', 'Yes'],
+            ['Git push-to-deploy', 'Yes (GitHub/GitLab/Bitbucket)', 'Yes'],
+            ['Framework auto-detect', 'Yes (Nixpacks, no Dockerfile)', 'Yes (Nixpacks)'],
+            ['Dedicated resources', 'Yes', 'Usage-metered'],
+            ['Egress / bandwidth fees', 'None', 'Metered'],
+            ['Free tier', 'Free forever', 'Trial / limited'],
+            ['Vendor lock-in', 'None', 'Platform config'],
+            ['Paid pricing', 'From $0.99/mo', 'Usage-based'],
+          ] },
+        ],
+      },
+      {
+        heading: 'Which should you choose?',
+        blocks: [
+          { type: 'p', html: 'If you like usage-based billing on a polished centralized platform, Railway is a strong choice. If you want the same git-deploy flow on decentralized infrastructure with no single point of failure, predictable pricing, no egress fees, and no lock-in, Orbit is designed for that. Point Orbit at your repo and deploy.' },
+        ],
+      },
+    ],
+    faqs: [
+      { q: 'What is the best Railway alternative?', a: 'Orbit is a decentralized Railway alternative: git push-to-deploy on the Flux cloud with automatic framework detection, dedicated CPU and RAM, no single point of failure, no egress fees, and a free tier that stays free — paid plans from $0.99/mo.' },
+      { q: 'Is Orbit cheaper than Railway?', a: 'Orbit uses flat pay-as-you-go plans from $0.99/mo for dedicated resources, plus a free tier that stays free, rather than usage-metered billing — so costs are predictable. Exact pricing depends on the resources you choose.' },
+      { q: 'Can I deploy the same way I do on Railway?', a: 'Yes. Orbit connects your GitHub, GitLab or Bitbucket repo and uses Nixpacks framework detection to build and deploy on every push, so the workflow is the familiar push-to-deploy flow.' },
+      { q: 'Does Orbit charge for bandwidth like Railway?', a: 'No. Orbit does not charge egress or bandwidth fees; you pay for the dedicated resources your app uses.' },
+    ],
+  },
+
+  '/render-alternative': {
+    slug: '/render-alternative',
+    title: 'Decentralized Render Alternative | Orbit',
+    description:
+      'Looking for a Render alternative? Orbit is Git push-to-deploy on the decentralized Flux cloud: dedicated resources, no single point of failure, no egress fees, a free tier that stays free — from $0.99/mo.',
+    breadcrumb: 'Render Alternative',
+    h1: 'Looking for a Render Alternative?',
+    intro:
+      'Render is a popular PaaS with git deploy and a familiar dashboard, but it runs on centralized cloud and its free tier is limited. Orbit brings push-to-deploy to the decentralized Flux cloud — with dedicated resources, no single point of failure, no egress fees, and pricing from $0.99/mo.',
+    sections: [
+      {
+        heading: 'Why developers look for a Render alternative',
+        blocks: [
+          { type: 'p', html: 'Render is a capable platform. The reasons teams compare it with others are usually structural:' },
+          { type: 'ul', items: [
+            '<strong>Centralized infrastructure.</strong> Your app runs on one provider\'s cloud — a single point of failure.',
+            '<strong>Limited free tier.</strong> Free web services are constrained and can spin down when idle.',
+            '<strong>Egress costs.</strong> Bandwidth beyond the included allowance is metered.',
+            '<strong>Lock-in.</strong> Platform-specific configuration ties your workflow to one provider.',
+          ] },
+        ],
+      },
+      {
+        heading: 'How Orbit is different',
+        blocks: [
+          { type: 'p', html: 'Orbit keeps the push-to-deploy flow — connect a repo, push, get a live URL — and runs it on the <strong>Flux decentralized cloud</strong> with <strong>no single point of failure</strong>. Framework detection is automatic via Nixpacks, so most apps deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong>. Every app gets <strong>dedicated CPU and RAM</strong>, there are <strong>no egress fees</strong>, the free tier is free forever with no idle spin-down surprises, and paid plans start at <strong>$0.99/mo</strong> — no vendor lock-in.' },
+        ],
+      },
+      {
+        heading: 'Orbit vs Render at a glance',
+        blocks: [
+          { type: 'table', headers: ['Feature', 'Orbit', 'Render'], rows: [
+            ['Infrastructure', 'Decentralized (Flux, thousands of nodes)', 'Centralized (single cloud)'],
+            ['Single point of failure', 'No', 'Yes'],
+            ['Git push-to-deploy', 'Yes (GitHub/GitLab/Bitbucket)', 'Yes'],
+            ['Framework auto-detect', 'Yes (Nixpacks, no Dockerfile)', 'Yes'],
+            ['Dedicated resources', 'Yes', 'Plan-dependent'],
+            ['Egress / bandwidth fees', 'None', 'Metered beyond allowance'],
+            ['Free tier', 'Free forever', 'Limited (idle spin-down)'],
+            ['Vendor lock-in', 'None', 'Platform config'],
+            ['Paid pricing', 'From $0.99/mo', 'Plan tiers'],
+          ] },
+        ],
+      },
+      {
+        heading: 'Which should you choose?',
+        blocks: [
+          { type: 'p', html: 'If you want a familiar centralized PaaS dashboard, Render is a solid choice. If you want the same git-deploy flow on decentralized infrastructure with no single point of failure, a free tier that stays free, no egress fees, and no lock-in, Orbit is built for that. Point Orbit at your repo and deploy.' },
+        ],
+      },
+    ],
+    faqs: [
+      { q: 'What is the best Render alternative?', a: 'Orbit is a decentralized Render alternative: git push-to-deploy on the Flux cloud with automatic framework detection, dedicated CPU and RAM, no single point of failure, no egress fees, and a free tier that stays free — paid plans from $0.99/mo.' },
+      { q: 'Is Orbit’s free tier better than Render’s?', a: 'Orbit’s free tier is genuinely free forever with no credit card, whereas Render’s free web services are limited and can spin down when idle. Paid Orbit plans with dedicated resources start at $0.99/mo.' },
+      { q: 'Can I deploy the same way I do on Render?', a: 'Yes. Orbit connects your GitHub, GitLab or Bitbucket repo and uses Nixpacks framework detection to build and deploy on every push.' },
+      { q: 'Does Orbit charge for bandwidth like Render?', a: 'No. Orbit does not charge egress or bandwidth fees; you pay for the dedicated resources your app uses.' },
     ],
   },
 };
