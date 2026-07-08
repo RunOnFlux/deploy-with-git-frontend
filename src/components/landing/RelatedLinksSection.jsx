@@ -21,6 +21,24 @@ const LINKS = [
     external: false,
   },
   {
+    href: '/heroku-alternative',
+    title: 'Heroku alternative',
+    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free — from $0.99/mo.',
+    external: false,
+  },
+  {
+    href: '/railway-alternative',
+    title: 'Railway alternative',
+    desc: 'The decentralized alternative to Railway — dedicated resources, no egress fees, predictable pricing.',
+    external: false,
+  },
+  {
+    href: '/render-alternative',
+    title: 'Render alternative',
+    desc: 'A decentralized Render alternative with no single point of failure and no idle spin-down.',
+    external: false,
+  },
+  {
     href: 'https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/',
     title: 'Deploy with Git docs',
     desc: 'Official documentation for deploying any repository to the Flux network.',

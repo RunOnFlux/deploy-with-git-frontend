@@ -255,6 +255,9 @@ export function buildStaticHome() {
             <li><a href="/decentralized-hosting">What is decentralized (web3) hosting?</a> — the pillar guide to censorship-resistant, vendor-lock-in-free hosting.</li>
             <li><a href="/vs/vercel">Orbit vs. Vercel</a> — how the decentralized alternative compares on price, resources, and backends.</li>
             <li><a href="/vercel-netlify-alternative">Vercel, Netlify &amp; Cloudflare Pages alternative</a> — a decentralized web3 deploy platform compared with all three incumbents.</li>
+            <li><a href="/heroku-alternative">Heroku alternative</a> — git push-to-deploy on a decentralized cloud with a free tier that stays free.</li>
+            <li><a href="/railway-alternative">Railway alternative</a> — dedicated resources and no egress fees on the decentralized Flux network.</li>
+            <li><a href="/render-alternative">Render alternative</a> — no single point of failure and no idle spin-down.</li>
             <li><a href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/" rel="noopener noreferrer">Deploy with Git documentation</a></li>
             <li><a href="https://github.com/RunOnFlux/deploy-with-git" rel="noopener noreferrer">Deployment guides and samples</a></li>
           </ul>
