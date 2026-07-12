@@ -31,6 +31,16 @@ Enterprise apps run inside ArcaneOS, Flux's hardened execution environment, wher
 
 Orbit deploys to the Flux decentralized network, so no single company controls your infrastructure. Your app runs on multiple independent nodes globally, providing true redundancy with no vendor lock-in.
 
+
+## Pages
+
+- [Home / pricing / features](https://orbit.runonflux.com/)
+- [Decentralized app hosting](https://orbit.runonflux.com/decentralized-hosting)
+- [Orbit vs Vercel](https://orbit.runonflux.com/vs/vercel)
+- [Vercel and Netlify alternative](https://orbit.runonflux.com/vercel-netlify-alternative)
+- [Heroku alternative](https://orbit.runonflux.com/heroku-alternative)
+- [Railway alternative](https://orbit.runonflux.com/railway-alternative)
+- [Render alternative](https://orbit.runonflux.com/render-alternative)
 ## Links
 
 - [Orbit](https://orbit.runonflux.com/): deploy any Git repository to the Flux decentralized cloud.
