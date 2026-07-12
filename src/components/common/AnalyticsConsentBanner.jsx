@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getRuntimeConfig } from '../../config/runtimeConfig';
 import { setAnalyticsConsent, shouldShowAnalyticsConsent } from '../../services/analytics';
 
 export default function AnalyticsConsentBanner() {
-  const analytics = getRuntimeConfig().analytics;
-  const [visible, setVisible] = useState(() => shouldShowAnalyticsConsent(analytics));
+  // Deliberately client-only: the decision needs the runtime config (fetched from
+  // /api/config during bootstrap) and localStorage, neither of which exists during
+  // the SSR prerender. Deciding in an effect keeps the banner out of the server
+  // markup AND out of the client's first, hydrating render, so the two match.
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(shouldShowAnalyticsConsent(getRuntimeConfig().analytics));
+  }, []);
 
   if (!visible) return null;
 

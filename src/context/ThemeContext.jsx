@@ -3,8 +3,12 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
+  // This initializer runs during render, so it must not touch localStorage during
+  // the SSR prerender (there is no browser there). 'dark' is also what the server
+  // markup and the client's first, hydrating render must agree on — the stored
+  // preference is applied by the effect below, after hydration.
   const [theme, setTheme] = useState(
-    () => localStorage.getItem('orbit-theme') || 'dark'
+    () => (typeof window === 'undefined' ? 'dark' : localStorage.getItem('orbit-theme') || 'dark')
   );
 
   // Apply data-theme to <html> immediately and on every change.

@@ -7,7 +7,8 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "client": "vite --host",
     "server": "node --env-file=.env server.js",
-    "build": "vite build && npm run prerender",
+    "build": "vite build && npm run build:ssr && npm run prerender",
+    "build:ssr": "vite build --ssr src/entry-server.jsx --outDir dist-ssr",
     "prerender": "node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

@@ -90,6 +90,13 @@ export default function PricingSection({ onLoginSuccess }) {
             <p className="text-text-secondary mt-4 max-w-xl mx-auto">
               Choose your plan based on your resource needs.
             </p>
+            <p className="text-text-secondary/80 text-sm leading-relaxed max-w-2xl mx-auto mt-4">
+              Start free and scale as you grow. Every plan — including the free-forever tier —
+              includes unlimited builds, automatic deploys on every push, rollbacks, and the full
+              Orbit feature set; paid plans add dedicated CPU, RAM and storage, and the first month
+              is free. There is no contract and no egress billing: you pay for the resources your
+              app reserves, and you can change or cancel a plan at any time.
+            </p>
           </motion.div>
 
           {/* Billing period toggle */}

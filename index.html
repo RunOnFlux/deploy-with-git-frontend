@@ -42,7 +42,11 @@
     <!--SEO:JSONLD-->
   </head>
   <body>
-    <div id="root"><!--SEO:ROOT--></div>
+    <!-- Empty by design. scripts/prerender.mjs replaces this with the route's
+         server-rendered React markup at build time (and tags it with data-ssr-path),
+         and the client hydrates it. In dev there is nothing to hydrate, so main.jsx
+         falls back to createRoot. -->
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -8,22 +9,59 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import AnalyticsTracker from './components/common/AnalyticsTracker';
 import AnalyticsConsentBanner from './components/common/AnalyticsConsentBanner';
 import ScrollToTop from './components/ScrollToTop';
+import { MARKETING_ROUTES } from './content/pagesContent';
 
 import LoadingSpinner from './components/common/LoadingSpinner';
 
+/**
+ * React.lazy + a preload() step.
+ *
+ * The build-time SSR prerender (scripts/prerender.mjs → src/entry-server.jsx) uses
+ * renderToString, which is synchronous: a plain React.lazy component would suspend
+ * and the prerender would emit the <Suspense> fallback (a spinner) instead of the
+ * page. Once preload() has resolved, the wrapper renders the module synchronously,
+ * so the server emits real markup — and the client, which preloads the same route
+ * before hydrating, produces an identical first render.
+ */
+const lazyPage = (factory) => {
+  const Lazy = lazy(factory);
+  let Loaded = null;
+  const Page = (props) => (Loaded ? <Loaded {...props} /> : <Lazy {...props} />);
+  Page.preload = () => Promise.resolve(factory()).then((m) => { Loaded = m.default; });
+  Page.displayName = 'LazyPage';
+  return Page;
+};
+
 // Lazy-loaded pages
-const Home = lazy(() => import('./pages/Home'));
-const MarketingPage = lazy(() => import('./pages/MarketingPage'));
-const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
-const Overview = lazy(() => import('./pages/dashboard/Overview'));
-const Deployments = lazy(() => import('./pages/dashboard/Deployments'));
-const DeployWizard = lazy(() => import('./pages/dashboard/DeployWizard'));
-const AppDetail = lazy(() => import('./pages/dashboard/AppDetail'));
-const Billing = lazy(() => import('./pages/dashboard/Billing'));
-const Support = lazy(() => import('./pages/dashboard/Support'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-const DeployGateway = lazy(() => import('./pages/DeployGateway'));
-const LoginPage = lazy(() => import('./pages/Login'));
+const Home = lazyPage(() => import('./pages/Home'));
+const MarketingPage = lazyPage(() => import('./pages/MarketingPage'));
+const DashboardLayout = lazyPage(() => import('./pages/dashboard/DashboardLayout'));
+const Overview = lazyPage(() => import('./pages/dashboard/Overview'));
+const Deployments = lazyPage(() => import('./pages/dashboard/Deployments'));
+const DeployWizard = lazyPage(() => import('./pages/dashboard/DeployWizard'));
+const AppDetail = lazyPage(() => import('./pages/dashboard/AppDetail'));
+const Billing = lazyPage(() => import('./pages/dashboard/Billing'));
+const Support = lazyPage(() => import('./pages/dashboard/Support'));
+const NotFound = lazyPage(() => import('./pages/NotFound'));
+const DeployGateway = lazyPage(() => import('./pages/DeployGateway'));
+const LoginPage = lazyPage(() => import('./pages/Login'));
+
+// Which page component serves each prerendered/hydrated path. Used to load exactly
+// the chunk for the route being rendered (server) or hydrated (client) — never the
+// whole app. Every marketing route is served by the same MarketingPage component.
+const ROUTE_PAGES = {
+  '/': Home,
+  '/login': LoginPage,
+  '/deploy': DeployGateway,
+  ...Object.fromEntries(MARKETING_ROUTES.map((route) => [route, MarketingPage])),
+};
+
+/** Load the chunk for `pathname` (falling back to NotFound) before render/hydrate. */
+export const preloadRoute = (pathname) => {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  const Page = ROUTE_PAGES[clean] || NotFound;
+  return Page.preload();
+};
 
 function StripeSuccessPage() {
   const [countdown, setCountdown] = useState(10);
@@ -99,52 +137,78 @@ function ToasterWithTheme() {
   );
 }
 
-function App() {
+/**
+ * Everything that must live *inside* a Router. The client wraps this in
+ * BrowserRouter, the SSR prerender in StaticRouter (src/entry-server.jsx); both
+ * produce the same markup, which is what makes hydration adopt the server HTML.
+ */
+export function AppRoutes() {
+  return (
+    <>
+      <ScrollToTop />
+      <AnalyticsTracker />
+      <div className="min-h-screen bg-background text-text">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<Home />} />
+            {MARKETING_ROUTES.map((route) => (
+              <Route key={route} path={route} element={<MarketingPage route={route} />} />
+            ))}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/deploy" element={<DeployGateway />} />
+            <Route path="/successcheckout" element={<StripeSuccessPage />} />
+
+            {/* Dashboard (auth-protected layout) */}
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<Overview />} />
+              <Route path="deployments" element={<Deployments />} />
+              <Route path="deployments/:appName" element={<AppDetail />} />
+              <Route path="deploy" element={<DeployWizard />} />
+              <Route path="billing" element={<Billing />} />
+              <Route path="support" element={<Support />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+
+        <ToasterWithTheme />
+      </div>
+      {/* Client-only: renders null until its effect runs, so it is absent from the
+          SSR markup and from the client's first (hydrating) render. */}
+      <AnalyticsConsentBanner />
+    </>
+  );
+}
+
+/** Router-agnostic providers. Shared by the client entry and the SSR prerender. */
+export function AppProviders({ children }) {
   return (
     <ErrorBoundary>
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <Router>
-              <ScrollToTop />
-              <AnalyticsTracker />
-              <div className="min-h-screen bg-background text-text">
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Public */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/decentralized-hosting" element={<MarketingPage route="/decentralized-hosting" />} />
-                    <Route path="/vs/vercel" element={<MarketingPage route="/vs/vercel" />} />
-                    <Route path="/vercel-netlify-alternative" element={<MarketingPage route="/vercel-netlify-alternative" />} />
-                    <Route path="/heroku-alternative" element={<MarketingPage route="/heroku-alternative" />} />
-                    <Route path="/railway-alternative" element={<MarketingPage route="/railway-alternative" />} />
-                    <Route path="/render-alternative" element={<MarketingPage route="/render-alternative" />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/deploy" element={<DeployGateway />} />
-                    <Route path="/successcheckout" element={<StripeSuccessPage />} />
-
-                    {/* Dashboard (auth-protected layout) */}
-                    <Route path="/dashboard" element={<DashboardLayout />}>
-                      <Route index element={<Overview />} />
-                      <Route path="deployments" element={<Deployments />} />
-                      <Route path="deployments/:appName" element={<AppDetail />} />
-                      <Route path="deploy" element={<DeployWizard />} />
-                      <Route path="billing" element={<Billing />} />
-                      <Route path="support" element={<Support />} />
-                    </Route>
-
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-
-                <ToasterWithTheme />
-              </div>
-              <AnalyticsConsentBanner />
-            </Router>
+            {children}
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </ErrorBoundary>
+  );
+}
+
+AppProviders.propTypes = {
+  children: PropTypes.node,
+};
+
+/** Client entry tree. The SSR equivalent lives in src/entry-server.jsx. */
+function App() {
+  return (
+    <AppProviders>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AppProviders>
   );
 }
 

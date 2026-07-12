@@ -181,6 +181,22 @@ function GlobalNetworkSection() {
               'Loading live node distribution from the Flux network…'
             )}
           </p>
+          <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-3xl mx-auto mt-6 text-left sm:text-center">
+            Most modern hosting concentrates your app inside one company&apos;s data centers — one
+            provider&apos;s pricing, one provider&apos;s policies, one single point of failure. Orbit
+            takes a different path. Your app runs on the Flux network: thousands of independently
+            operated nodes across dozens of countries, run by thousands of separate operators.
+            Because no single party owns the infrastructure, there is no gatekeeper who can
+            deplatform you, no vendor able to lock in your data, and no lone data center whose
+            outage takes you offline.
+          </p>
+          <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-3xl mx-auto mt-4 text-left sm:text-center">
+            Your container also runs on real, dedicated hardware rather than a metered slice of a
+            shared server, and it runs on several nodes at once, so the network absorbs the failures
+            that would mean downtime on a single-server setup. For dApp front-ends, indie projects
+            and teams that want genuine redundancy and censorship resistance, decentralized hosting
+            delivers the reliability of a top-tier cloud without handing control to one corporation.
+          </p>
         </motion.div>
 
         {/* Stats bar */}

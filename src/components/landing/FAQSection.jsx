@@ -57,6 +57,11 @@ export default function FAQSection() {
           <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
             Common <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">Questions</span>
           </h2>
+          <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mt-5">
+            What we get asked most often before the first deploy: which repositories and frameworks
+            are supported, what the free tier really includes, how billing works, and what actually
+            happens to your app when a node on the decentralized network goes offline.
+          </p>
         </motion.div>
 
         <motion.div

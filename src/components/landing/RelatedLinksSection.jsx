@@ -69,6 +69,12 @@ export default function RelatedLinksSection() {
           <h2 className="font-heading text-4xl sm:text-5xl font-bold text-text">
             Go <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">deeper</span>
           </h2>
+          <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mt-5">
+            If you are weighing decentralized hosting against the platform you use today, these
+            guides go further than a feature table: what web3 hosting actually is and how the node
+            network keeps your app online, and how Orbit compares head-to-head with Vercel, Netlify,
+            Heroku, Railway and Render on price, dedicated resources, backend support and lock-in.
+          </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 gap-4">

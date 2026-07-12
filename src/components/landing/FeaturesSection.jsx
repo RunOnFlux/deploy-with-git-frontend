@@ -56,6 +56,13 @@ export default function FeaturesSection() {
           <p className="text-text-secondary/70 text-lg max-w-2xl mx-auto leading-relaxed">
             Zero Docker headaches. Orbit handles the full build, deploy, and operations pipeline so you can focus on code.
           </p>
+          <p className="text-text-secondary/70 text-base max-w-3xl mx-auto leading-relaxed mt-5">
+            Everything below ships on every plan, free tier included: framework auto-detection,
+            container builds, automatic redeploys on push, streaming build logs, instant rollback to
+            the last healthy release, custom domains with managed TLS, environment variables and
+            secrets, and a dashboard for logs, status and node-level actions on the apps you are
+            already running.
+          </p>
         </motion.div>
 
         <motion.div

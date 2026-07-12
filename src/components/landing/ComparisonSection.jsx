@@ -95,6 +95,20 @@ export default function ComparisonSection() {
           <p className="text-text-secondary mt-4 max-w-xl mx-auto">
             Dedicated resources, unlimited builds, a fraction of the price.
           </p>
+          <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-3xl mx-auto mt-5 text-left sm:text-center">
+            Centralized platforms like Vercel and Netlify are polished, but they run your app on
+            shared, metered infrastructure inside one company&apos;s cloud, with paid tiers starting
+            around $19–$20 a month and real limits on backends and long-running servers. Orbit gives
+            you dedicated CPU and RAM on the decentralized Flux network from $0.99 a month, native
+            support for full-stack backends, and a genuinely free-forever tier with no
+            non-commercial restriction. The table below is the short version; the{' '}
+            <a href="/vs/vercel" className="text-primary hover:underline">Orbit vs. Vercel comparison</a>{' '}
+            and the{' '}
+            <a href="/vercel-netlify-alternative" className="text-primary hover:underline">
+              Vercel, Netlify &amp; Cloudflare Pages breakdown
+            </a>{' '}
+            go through it line by line.
+          </p>
         </motion.div>
 
         <motion.div
