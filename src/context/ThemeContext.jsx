@@ -3,13 +3,20 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  // This initializer runs during render, so it must not touch localStorage during
-  // the SSR prerender (there is no browser there). 'dark' is also what the server
-  // markup and the client's first, hydrating render must agree on — the stored
-  // preference is applied by the effect below, after hydration.
-  const [theme, setTheme] = useState(
-    () => (typeof window === 'undefined' ? 'dark' : localStorage.getItem('orbit-theme') || 'dark')
-  );
+  // 'dark' is what the SSR markup and the client's first (hydrating) render must
+  // agree on, so the initial state is 'dark' on BOTH sides — reading localStorage
+  // here would make a returning light-theme user's first render disagree with the
+  // server's dark markup (a hydration mismatch). The stored preference is applied
+  // by the mount effect below, after hydration.
+  const [theme, setTheme] = useState('dark');
+
+  // After hydration, adopt the visitor's saved preference (if any).
+  useEffect(() => {
+    const stored = localStorage.getItem('orbit-theme');
+    if (stored && stored !== theme) setTheme(stored);
+    // Run once on mount; theme intentionally omitted so a later toggle isn't reverted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply data-theme to <html> immediately and on every change.
   // The landing page overrides this back to 'dark' via its own useEffect.

@@ -7,7 +7,15 @@ import { initAnalytics } from './services/analytics.js';
 import { initFirebase } from './utils/firebase.js';
 
 function renderConfigError(message) {
-  createRoot(document.getElementById('root')).render(
+  const container = document.getElementById('root');
+  // If the server already rendered real content into #root, keep it. A non-fatal
+  // bootstrap error must never blank a page that is already painted and readable —
+  // that "full page → almost empty" wipe is exactly the regression we're fixing.
+  if (container && container.hasChildNodes()) {
+    console.error('Bootstrap error (keeping server-rendered content):', message);
+    return;
+  }
+  createRoot(container).render(
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -27,7 +35,12 @@ function renderConfigError(message) {
   );
 }
 
-try {
+// Bootstrap runs in an async function, NOT via top-level await. A top-level await in
+// the entry module makes its chunk async, and Vite/Rollup then deadlocks a later
+// dynamic import() of a code-split route chunk that shares dependencies with the
+// entry: the import promise never resolves, so the app never hydrates (the whole
+// page stays as static SSR markup — no effects, no data fetches, no animations).
+async function bootstrap() {
   const config = await loadRuntimeConfig();
   initAnalytics(config.analytics);
   initFirebase(config.firebase);
@@ -61,12 +74,22 @@ try {
   const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
 
   if (ssrPath && ssrPath === currentPath && container.hasChildNodes()) {
-    await preloadRoute(currentPath);
-    hydrateRoot(container, tree);
+    try {
+      // The route chunk must resolve before hydrating so the first client render
+      // matches the server markup. If it 404s (e.g. an old cached index.html points
+      // at chunks a redeploy has purged), DON'T blank the page: the server HTML is
+      // already painted and readable. Leave it in place and skip hydration.
+      await preloadRoute(currentPath);
+      hydrateRoot(container, tree);
+    } catch (err) {
+      console.error('Hydration preload failed; keeping server-rendered HTML:', err);
+    }
   } else {
     createRoot(container).render(tree);
   }
-} catch (err) {
+}
+
+bootstrap().catch((err) => {
   console.error('Bootstrap failed:', err);
   renderConfigError(err?.message || 'Failed to load application configuration.');
-}
+});

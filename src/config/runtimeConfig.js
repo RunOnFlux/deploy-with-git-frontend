@@ -21,7 +21,8 @@ function envFlag(value, fallback = false) {
   return value === 'true' || value === '1';
 }
 
-/** Dev-only fallback when the BFF is not running. */
+/** Fallback config when /api/config is unreachable (BFF down in dev, or a transient
+ *  failure in prod). Resolves to config/defaults.js when the VITE_* vars are absent. */
 function configFromImportMetaEnv() {
   return {
     appUrl: import.meta.env.VITE_APP_URL || DEFAULT_APP_URL,
@@ -55,12 +56,15 @@ export async function loadRuntimeConfig() {
     _config = await resp.json();
     return _config;
   } catch (err) {
-    if (import.meta.env.DEV) {
-      console.warn('[runtimeConfig] /api/config unavailable, using import.meta.env fallback:', err.message);
-      _config = configFromImportMetaEnv();
-      return _config;
-    }
-    throw new Error(`Failed to load runtime config: ${err.message}`);
+    // NEVER throw here. A transient /api/config failure (a 429, a 502, a briefly
+    // overloaded BFF) must not abort bootstrap — that would blank a page the server
+    // already rendered in full. The built-in defaults (config/defaults.js) are the
+    // real production values (app URL, prod Firebase, GA id), so falling back keeps
+    // the app fully functional. import.meta.env.VITE_* are inlined at build time and
+    // simply resolve to those same defaults when absent.
+    console.warn('[runtimeConfig] /api/config unavailable, using built-in defaults:', err.message);
+    _config = configFromImportMetaEnv();
+    return _config;
   }
 }
 
