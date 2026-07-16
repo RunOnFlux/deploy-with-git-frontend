@@ -10,6 +10,7 @@ const links = [
   { label: 'FluxOS', href: 'https://home.runonflux.io', external: true },
   { label: 'GitHub', href: 'https://github.com/runonflux', external: true },
   { label: 'Docs', href: 'https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/', external: true },
+  { label: 'Deploy Button', href: '/deploy-to-flux', external: false },
   { label: 'Samples', href: 'https://github.com/RunOnFlux/deploy-with-git-samples', external: true },
 ];
 
@@ -25,7 +26,7 @@ export default function Footer() {
         </div>
 
         {/* Links */}
-        <nav className="flex items-center gap-6">
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
           {links.map((l) => (
             <a
               key={l.label}

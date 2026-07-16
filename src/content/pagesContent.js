@@ -14,9 +14,19 @@
  */
 
 /** Ordered list of marketing routes, reused by the sitemap and the prerender. */
-export const MARKETING_ROUTES = ['/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
+export const MARKETING_ROUTES = ['/deploy-to-flux', '/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
 
 export const MARKETING_PAGES = {
+  '/deploy-to-flux': {
+    slug: 'deploy-to-flux',
+    title: 'Deploy to Flux Button | Orbit',
+    description: 'Add a Deploy to Flux button to your repository and let anyone deploy it through Orbit with one click.',
+    breadcrumb: 'Deploy to Flux Button',
+    h1: 'Add a Deploy to Flux Button',
+    intro: 'Generate a one-click Orbit deployment link for your repository README.',
+    sections: [],
+    faqs: [],
+  },
   '/decentralized-hosting': {
     slug: 'decentralized-hosting',
     title: 'Decentralized (Web3) Hosting Explained: 2026 Guide | Orbit',

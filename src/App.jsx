@@ -35,6 +35,7 @@ const lazyPage = (factory) => {
 // Lazy-loaded pages
 const Home = lazyPage(() => import('./pages/Home'));
 const MarketingPage = lazyPage(() => import('./pages/MarketingPage'));
+const DeployToFluxPage = lazyPage(() => import('./pages/DeployToFluxPage'));
 const DashboardLayout = lazyPage(() => import('./pages/dashboard/DashboardLayout'));
 const Overview = lazyPage(() => import('./pages/dashboard/Overview'));
 const Deployments = lazyPage(() => import('./pages/dashboard/Deployments'));
@@ -54,6 +55,7 @@ const ROUTE_PAGES = {
   '/login': LoginPage,
   '/deploy': DeployGateway,
   ...Object.fromEntries(MARKETING_ROUTES.map((route) => [route, MarketingPage])),
+  '/deploy-to-flux': DeployToFluxPage,
 };
 
 /** Load the chunk for `pathname` (falling back to NotFound) before render/hydrate. */
@@ -152,7 +154,8 @@ export function AppRoutes() {
           <Routes>
             {/* Public */}
             <Route path="/" element={<Home />} />
-            {MARKETING_ROUTES.map((route) => (
+            <Route path="/deploy-to-flux" element={<DeployToFluxPage />} />
+            {MARKETING_ROUTES.filter((route) => route !== '/deploy-to-flux').map((route) => (
               <Route key={route} path={route} element={<MarketingPage route={route} />} />
             ))}
             <Route path="/login" element={<LoginPage />} />

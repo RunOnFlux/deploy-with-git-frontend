@@ -6,6 +6,7 @@ import Navbar from '../components/landing/Navbar';
 import HeroSection from '../components/landing/HeroSection';
 import FrameworkLogosSection from '../components/landing/FrameworkLogosSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
+import DeployToFluxSection from '../components/landing/DeployToFluxSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import ComparisonSection from '../components/landing/ComparisonSection';
 import GlobalNetworkSection from '../components/landing/GlobalNetworkSection';
@@ -65,6 +66,7 @@ export default function Home() {
           <HeroSection />
           <FrameworkLogosSection />
           <HowItWorksSection />
+          <DeployToFluxSection />
           <FeaturesSection />
           <ComparisonSection />
           <GlobalNetworkSection />
