@@ -52,7 +52,7 @@ import { Globe, Layers, Gift, Infinity } from 'lucide-react';
 import { useNetworkStats, formatNodeCount } from '../../hooks/useNetworkStats';
 
 const STATS = [
-  { key: 'nodes', value: '—', label: 'global nodes',  Icon: Globe     },
+  { key: 'nodes', value: 'thousands of', label: 'global nodes', Icon: Globe },
   { value: '100+',    label: 'frameworks',    Icon: Layers    },
   { value: 'Free',    label: 'forever tier',  Icon: Gift      },
   { value: 'Unlimited', label: 'builds forever', Icon: Infinity  },

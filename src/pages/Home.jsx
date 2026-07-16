@@ -50,12 +50,12 @@ export default function Home() {
         <title>Deploy with Git to the Flux Decentralized Cloud | Orbit</title>
         <meta
           name="description"
-          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes — free tier, paid plans from $0.99/mo."
+          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Start free, with paid plans from $0.99/mo."
         />
         <meta property="og:title" content="Deploy with Git to the Flux Decentralized Cloud | Orbit" />
         <meta
           property="og:description"
-          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes — free tier, paid plans from $0.99/mo."
+          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Start free, with paid plans from $0.99/mo."
         />
       </Helmet>
 

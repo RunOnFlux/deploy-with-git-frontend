@@ -1,4 +1,4 @@
-// Soft bokeh orbs — drop inside any `relative overflow-hidden` section
+// Soft bokeh orbs for any `relative overflow-hidden` section.
 export default function BokehBackground({ orbs }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">

@@ -47,7 +47,7 @@ export default function Footer() {
         </nav>
       </div>
 
-      {/* Cross-links to sibling Flux hosting sites — keyword-rich, SEO. */}
+      {/* Keyword-rich SEO cross-links to sibling Flux hosting sites. */}
       <div className="max-w-5xl mx-auto mt-10 pt-8 border-t border-border">
         <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 text-center sm:text-left">
           Explore other Flux hosting

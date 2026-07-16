@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { label: 'Samples',   href: 'https://github.com/RunOnFlux/deploy-with-git-samples', external: true },
 ];
 
-const NAV_OFFSET = 72; // px — navbar height + a little breathing room
+const NAV_OFFSET = 72; // Navbar height plus a little breathing room, in pixels.
 
 export default function Navbar({ onLoginSuccess }) {
   const { isAuthenticated } = useAuth();

@@ -23,13 +23,13 @@ const LINKS = [
   {
     href: '/heroku-alternative',
     title: 'Heroku alternative',
-    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free — from $0.99/mo.',
+    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free. Paid plans start at $0.99/mo.',
     external: false,
   },
   {
     href: '/railway-alternative',
     title: 'Railway alternative',
-    desc: 'The decentralized alternative to Railway — dedicated resources, no egress fees, predictable pricing.',
+    desc: 'The decentralized alternative to Railway with dedicated resources, no egress fees, and predictable pricing.',
     external: false,
   },
   {

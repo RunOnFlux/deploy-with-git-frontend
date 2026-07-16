@@ -177,7 +177,7 @@ export default function ComparisonSection() {
         </div>
 
         <p className="text-center text-text-muted text-xs leading-relaxed mt-5 max-w-2xl mx-auto">
-          Comparison accurate as of July 2026. Competitor prices and features change frequently — verify current details on each provider's official website. All product names, logos and brands are the property of their respective owners; this is an independent comparison and we are not affiliated with, endorsed by, or sponsored by any listed provider.
+          Comparison accurate as of July 2026. Competitor prices and features change frequently, so verify current details on each provider's official website. All product names, logos and brands are the property of their respective owners. This is an independent comparison, and we are not affiliated with, endorsed by, or sponsored by any listed provider.
         </p>
       </div>
     </section>

@@ -12,7 +12,7 @@ import { DEFAULT_APP_URL } from '../../config/defaults';
  * /vs/* comparisons) from the shared content model in src/content/pagesContent.js.
  * The SAME data drives the static prerendered HTML (scripts/buildSeoContent.mjs),
  * so the crawlable shell and the hydrated app stay in sync. One component serves
- * every marketing route — pass the route path via the `route` prop from App.jsx.
+ * every marketing route. Pass the route path via the `route` prop from App.jsx.
  */
 
 function Block({ block }) {
