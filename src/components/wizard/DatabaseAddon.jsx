@@ -219,15 +219,17 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
   const redisInfo = `${REDIS_ADDON.envKey} is added to your app container automatically. Use it in your app as process.env.${REDIS_ADDON.envKey} to connect to Redis through the TLS proxy on port 6380.`;
 
   return (
-    <div className="mb-5 rounded-xl border border-border bg-surface/40 p-4">
-      <div className="flex items-start gap-3 mb-4">
-        <Database className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+    <div className="mb-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <p className="text-sm font-semibold text-text">Database add-ons</p>
-          <p className="text-xs text-text-muted mt-0.5">
-            Add PostgreSQL, MongoDB, MySQL, MariaDB, and Redis clusters alongside your app. Custom plan only.
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">Data services</p>
+          <p className="text-xs text-text-muted mt-1">
+            Add persistent storage or caching to your deployment.
           </p>
         </div>
+        <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          Custom plan
+        </span>
       </div>
 
       {clusterAddonEnabled && (
@@ -242,12 +244,12 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
         </div>
       )}
 
-      <div className="divide-y divide-border/40 border-t border-border/40">
-        <div className="py-4">
+      <div className="space-y-3">
+        <div className="rounded-xl border border-border bg-surface/40 p-4">
           <AddonHeader
             icon={<Database className="w-5 h-5 text-primary shrink-0 mt-0.5" />}
-            title="Primary database"
-            description="PostgreSQL, MongoDB, MySQL, or MariaDB cluster for persistent app data."
+            title="Database"
+            description="Choose a database engine for persistent application data."
             enabled={database.enabled}
             onToggle={enableDatabase}
           />
@@ -362,11 +364,11 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
           )}
         </div>
 
-        <div className="py-4 last:pb-0">
+        <div className="rounded-xl border border-border bg-surface/40 p-4">
           <AddonHeader
             icon={<Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />}
             title="Redis"
-            description="Redis Sentinel HA cluster for cache, queues, sessions, and rate limits."
+            description="Add a Redis cluster for caching, queues, sessions, and rate limiting."
             enabled={redis.enabled}
             onToggle={enableRedis}
           />
