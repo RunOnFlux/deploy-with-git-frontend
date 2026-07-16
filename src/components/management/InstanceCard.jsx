@@ -9,7 +9,7 @@ import StatusBadge from '../dashboard/StatusBadge';
 import LogsPanel from './LogsPanel';
 import { performNodeAction, nodeBaseUrl, fetchNodeOrbitStatus, triggerOrbitDeploy } from '../../services/managementService';
 import { useAuth } from '../../context/AuthContext';
-import { DB_TYPES, REDIS_ADDON } from '../../services/databaseSpec';
+import { REDIS_ADDON, isDatabaseCompose } from '../../services/databaseSpec';
 
 const ACTION_BUTTONS = [
   { id: 'redeploy',      label: 'Redeploy',      icon: RefreshCcw,   variant: 'secondary' },
@@ -35,13 +35,7 @@ function getAddonLogTabs(spec, appName) {
       const index = offset + 1;
       const image = String(compose?.repotag ?? '').toLowerCase();
       const name = String(compose?.name ?? '').toLowerCase();
-      const isDb =
-        image === DB_TYPES.postgres.image.toLowerCase() ||
-        image === DB_TYPES.mongodb.image.toLowerCase() ||
-        image.includes('flux-pg-cluster') ||
-        image.includes('flux-mongodb-cluster') ||
-        name === 'pg' ||
-        name === 'mongo';
+      const isDb = isDatabaseCompose(compose);
       const isRedis =
         image === REDIS_ADDON.image.toLowerCase() ||
         image.includes('flux-redis-cluster') ||

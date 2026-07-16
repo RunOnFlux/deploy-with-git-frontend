@@ -107,7 +107,7 @@ export default function HeroSection() {
       const defaultBranch = branchesResult.find((b) => b.isDefault);
       const selectedBranch = defaultBranch?.name || branchesResult[0]?.name || 'main';
 
-      // Fetch directories before calling setBranch — if setBranch triggers [branch]
+      // Fetch directories before calling setBranch because setBranch may trigger [branch].
       // effect it increments requestGenRef, which would kill this fn before setDirectories runs.
       setDirLoading(true);
       const dirs = await listDirectories(parsedRepo, selectedBranch, '', authHeaders);
@@ -310,7 +310,7 @@ export default function HeroSection() {
         <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-gradient-radial from-accent/6 via-accent/3 to-transparent rounded-full blur-3xl" />
       </div>
 
-      {/* DOT GRID BACKGROUND — remove this block to revert */}
+      {/* DOT GRID BACKGROUND: remove this block to revert */}
       <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
         {/* Dot grid */}
         <div style={{
@@ -378,7 +378,7 @@ export default function HeroSection() {
                   );
                 })()}
 
-                {/* Blinking cursor — visible when input is empty */}
+                {/* Blinking cursor visible when input is empty */}
                 {!repoUrl && (
                   <motion.span
                     aria-hidden="true"

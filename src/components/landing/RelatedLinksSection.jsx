@@ -3,6 +3,12 @@ import { ArrowUpRight } from 'lucide-react';
 
 const LINKS = [
   {
+    href: '/deploy-to-flux',
+    title: 'Deploy to Flux button',
+    desc: 'Let anyone deploy your repository from its README with one click.',
+    external: false,
+  },
+  {
     href: '/decentralized-hosting',
     title: 'What is decentralized hosting?',
     desc: 'The pillar guide to web3, censorship-resistant hosting with no vendor lock-in.',
@@ -23,13 +29,13 @@ const LINKS = [
   {
     href: '/heroku-alternative',
     title: 'Heroku alternative',
-    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free — from $0.99/mo.',
+    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free. Paid plans start at $0.99/mo.',
     external: false,
   },
   {
     href: '/railway-alternative',
     title: 'Railway alternative',
-    desc: 'The decentralized alternative to Railway — dedicated resources, no egress fees, predictable pricing.',
+    desc: 'The decentralized alternative to Railway with dedicated resources, no egress fees, and predictable pricing.',
     external: false,
   },
   {
@@ -45,7 +51,7 @@ const LINKS = [
     external: true,
   },
   {
-    href: 'https://github.com/RunOnFlux/deploy-with-git',
+    href: 'https://github.com/RunOnFlux/deploy-with-git-samples',
     title: 'Guides & samples',
     desc: 'Example projects and step-by-step deployment guides on GitHub.',
     external: true,
@@ -71,9 +77,9 @@ export default function RelatedLinksSection() {
           </h2>
           <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mt-5">
             If you are weighing decentralized hosting against the platform you use today, these
-            guides go further than a feature table: what web3 hosting actually is and how the node
-            network keeps your app online, and how Orbit compares head-to-head with Vercel, Netlify,
-            Heroku, Railway and Render on price, dedicated resources, backend support and lock-in.
+            guides explain one-click repository deployments, what web3 hosting actually is, how the
+            node network keeps your app online, and how Orbit compares head-to-head with Vercel,
+            Netlify, Heroku, Railway and Render.
           </p>
         </motion.div>
 

@@ -56,7 +56,7 @@ export default function HowItWorksSection() {
           <p className="text-text-secondary/70 text-base leading-relaxed max-w-3xl mx-auto mt-6">
             Deploying is a single Git push. Connect a GitHub, GitLab or Bitbucket repository and
             Orbit inspects the project, detecting the framework, install step, build command and
-            start command for you with Nixpacks — no Dockerfile, no YAML. It packages your app into
+            start command for you with Nixpacks, with no Dockerfile or YAML required. It packages your app into
             a container, builds it, and distributes it across the Flux nodes you pick, or spreads it
             worldwide automatically. From then on every push to your chosen branch triggers a fresh
             build and redeploy through a webhook, with build logs streaming in real time. If a build
@@ -69,8 +69,8 @@ export default function HowItWorksSection() {
             front-end frameworks like Next.js, Remix, Nuxt, SvelteKit, Astro and Vite build and
             deploy in the same zero-config flow. Because your app runs as a full long-running
             container rather than a serverless function, the backends other platforms handle
-            poorly — Django, Flask, FastAPI, Rails, Express, Go and Rust services, background
-            workers, persistent processes — run natively. If it builds into a container, Orbit can
+            poorly run natively. That includes Django, Flask, FastAPI, Rails, Express, Go and Rust
+            services, background workers, and persistent processes. If it builds into a container, Orbit can
             deploy it.
           </p>
           <p className="text-text-secondary/70 text-base leading-relaxed max-w-3xl mx-auto mt-4">
@@ -78,7 +78,7 @@ export default function HowItWorksSection() {
             just <code>git push</code>. Environment variables and secrets are set per app and injected
             at runtime rather than baked into the image, which means the same build can be promoted
             without rebuilding it. And because there is no vendor runtime to code against, moving an
-            app off Orbit is the same as moving it on — it is an ordinary container the whole way down.
+            app off Orbit is as straightforward as moving it on. It remains an ordinary container throughout.
           </p>
         </motion.div>
 

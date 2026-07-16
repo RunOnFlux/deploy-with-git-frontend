@@ -91,7 +91,7 @@ export default function PricingSection({ onLoginSuccess }) {
               Choose your plan based on your resource needs.
             </p>
             <p className="text-text-secondary/80 text-sm leading-relaxed max-w-2xl mx-auto mt-4">
-              Start free and scale as you grow. Every plan — including the free-forever tier —
+              Start free and scale as you grow. Every plan, including the free-forever tier,
               includes unlimited builds, automatic deploys on every push, rollbacks, and the full
               Orbit feature set; paid plans add dedicated CPU, RAM and storage, and the first month
               is free. There is no contract and no egress billing: you pay for the resources your
@@ -170,7 +170,7 @@ export default function PricingSection({ onLoginSuccess }) {
                     }`}
                 >
 
-                  {/* Annual savings corner ribbon — all paid plans */}
+                  {/* Annual savings corner ribbon for all paid plans */}
                   {isAnnual && plan.id !== 'free' && (
                     <div
                       className="absolute top-5 -right-9 w-36 text-white text-xs font-bold text-center py-1.5 rotate-45 shadow-md pointer-events-none"
@@ -270,7 +270,7 @@ export default function PricingSection({ onLoginSuccess }) {
             </p>
             <p className="text-sm text-text-secondary leading-relaxed">
               <span className="text-text font-semibold">*</span> The first month is free for customers new
-              to Flux Cloud — one free month per account, not per app or repository. If you've deployed any
+              to Flux Cloud. Each account receives one free month, not one per app or repository. If you've deployed any
               app on Flux before, standard pricing applies. Our 30-day money-back guarantee covers your first
               paid month only and does not apply when the first month was free.
             </p>

@@ -146,7 +146,7 @@ function GlobalNetworkSection() {
     setZoomedCountry(cluster.country);
   }, [data, zoomedCountry, resetZoom]);
 
-  // Don't render the section at all if stats are unavailable — keeps the page clean.
+  // Don't render the section if stats are unavailable, which keeps the page clean.
   if (failed) return null;
 
   return (
@@ -174,16 +174,16 @@ function GlobalNetworkSection() {
               <>
                 Your apps run on a decentralized network of{' '}
                 <span className="text-primary font-semibold">{data.total.toLocaleString()}</span> Flux nodes
-                across <span className="text-accent font-semibold">{data.countryCount}</span> countries —
-                pick the region closest to your users.
+                across <span className="text-accent font-semibold">{data.countryCount}</span> countries.
+                Choose the region closest to your users.
               </>
             ) : (
               'Loading live node distribution from the Flux network…'
             )}
           </p>
           <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-3xl mx-auto mt-6 text-left sm:text-center">
-            Most modern hosting concentrates your app inside one company&apos;s data centers — one
-            provider&apos;s pricing, one provider&apos;s policies, one single point of failure. Orbit
+            Most modern hosting concentrates your app inside one company&apos;s data centers, leaving you with
+            one provider&apos;s pricing, one provider&apos;s policies, and one single point of failure. Orbit
             takes a different path. Your app runs on the Flux network: thousands of independently
             operated nodes across dozens of countries, run by thousands of separate operators.
             Because no single party owns the infrastructure, there is no gatekeeper who can

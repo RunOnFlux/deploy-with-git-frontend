@@ -10,7 +10,8 @@ const links = [
   { label: 'FluxOS', href: 'https://home.runonflux.io', external: true },
   { label: 'GitHub', href: 'https://github.com/runonflux', external: true },
   { label: 'Docs', href: 'https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/', external: true },
-  { label: 'Samples', href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
+  { label: 'Deploy Button', href: '/deploy-to-flux', external: false },
+  { label: 'Samples', href: 'https://github.com/RunOnFlux/deploy-with-git-samples', external: true },
 ];
 
 export default function Footer() {
@@ -25,7 +26,7 @@ export default function Footer() {
         </div>
 
         {/* Links */}
-        <nav className="flex items-center gap-6">
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
           {links.map((l) => (
             <a
               key={l.label}
@@ -47,7 +48,7 @@ export default function Footer() {
         </nav>
       </div>
 
-      {/* Cross-links to sibling Flux hosting sites — keyword-rich, SEO. */}
+      {/* Keyword-rich SEO cross-links to sibling Flux hosting sites. */}
       <div className="max-w-5xl mx-auto mt-10 pt-8 border-t border-border">
         <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4 text-center sm:text-left">
           Explore other Flux hosting

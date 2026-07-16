@@ -58,6 +58,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
   const [configImportSource, setConfigImportSource] = useState('');
   const [requiresRunCommand, setRequiresRunCommand] = useState(false);
   const [isRunningIntelligence, setIsRunningIntelligence] = useState(false);
+  const [repoScanRevision, setRepoScanRevision] = useState(0);
 
   const evalGenRef = useRef(0);
   const urlDebounceRef = useRef(null);
@@ -194,8 +195,9 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
   // ── URL change → access check + intelligence ─────────────────────────────────
   useEffect(() => {
     clearTimeout(urlDebounceRef.current);
+    const repoUrl = String(repo.url ?? '').trim();
 
-    if (!repo.url?.startsWith('http')) {
+    if (!repoUrl.startsWith('http')) {
       setRepoStatus('idle');
       setBranches([]);
       setDirectories([]);
@@ -212,7 +214,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
       return;
     }
 
-    const p = parseRepoUrl(repo.url);
+    const p = parseRepoUrl(repoUrl);
     if (!p) {
       setRepoStatus('idle');
       setAuthTestStatus('idle');
@@ -259,7 +261,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
     }, 800);
 
     return () => clearTimeout(urlDebounceRef.current);
-  }, [repo.url]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [repo.url, repoScanRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-run intelligence when branch changes
   useEffect(() => {
@@ -333,6 +335,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
             placeholder="https://github.com/owner/repo"
             value={repo.url}
             onChange={(e) => onChange({ ...repo, url: e.target.value })}
+            onBlur={() => setRepoScanRevision((revision) => revision + 1)}
             className={`input-base w-full pr-24 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-9' : ''}`}
             required
           />

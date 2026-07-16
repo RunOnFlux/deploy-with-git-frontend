@@ -13,9 +13,9 @@
 export function parseRepoUrl(url) {
   if (!url) return null;
   try {
-    const u = new URL(url);
+    const u = new URL(String(url).trim());
     const host = u.hostname.toLowerCase();
-    const path = u.pathname.replace(/\.git$/, '').replace(/^\/|\/$/g, '');
+    const path = u.pathname.replace(/\/+$/, '').replace(/\.git$/, '').replace(/^\/+/, '');
 
     if (host === 'github.com') {
       const parts = path.split('/');
@@ -529,7 +529,7 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
         return [];
       }
       
-      // Filter directories and return with "/" prefix
+      // Return plain directory names; the picker adds the leading slash for display and selection.
       const dirs = items
         .filter((i) => i.type === 'dir')
         .map((i) => i.name)
@@ -537,8 +537,7 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
           // Filter out common non-app directories
           const ignoreDirs = ['.git', '.github', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
           return !ignoreDirs.includes(name) && !name.startsWith('.');
-        })
-        .map((name) => `/${name}`);
+        });
       
       return dirs;
     }
@@ -564,8 +563,7 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
         .filter((name) => {
           const ignoreDirs = ['.git', '.github', '.gitlab', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
           return !ignoreDirs.includes(name) && !name.startsWith('.');
-        })
-        .map((name) => `/${name}`);
+        });
       
       return dirs;
     }
@@ -590,8 +588,7 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
         .filter((name) => {
           const ignoreDirs = ['.git', '.github', '.vscode', '.idea', 'node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'target'];
           return !ignoreDirs.includes(name) && !name.startsWith('.');
-        })
-        .map((name) => `/${name}`);
+        });
       
       return dirs;
     }
