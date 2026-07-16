@@ -6,6 +6,7 @@ import { useDeployWizard } from '../../hooks/useDeployWizard';
 import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
 import { geolocationFromImport } from '../../services/geolocationSpec';
+import { databaseNeedsName } from '../../services/databaseSpec';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
 import Step3Config from '../../components/wizard/Step3Config';
@@ -255,7 +256,7 @@ export default function DeployWizard() {
       );
       const dbValid = !db?.enabled || plan?.id !== 'custom' || (
         db.componentName?.length >= 1 &&
-        (db.type !== 'postgres' || db.dbName?.length >= 1) &&
+        (!databaseNeedsName(db.type) || db.dbName?.length >= 1) &&
         plan?.instances >= 3
       );
       const redisValid = !redis?.enabled || plan?.id !== 'custom' || (

@@ -20,7 +20,7 @@ import { encryptSpec } from '../../services/enterpriseCrypto';
 import { redeployAllInstances } from '../../services/managementService';
 import Step6Payment from '../wizard/Step6Payment';
 import ResourceSlider from '../wizard/ResourceSlider';
-import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON } from '../../services/databaseSpec';
+import { DB_MIN_INSTANCES, REDIS_ADDON, isDatabaseCompose } from '../../services/databaseSpec';
 
 // Keys that are completely hidden — never shown, always preserved as-is
 const HIDDEN_KEYS = new Set([
@@ -74,20 +74,7 @@ function hasAddonComponents(spec) {
 function getAddonKind(compose) {
   const image = String(compose?.repotag ?? '').toLowerCase();
   const name = String(compose?.name ?? '').toLowerCase();
-  if (
-    image === DB_TYPES.postgres.image.toLowerCase() ||
-    image.includes('flux-pg-cluster') ||
-    name === 'pg'
-  ) {
-    return 'db';
-  }
-  if (
-    image === DB_TYPES.mongodb.image.toLowerCase() ||
-    image.includes('flux-mongodb-cluster') ||
-    name === 'mongo'
-  ) {
-    return 'db';
-  }
+  if (isDatabaseCompose(compose)) return 'db';
   if (
     image === REDIS_ADDON.image.toLowerCase() ||
     image.includes('flux-redis-cluster') ||

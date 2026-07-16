@@ -13,6 +13,8 @@ import {
   getRedisConnectionString,
   redactConnectionPassword,
   formatRamMb,
+  databaseNeedsName,
+  isSharedSqlType,
 } from '../../services/databaseSpec';
 import { normalizeCustomPlan } from '../../services/deployService';
 import ResourceSlider from './ResourceSlider';
@@ -223,7 +225,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
         <div>
           <p className="text-sm font-semibold text-text">Database add-ons</p>
           <p className="text-xs text-text-muted mt-0.5">
-            Add PostgreSQL, MongoDB, and Redis clusters alongside your app. Custom plan only.
+            Add PostgreSQL, MongoDB, MySQL, MariaDB, and Redis clusters alongside your app. Custom plan only.
           </p>
         </div>
       </div>
@@ -245,14 +247,14 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
           <AddonHeader
             icon={<Database className="w-5 h-5 text-primary shrink-0 mt-0.5" />}
             title="Primary database"
-            description="PostgreSQL or MongoDB HA cluster for persistent app data."
+            description="PostgreSQL, MongoDB, MySQL, or MariaDB cluster for persistent app data."
             enabled={database.enabled}
             onToggle={enableDatabase}
           />
 
           {database.enabled && (
             <div className="space-y-4 mt-4">
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {Object.values(DB_TYPES).map((db) => (
                   <button
                     key={db.id}
@@ -280,7 +282,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
                     maxLength={16}
                   />
                 </div>
-                {database.type === 'postgres' && (
+                {databaseNeedsName(database.type) && (
                   <div>
                     <label className="block text-xs text-text-muted mb-1">Database name</label>
                     <input
@@ -353,6 +355,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
                 <p className="text-[11px] text-text-muted mt-2">
                   This value is added automatically to your app container.
                   {database.type === 'postgres' ? ' Use the proxy port (5433) for PostgreSQL.' : ''}
+                  {isSharedSqlType(database.type) ? ' Use the shared DB proxy port (3307).' : ''}
                 </p>
               </div>
             </div>

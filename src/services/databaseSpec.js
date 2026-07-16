@@ -17,6 +17,22 @@ export const DB_TYPES = {
     defaultResources: { cpu: 1, ram: 2000, hdd: 15 },
     envKey: 'MONGO_URL',
   },
+  mysql: {
+    id: 'mysql',
+    label: 'MySQL',
+    image: 'runonflux/shared-db:latest-mysql',
+    defaultComponentName: 'operator',
+    defaultResources: { cpu: 1, ram: 2000, hdd: 15 },
+    envKey: 'DATABASE_URL',
+  },
+  mariadb: {
+    id: 'mariadb',
+    label: 'MariaDB',
+    image: 'runonflux/shared-db:latest-mariadb',
+    defaultComponentName: 'operator',
+    defaultResources: { cpu: 1, ram: 2000, hdd: 15 },
+    envKey: 'DATABASE_URL',
+  },
 };
 
 export const REDIS_ADDON = {
@@ -30,7 +46,22 @@ export const REDIS_ADDON = {
 
 const PG_CONTAINER_PORTS = [5432, 5433, 8008, 2379, 2380];
 const MONGO_CONTAINER_PORTS = [27017, 3000];
+const SHARED_SQL_CONTAINER_PORTS = [3307, 7071, 8008];
 const REDIS_CONTAINER_PORTS = [6379, 26379, 6380];
+
+export function isSharedSqlType(type) {
+  return type === 'mysql' || type === 'mariadb';
+}
+
+export function databaseNeedsName(type) {
+  return type === 'postgres' || isSharedSqlType(type);
+}
+
+function getDatabaseContainerPorts(type) {
+  if (type === 'postgres') return PG_CONTAINER_PORTS;
+  if (isSharedSqlType(type)) return SHARED_SQL_CONTAINER_PORTS;
+  return MONGO_CONTAINER_PORTS;
+}
 
 export function generateSecret(length = 24) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -40,7 +71,7 @@ export function generateSecret(length = 24) {
 }
 
 export function generateDbPorts(type, existingPorts = []) {
-  const count = type === 'postgres' ? PG_CONTAINER_PORTS.length : MONGO_CONTAINER_PORTS.length;
+  const count = getDatabaseContainerPorts(type).length;
   const used = [...existingPorts];
   const ports = [];
   for (let i = 0; i < count; i++) {
@@ -158,6 +189,41 @@ export function buildMongoCompose({
   };
 }
 
+export function buildSharedSqlCompose({
+  type,
+  componentName,
+  resources,
+  ports,
+  dbName,
+  password,
+}) {
+  const [dbPort, apiPort] = ports;
+  const meta = DB_TYPES[type];
+
+  return {
+    name: componentName,
+    description: `${meta.label} shared database`,
+    repotag: meta.image,
+    ports,
+    domains: ['', '', ''],
+    environmentParameters: [
+      `INIT_DB_NAME=${dbName || 'appdb'}`,
+      `DB_INIT_PASS=${password}`,
+      'DB_USER=root',
+      `DB_PORT=${dbPort}`,
+      `API_PORT=${apiPort}`,
+    ],
+    commands: [],
+    containerPorts: SHARED_SQL_CONTAINER_PORTS,
+    containerData: 's:/app/dumps|/app/db',
+    cpu: resources.cpu,
+    ram: resources.ram,
+    hdd: resources.hdd,
+    repoauth: '',
+    tiered: false,
+  };
+}
+
 export function buildRedisCompose({
   componentName,
   resources,
@@ -207,6 +273,8 @@ export function mapFluxDatabaseType(fluxType) {
   const key = String(fluxType).toLowerCase().trim();
   if (key === 'pg' || key === 'postgres' || key === 'postgresql') return 'postgres';
   if (key === 'mongo' || key === 'mongodb') return 'mongodb';
+  if (key === 'mysql') return 'mysql';
+  if (key === 'maria' || key === 'mariadb') return 'mariadb';
   return null;
 }
 
@@ -290,6 +358,9 @@ export function getDatabaseConnectionString({ type, componentName, password, dbN
 
   const encoded = encodeURIComponent(password);
   const db = dbName || 'appdb';
+  if (isSharedSqlType(type)) {
+    return `mysql://root:${encoded}@${componentName}:3307/${db}`;
+  }
   return `postgresql://postgres:${encoded}@${componentName}:5433/${db}?sslmode=require`;
 }
 
@@ -334,6 +405,17 @@ export function buildDatabaseCompose(database, appName) {
     });
   }
 
+  if (isSharedSqlType(type)) {
+    return buildSharedSqlCompose({
+      type,
+      componentName,
+      resources,
+      ports,
+      dbName,
+      password,
+    });
+  }
+
   return buildPostgresCompose({
     componentName,
     resources,
@@ -343,6 +425,27 @@ export function buildDatabaseCompose(database, appName) {
     replicationPassword,
     sslPassphrase,
   });
+}
+
+export function getDatabaseTypeForCompose(compose) {
+  const image = String(compose?.repotag ?? '').toLowerCase();
+  const name = String(compose?.name ?? '').toLowerCase();
+
+  for (const [type, meta] of Object.entries(DB_TYPES)) {
+    if (image === meta.image.toLowerCase()) return type;
+  }
+  if (image.includes('flux-pg-cluster') || name === 'pg') return 'postgres';
+  if (image.includes('flux-mongodb-cluster') || name === 'mongo') return 'mongodb';
+  if (image.includes('runonflux/shared-db')) {
+    return image.includes('mariadb') ? 'mariadb' : 'mysql';
+  }
+  if (name === 'mysql') return 'mysql';
+  if (name === 'maria' || name === 'mariadb') return 'mariadb';
+  return null;
+}
+
+export function isDatabaseCompose(compose) {
+  return getDatabaseTypeForCompose(compose) !== null;
 }
 
 export function buildRedisAddonCompose(redis) {

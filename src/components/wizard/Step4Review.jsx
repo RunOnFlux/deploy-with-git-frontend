@@ -8,7 +8,7 @@ import {
   supportsAdditionalAppPort,
 } from '../../services/deployService';
 import { formatGeoRows } from '../../services/geolocationSpec';
-import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb } from '../../services/databaseSpec';
+import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb, databaseNeedsName } from '../../services/databaseSpec';
 import { useAuth } from '../../context/AuthContext';
 
 function Row({ label, value, mono }) {
@@ -223,7 +223,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Database</h3>
           <Row label="Type" value={DB_TYPES[config.database.type]?.label ?? config.database.type} />
           <Row label="Component" value={config.database.componentName} mono />
-          {config.database.type === 'postgres' && <Row label="Database" value={config.database.dbName} mono />}
+          {databaseNeedsName(config.database.type) && <Row label="Database" value={config.database.dbName} mono />}
           <Row label="CPU" value={`${config.database.resources?.cpu} vCPU`} />
           <Row label="RAM" value={formatRamMb(config.database.resources?.ram)} />
           <Row label="Storage" value={`${config.database.resources?.hdd} GB`} />
