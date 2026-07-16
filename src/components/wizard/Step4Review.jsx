@@ -69,7 +69,6 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   const [showAddonEnv, setShowAddonEnv] = useState({});
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
   const [eligible, setEligible] = useState(true);
-  const [existingAppName, setExistingAppName] = useState(null);
 
   const clusterAddonEnabled = !!(config.database?.enabled || config.redis?.enabled);
   // Enterprise apps (private repos and cluster add-ons are auto-encrypted) follow a stricter free-first-month rule.
@@ -136,7 +135,6 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         // free first month — one free month per Flux Cloud account, not per app or repo.
         const priorApp = registerMessages[0];
         setEligible(!priorApp);
-        setExistingAppName(priorApp?.appSpecifications?.name ?? null);
         onEligibilityChecked?.(!priorApp);
       } catch {
         markEligible(); // fail open
@@ -168,9 +166,9 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <div>
             <p className="font-medium">Free first month not applicable</p>
             <p className="text-xs text-amber-300/80 mt-1">
-              You already have an app on Flux (<code className="font-mono">{existingAppName}</code>). The
-              free first month is for customers new to Flux Cloud, so you will be charged for this month —
-              covered by our 30-day money-back guarantee.
+              You already have an app on Flux, so the free first month — which is for customers new to
+              Flux Cloud — doesn&apos;t apply. You will be charged for this month, covered by our 30-day
+              money-back guarantee.
             </p>
           </div>
         </div>

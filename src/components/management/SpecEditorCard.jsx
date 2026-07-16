@@ -12,8 +12,10 @@ import {
   signWithSSP,
   signWithZelCore,
   pollUpdate,
+  getBlocksRemaining,
   PLANS,
 } from '../../services/deployService';
+import { fetchCurrentBlock } from '../../services/appsService';
 import { parseGeoSpec, buildGeoSpec } from '../../services/geolocationSpec';
 import GeoSelector from '../common/GeoSelector';
 import { encryptSpec } from '../../services/enterpriseCrypto';
@@ -541,9 +543,23 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     const addonEntries = getAddonComponents(spec);
     const addonIndexes = new Set(addonEntries.map(({ index }) => index));
 
+    // Maintenance updates must NOT extend the subscription. `expire` is relative to the
+    // registration height, so keep the same expiry by setting it to the blocks remaining
+    // (height + expire − current block). Sending the original expire re-subscribes for the
+    // full period → the network reads it as a paid extension that the appsMonitor service
+    // won't cover, so the update is never funded and never confirms. Time extensions are
+    // handled separately in the renewal flow (RenewModal).
+    const currentBlock = await fetchCurrentBlock();
+    const remainingBlocks = getBlocksRemaining(spec.height, spec.expire, currentBlock);
+    if (remainingBlocks == null || remainingBlocks <= 0) {
+      setSaveError('Could not read the current block height to preserve your subscription. Please try again.');
+      return;
+    }
+
     const updatedSpec = {
       ...spec,
       description,
+      expire: remainingBlocks,
       ...(resourcesEditable ? { instances: resources.instances } : {}),
       geolocation: buildGeoSpec(geolocation),
       compose: spec.compose.map((c, i) => {
@@ -596,6 +612,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       setSavePhase(null);
       return;
     }
+
+    // The verify endpoint may reset expire back to the on-chain value — re-apply the
+    // remaining blocks so this stays a maintenance update (same expiry, no extension).
+    verifiedSpec.expire = remainingBlocks;
 
     // Calculate price — if flux > 0 the update requires payment.
     // Default to null on error so we don't silently skip a payment that may be owed.

@@ -1,7 +1,7 @@
 {
   "name": "orbit-deployment-ui",
   "private": true,
-  "version": "1.4.4",
+  "version": "1.4.5",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
