@@ -63,7 +63,12 @@ export const ORBIT_PLANS = [
   },
 ];
 
-/** Enterprise surcharge (private repos on ArcaneOS nodes) */
+/**
+ * Enterprise surcharge (private repos on ArcaneOS nodes) — the Flux network "scope" fee.
+ * usdprice.scope = $4 per 3-instance pricing base → $1.33 per instance/month
+ * (Free = 1 instance → $1.33; Standard/Pro = 2 instances → $2.66).
+ * Authoritative value: https://stats.runonflux.io/apps/getappspecsusdprice (field `scope`).
+ */
 export const ENTERPRISE_SURCHARGE = {
   free: 1.33,
   paid: 2.66, // Standard, Pro, Custom

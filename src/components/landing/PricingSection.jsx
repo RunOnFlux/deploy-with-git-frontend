@@ -268,6 +268,12 @@ export default function PricingSection({ onLoginSuccess }) {
               renewed as long as you have only one Git app running on the network. Additional Git apps are
               charged $0.99/month each.
             </p>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              <span className="text-text font-semibold">*</span> The first month is free for customers new
+              to Flux Cloud — one free month per account, not per app or repository. If you've deployed any
+              app on Flux before, standard pricing applies. Our 30-day money-back guarantee covers your first
+              paid month only and does not apply when the first month was free.
+            </p>
             <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />
               The Free plan runs on a single instance. Brief downtime may occur if the hosting node restarts.
@@ -277,7 +283,7 @@ export default function PricingSection({ onLoginSuccess }) {
               <Lock className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />
               Private GitHub repositories are deployed as Enterprise apps, running exclusively on ArcaneOS
               nodes with full encryption. Enterprise adds $1.33/month on Free, or $2.66/month on Standard,
-              Pro, and Custom plans.
+              Pro, and Custom plans, already included in the price shown at checkout.
             </p>
           </div>
         </div>

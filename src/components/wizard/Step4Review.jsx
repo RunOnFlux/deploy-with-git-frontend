@@ -9,7 +9,6 @@ import {
 } from '../../services/deployService';
 import { formatGeoRows } from '../../services/geolocationSpec';
 import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb } from '../../services/databaseSpec';
-import { extractGitInfo } from '../../services/appsService';
 import { useAuth } from '../../context/AuthContext';
 
 function Row({ label, value, mono }) {
@@ -101,28 +100,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     setShowAddonEnv((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  // Canonical identity of a git repo for "same project" comparison.
-  // Reduces any URL to `host/owner/repo` (lowercased), ignoring scheme, embedded
-  // credentials, a www. prefix, a .git suffix, trailing slashes and case. Handles
-  // https/http and scp-like ssh (git@host:owner/repo). Must stay byte-for-byte
-  // identical to the backend's canonicalGitRepo so both decide eligibility the same way.
-  function canonicalGitRepo(url) {
-    if (!url) return '';
-    let s = String(url).trim();
-    s = s.replace(/^[^@/]+@([^:/]+):/, '$1/'); // scp-like ssh -> host/path
-    s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, ''); // strip scheme://
-    s = s.replace(/^[^/@]+@/, ''); // strip user:pass@ credentials
-    s = s.replace(/^www\./i, ''); // strip www.
-    s = s.replace(/\.git$/i, '').replace(/\/+$/, ''); // drop .git and trailing slashes
-    return s.toLowerCase();
-  }
-
-  // Determine free-first-month eligibility. Both checks read the owner's on-chain history
-  // from /apps/permanentmessages (the same source the appsMonitor backend uses), so the UI
-  // and the backend agree on who gets charged.
-  // - Enterprise apps: offered only to brand-new customers — any app the owner has ever
-  //   registered disqualifies them.
-  // - Non-enterprise apps: only re-deploying the same git repo disqualifies them.
+  // Determine free-first-month eligibility. Reads the owner's on-chain history from
+  // /apps/permanentmessages (the same source the appsMonitor backend uses), so the UI
+  // and the backend agree on who gets charged. Per-customer rule: any app the owner has
+  // ever registered on Flux disqualifies them — the free month is one per Flux Cloud
+  // account, not per app or repo.
   useEffect(() => {
     if (!zelid) {
       onEligibilityChecked?.(true);
@@ -135,8 +117,6 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       setEligible(true);
       onEligibilityChecked?.(true);
     };
-
-    const currentRepo = canonicalGitRepo(repo?.url);
 
     (async () => {
       try {
@@ -152,25 +132,12 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
 
         const registerMessages = json.data.filter((m) => m.type === 'fluxappregister');
 
-        if (isEnterprise) {
-          // New-customer rule: any previously registered app disqualifies the free first month.
-          const hasAnyApp = registerMessages.length > 0;
-          setEligible(!hasAnyApp);
-          onEligibilityChecked?.(!hasAnyApp);
-          return;
-        }
-
-        // Same-repo rule: disqualify if the owner already registered an Orbit app with this git repo.
-        const duplicate = registerMessages.find((m) => {
-          const spec = m.appSpecifications;
-          if (!spec?.compose?.length || spec.compose[0]?.repotag !== 'runonflux/orbit:latest') return false;
-          const { gitRepo } = extractGitInfo(spec.compose);
-          return currentRepo && canonicalGitRepo(gitRepo) === currentRepo;
-        });
-
-        setEligible(!duplicate);
-        setExistingAppName(duplicate?.appSpecifications?.name ?? null);
-        onEligibilityChecked?.(!duplicate);
+        // Per-customer rule: any app the owner has ever registered on Flux disqualifies the
+        // free first month — one free month per Flux Cloud account, not per app or repo.
+        const priorApp = registerMessages[0];
+        setEligible(!priorApp);
+        setExistingAppName(priorApp?.appSpecifications?.name ?? null);
+        onEligibilityChecked?.(!priorApp);
       } catch {
         markEligible(); // fail open
       } finally {
@@ -199,10 +166,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Not eligible for first month free</p>
+            <p className="font-medium">Free first month not applicable</p>
             <p className="text-xs text-amber-300/80 mt-1">
-              This repository is already deployed as <code className="font-mono">{existingAppName}</code>.
-              The free first month applies only to new repositories. You will be charged immediately.
+              You already have an app on Flux (<code className="font-mono">{existingAppName}</code>). The
+              free first month is for customers new to Flux Cloud, so you will be charged for this month —
+              covered by our 30-day money-back guarantee.
             </p>
           </div>
         </div>

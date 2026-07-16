@@ -108,9 +108,6 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
         normalizedSpec = localSpec;
       }
 
-      // Save a pre-encryption, credential-redacted copy for price calculation in Step6
-      specForPricingRef.current = redactSpecCredentials(normalizedSpec);
-
       // 3b. Encrypt spec for enterprise/private apps
       if (isEnterprise) {
         setPhase('encrypt');
@@ -124,6 +121,13 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
           return;
         }
       }
+
+      // Save the exact spec that will be registered, for price calculation in Step6.
+      // For enterprise apps this MUST be the post-encryption spec: the Flux price API
+      // (calculatefiatandfluxprice) decrypts it and adds the enterprise "scope" surcharge,
+      // so the quote matches what the network enforces at registration. Pricing the plaintext
+      // pre-encryption spec omitted that surcharge, so enterprise apps were underpaid & rejected.
+      specForPricingRef.current = redactSpecCredentials(normalizedSpec);
 
       // 4. Create timestamp (single source of truth)
       const timestamp = Date.now();
