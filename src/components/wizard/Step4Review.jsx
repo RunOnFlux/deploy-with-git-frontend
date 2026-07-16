@@ -61,8 +61,8 @@ const POLLING_LABELS = {
 };
 
 export default function Step4Review({ plan, repo, config, ports, termsAccepted, onTermsChange, onEligibilityChecked }) {
-  const { user } = useAuth();
-  const zelid = user?.zelid;
+  const { zelidauth } = useAuth();
+  const zelid = zelidauth?.zelid;
 
   const [jsonOpen, setJsonOpen] = useState(false);
   const [showCreds, setShowCreds] = useState(false);

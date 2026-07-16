@@ -21,7 +21,13 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
   const popupRef = useRef(null);
   const wsRef = useRef(null);
 
-  const isFree = (plan?.priceMonthly === 0 || plan?.id === 'free') && eligibleForFree;
+  // Free (no payment now) when the customer is eligible for the free first month AND
+  // either the free-tier plan is selected or this is a single-month deploy — the free
+  // month covers the whole registration, so payment is skipped and appsMonitor settles
+  // the on-chain cost. Multi-month deploys still pay: a partial first-month discount
+  // isn't supported in a single on-chain payment.
+  const isFree = eligibleForFree
+    && (plan?.priceMonthly === 0 || plan?.id === 'free' || (billingPeriod?.months ?? 1) === 1);
   const appName = registration?.appName || verifiedSpec?.name;
   const txid = registration?.txid;
 
