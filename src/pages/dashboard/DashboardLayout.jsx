@@ -57,7 +57,7 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
       {/* Help links */}
       <div className="px-3 pb-2 shrink-0 space-y-0.5">
         <a
-          href="https://github.com/RunOnFlux/deploy-with-git"
+          href="https://github.com/RunOnFlux/deploy-with-git-samples"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"

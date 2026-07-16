@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Pricing',  href: '#pricing'  },
   { label: 'FAQ',      href: '#faq'      },
-  { label: 'Samples',   href: 'https://github.com/RunOnFlux/deploy-with-git', external: true },
+  { label: 'Samples',   href: 'https://github.com/RunOnFlux/deploy-with-git-samples', external: true },
 ];
 
 const NAV_OFFSET = 72; // px — navbar height + a little breathing room

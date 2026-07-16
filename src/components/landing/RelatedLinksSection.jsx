@@ -45,7 +45,7 @@ const LINKS = [
     external: true,
   },
   {
-    href: 'https://github.com/RunOnFlux/deploy-with-git',
+    href: 'https://github.com/RunOnFlux/deploy-with-git-samples',
     title: 'Guides & samples',
     desc: 'Example projects and step-by-step deployment guides on GitHub.',
     external: true,

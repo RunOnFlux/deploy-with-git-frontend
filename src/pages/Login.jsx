@@ -259,7 +259,7 @@ export default function LoginPage() {
                 {/* Footer */}
                 <div className="flex items-center justify-center gap-5 mt-10 pt-6"
                      style={{ borderTop: '1px solid rgba(30,41,59,0.5)' }}>
-                  {[['Home', '/'], ['Docs', 'https://github.com/RunOnFlux/deploy-with-git'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
+                  {[['Home', '/'], ['Docs', 'https://github.com/RunOnFlux/deploy-with-git-samples'], ['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
                     <a key={label} href={href} className="text-xs text-text-muted/40 hover:text-text-muted transition-colors">{label}</a>
                   ))}
                 </div>
