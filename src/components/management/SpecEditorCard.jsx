@@ -732,6 +732,21 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const resourcesEditable = isCustomResourceSpec(spec);
   const minResourceInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
   const resourceValues = normalizeAppResources(appResources, minResourceInstances);
+
+  // Total per-node hardware for the geo capacity filter = sum of every compose
+  // component (all run on the same node). Compose ram is MB → GB. Empty for
+  // enterprise apps whose compose is encrypted — then only the arcane/IP gate applies.
+  const geoHardware = (() => {
+    const comps = Array.isArray(spec?.compose) ? spec.compose : [];
+    let cpu = 0, ram = 0, hdd = 0;
+    for (const c of comps) {
+      cpu += Number(c.cpu) || 0;
+      ram += Number(c.ram) || 0;
+      hdd += Number(c.hdd) || 0;
+    }
+    return { cpu, ram: ram / 1000, hdd };
+  })();
+  const geoEnterprise = !!(spec?.isEnterprise || spec?._wasEnterprise);
   const addonComponents = getAddonComponents(spec);
   const dbAddon = addonComponents.find(({ kind }) => kind === 'db');
   const redisAddon = addonComponents.find(({ kind }) => kind === 'redis');
@@ -880,6 +895,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
               onChange={setGeolocation}
               disabled={isSaving}
               instances={resourcesEditable ? resourceValues.instances : (spec?.instances ?? 1)}
+              hardware={geoHardware}
+              enterprise={geoEnterprise}
             />
           </div>
         )}

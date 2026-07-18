@@ -245,97 +245,159 @@ app.get('/api/config', (_req, res) => {
  * Keeps the heavy fetch off the client and matches the BFF pattern (the
  * browser never talks to Flux infra directly).
  */
-const FLUX_STATS_URL = 'https://stats.runonflux.io/fluxinfo?projection=geolocation,tier';
+// Enterprise apps (encrypted compose) can only run on nodes reporting an
+// arcaneVersion; both enterprise and standard apps need benchmark (hardware) to
+// size nodes. NOTE: `flux` MUST come last — the stats API returns an internal
+// error when `flux` is the first projection field.
+const FLUX_STATS_URL = 'https://stats.runonflux.io/fluxinfo?projection=geolocation,benchmark,flux';
 const NETWORK_STATS_TTL = 30 * 60 * 1000; // 30 min
-let networkStatsCache = null; // { data, timestamp }
+// Resources reserved for each node's OS/FluxOS — an app can only use what's left.
+const OS_RESERVE = { cores: 1, ram: 2, ssd: 80 };
+let rawNodesCache = null; // { nodes, landing, timestamp }
 
-function clusterNodeData(nodes) {
+/**
+ * Flatten the raw stats list into the minimal per-node shape we need for both the
+ * landing map (lat/lon) and the capacity picker (hardware + IP + arcane). Multiple
+ * Flux nodes can share one public IP (up to 8, on different ports), so we keep the
+ * port-less IP to measure real host/network diversity per location.
+ */
+function normalizeRawNodes(nodes) {
+  return nodes.map((node) => {
+    const g = node.geolocation || {};
+    const b = (node.benchmark && node.benchmark.bench) || {};
+    const rawIp = (node.flux && node.flux.ip) || g.ip || '';
+    return {
+      continentCode: g.continentCode || null,
+      countryCode: g.countryCode || null,
+      continent: g.continent || g.continentCode || null,
+      country: g.country || g.countryCode || null,
+      countryCodeLc: (g.countryCode || '').toLowerCase(),
+      regionName: g.regionName || '',
+      lat: parseFloat(g.lat),
+      lon: parseFloat(g.lon),
+      ip: rawIp.split(':')[0] || null,
+      cores: b.cores || 0,
+      ram: b.ram || 0, // GB
+      ssd: b.ssd || 0, // GB
+      arcane: !!(node.flux && node.flux.arcaneVersion),
+    };
+  });
+}
+
+/** Landing-page map + marketing figures (unfiltered, hardware-agnostic). */
+function computeLanding(nodes) {
   const countries = {};
   const cities = {};
-  // Code-based breakdown for the deploy location picker (capacity filtering).
-  const geoContinents = {}; // code -> { code, name, nodeCount }
-  const geoCountries = {};  // `${continentCode}_${countryCode}` -> { continentCode, code, name, nodeCount }
   let total = 0;
-
-  for (const node of nodes) {
-    const g = node.geolocation || {};
-
-    // Count availability by continent/country code regardless of lat/lon
-    // (matches the FluxOS location picker, which uses projection=geo).
-    if (g.continentCode && g.countryCode) {
-      if (!geoContinents[g.continentCode]) {
-        geoContinents[g.continentCode] = { code: g.continentCode, name: g.continent || g.continentCode, nodeCount: 0 };
-      }
-      geoContinents[g.continentCode].nodeCount++;
-      const key = `${g.continentCode}_${g.countryCode}`;
-      if (!geoCountries[key]) {
-        geoCountries[key] = { continentCode: g.continentCode, code: g.countryCode, name: g.country || g.countryCode, nodeCount: 0 };
-      }
-      geoCountries[key].nodeCount++;
-    }
-
-    const lat = parseFloat(g.lat);
-    const lon = parseFloat(g.lon);
-    if (Number.isNaN(lat) || Number.isNaN(lon)) continue;
-
-    const country = g.country || 'Unknown';
-    const countryCode = (g.countryCode || '').toLowerCase();
-    const region = g.regionName || '';
-
+  for (const n of nodes) {
+    if (Number.isNaN(n.lat) || Number.isNaN(n.lon)) continue;
+    const country = n.country || 'Unknown';
     if (!countries[country]) {
-      countries[country] = { country, countryCode, lat, lon, count: 0 };
+      countries[country] = { country, countryCode: n.countryCodeLc, lat: n.lat, lon: n.lon, count: 0 };
     }
     countries[country].count++;
-
     // Group to a ~0.1° grid so nearby nodes form a single city dot.
-    const cityKey = `${country}_${Math.round(lat * 10) / 10}_${Math.round(lon * 10) / 10}`;
+    const cityKey = `${country}_${Math.round(n.lat * 10) / 10}_${Math.round(n.lon * 10) / 10}`;
     if (!cities[cityKey]) {
       cities[cityKey] = {
-        lat: Math.round(lat * 1000) / 1000,
-        lon: Math.round(lon * 1000) / 1000,
+        lat: Math.round(n.lat * 1000) / 1000,
+        lon: Math.round(n.lon * 1000) / 1000,
         count: 0,
         country,
-        region,
+        region: n.regionName,
       };
     }
     cities[cityKey].count++;
     total++;
   }
-
-  // Round country centroids too; they're only used to place a marker.
   const countryList = Object.values(countries)
     .map((c) => ({ ...c, lat: Math.round(c.lat * 1000) / 1000, lon: Math.round(c.lon * 1000) / 1000 }))
     .sort((a, b) => b.count - a.count);
-
   return {
     total,
     countryCount: countryList.length,
     countries: countryList,
     cityClusters: Object.values(cities),
-    geo: {
-      continents: Object.values(geoContinents).sort((a, b) => b.nodeCount - a.nodeCount),
-      countries: Object.values(geoCountries).sort((a, b) => b.nodeCount - a.nodeCount),
-    },
   };
 }
 
-app.get('/api/network-stats', async (_req, res) => {
-  const fresh = networkStatsCache && (Date.now() - networkStatsCache.timestamp) < NETWORK_STATS_TTL;
-  if (fresh) return res.json(networkStatsCache.data);
+/**
+ * Per-continent / per-country capacity for the deploy location picker. Counts both
+ * nodes AND unique public IPs (the real placement constraint — Flux spreads an
+ * app's instances across distinct IPs). When a hardware/enterprise filter is given,
+ * only nodes that can actually host the app (after the OS reserve) are counted.
+ * @param {null | {cpu:number, ram:number, hdd:number, enterprise:boolean}} filter
+ */
+function computeGeoBreakdown(nodes, filter) {
+  const fits = (n) => {
+    if (!n.continentCode || !n.countryCode) return false;
+    if (!filter) return true;
+    if (!n.cores) return false; // no benchmark → can't be sized when filtering
+    if (filter.enterprise && !n.arcane) return false;
+    if (n.cores - OS_RESERVE.cores < filter.cpu) return false;
+    if (n.ram - OS_RESERVE.ram < filter.ram) return false;
+    if (n.ssd - OS_RESERVE.ssd < filter.hdd) return false;
+    return true;
+  };
+  const conts = new Map(); // code -> { code, name, nodeCount, ips:Set }
+  const countries = new Map(); // `${cont}_${cc}` -> { continentCode, code, name, nodeCount, ips:Set }
+  for (const n of nodes) {
+    if (!fits(n)) continue;
+    if (!conts.has(n.continentCode)) {
+      conts.set(n.continentCode, { code: n.continentCode, name: n.continent, nodeCount: 0, ips: new Set() });
+    }
+    const c = conts.get(n.continentCode);
+    c.nodeCount++; if (n.ip) c.ips.add(n.ip);
+    const key = `${n.continentCode}_${n.countryCode}`;
+    if (!countries.has(key)) {
+      countries.set(key, { continentCode: n.continentCode, code: n.countryCode, name: n.country, nodeCount: 0, ips: new Set() });
+    }
+    const cc = countries.get(key);
+    cc.nodeCount++; if (n.ip) cc.ips.add(n.ip);
+  }
+  const finalize = (m) => [...m.values()]
+    .map(({ ips, ...rest }) => ({ ...rest, ipCount: ips.size }))
+    .sort((a, b) => b.ipCount - a.ipCount);
+  return { continents: finalize(conts), countries: finalize(countries) };
+}
+
+async function getRawNodes() {
+  const fresh = rawNodesCache && (Date.now() - rawNodesCache.timestamp) < NETWORK_STATS_TTL;
+  if (fresh) return rawNodesCache;
+  const upstream = await fetch(FLUX_STATS_URL, { signal: AbortSignal.timeout(25_000) });
+  const json = await upstream.json();
+  if (json.status !== 'success' || !Array.isArray(json.data)) {
+    throw new Error('Unexpected stats response');
+  }
+  const nodes = normalizeRawNodes(json.data);
+  rawNodesCache = { nodes, landing: computeLanding(nodes), timestamp: Date.now() };
+  return rawNodesCache;
+}
+
+app.get('/api/network-stats', async (req, res) => {
+  // Optional capacity filter (deploy wizard / spec editor): only count nodes that
+  // can host the app. Absent params (landing page) → unfiltered breakdown, still
+  // annotated with unique-IP counts.
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+  const hasFilter = ['cpu', 'ram', 'hdd', 'enterprise'].some((k) => k in req.query);
+  const filter = hasFilter
+    ? {
+        cpu: num(req.query.cpu),
+        ram: num(req.query.ram),
+        hdd: num(req.query.hdd),
+        enterprise: req.query.enterprise === '1' || req.query.enterprise === 'true',
+      }
+    : null;
 
   try {
-    const upstream = await fetch(FLUX_STATS_URL, { signal: AbortSignal.timeout(25_000) });
-    const json = await upstream.json();
-    if (json.status !== 'success' || !Array.isArray(json.data)) {
-      throw new Error('Unexpected stats response');
-    }
-    const data = clusterNodeData(json.data);
-    networkStatsCache = { data, timestamp: Date.now() };
-    res.json(data);
+    const { nodes, landing } = await getRawNodes();
+    res.json({ ...landing, geo: computeGeoBreakdown(nodes, filter) });
   } catch (err) {
     console.error('network-stats error:', err.message);
     // Serve stale cache if we have any, otherwise signal failure.
-    if (networkStatsCache) return res.json(networkStatsCache.data);
+    if (rawNodesCache) {
+      return res.json({ ...rawNodesCache.landing, geo: computeGeoBreakdown(rawNodesCache.nodes, filter) });
+    }
     res.status(502).json({ status: 'error', message: 'Could not load network stats' });
   }
 });

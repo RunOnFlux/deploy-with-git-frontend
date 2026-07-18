@@ -1,20 +1,26 @@
 import { useMemo, useState } from 'react';
 import { GEO_OPTIONS, labelForGeoCode } from '../../services/geolocationSpec';
-import { useNetworkStats } from '../../hooks/useNetworkStats';
-
-// FluxOS rule: a country needs a baseline of nodes to be a valid deploy target.
-const MIN_COUNTRY_NODES = 24;
+import { useDeployCapacity } from '../../hooks/useNetworkStats';
 
 /**
  * Capacity-aware geolocation picker. Mirrors the FluxOS / sibling-site location
- * step: only continents/countries with enough live nodes for the requested
- * instance count are offered, annotated with node counts. Falls back to the
- * static continent list if network data isn't available yet. Each added
- * location can be toggled allowed/forbidden (an Orbit-specific feature).
+ * step: only continents/countries that can actually host THIS app are offered —
+ * nodes are filtered by the plan's hardware (after the node OS reserve) and, for
+ * enterprise apps, by arcaneVersion support. Locations are annotated with both a
+ * node count and a unique public-IP count, and only qualify when they hold enough
+ * distinct IPs for the instance count (Flux spreads instances across distinct IPs).
+ * Falls back to the static continent list if network data isn't available yet. Each
+ * added location can be toggled allowed/forbidden (an Orbit-specific feature).
+ *
+ * @param {{ cpu?: number, ram?: number, hdd?: number }} [hardware] cores / GB / GB
  */
-export default function GeoSelector({ selected, onChange, disabled = false, instances = 1 }) {
-  const { stats } = useNetworkStats();
-  const geo = stats?.geo || null;
+export default function GeoSelector({ selected, onChange, disabled = false, instances = 1, hardware = null, enterprise = false }) {
+  const { geo } = useDeployCapacity({
+    cpu: hardware?.cpu,
+    ram: hardware?.ram,
+    hdd: hardware?.hdd,
+    enterprise,
+  });
 
   const [continent, setContinent] = useState('');
   const [country, setCountry] = useState('');
@@ -22,28 +28,27 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
   const selectedCodes = useMemo(() => new Set(selected.map((g) => g.code)), [selected]);
   const wholeContinentAdded = continent && selectedCodes.has(continent);
 
-  // Continents with enough capacity for the instance count, not already added.
+  // Continents with enough unique IPs for the instance count, not already added.
   const continentOptions = useMemo(() => {
     if (!geo) {
       // Fallback: static continents, no capacity info.
       return GEO_OPTIONS
         .filter((o) => !selectedCodes.has(o.code))
-        .map((o) => ({ code: o.code, name: o.label, nodeCount: null }));
+        .map((o) => ({ code: o.code, name: o.label, nodeCount: null, ipCount: null }));
     }
     return geo.continents
-      .filter((c) => c.nodeCount >= instances && !selectedCodes.has(c.code))
-      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount }));
+      .filter((c) => c.ipCount >= instances && !selectedCodes.has(c.code))
+      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount }));
   }, [geo, instances, selectedCodes]);
 
-  // Countries in the chosen continent with ≥ max(24, instances) nodes, not added.
+  // Countries in the chosen continent with enough unique IPs, not already added.
   const countryOptions = useMemo(() => {
     if (!geo || !continent || wholeContinentAdded) return [];
-    const threshold = Math.max(MIN_COUNTRY_NODES, instances);
     return geo.countries
       .filter((c) => c.continentCode === continent
-        && c.nodeCount >= threshold
+        && c.ipCount >= instances
         && !selectedCodes.has(`${continent}_${c.code}`))
-      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount }));
+      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount }));
   }, [geo, continent, instances, selectedCodes, wholeContinentAdded]);
 
   function addLocation() {
@@ -81,7 +86,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           <option value="">Select continent…</option>
           {continentOptions.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.name}{c.nodeCount != null ? ` · ${c.nodeCount.toLocaleString()} nodes` : ''}
+              {c.name}{c.ipCount != null ? ` · ${c.nodeCount.toLocaleString()} nodes · ${c.ipCount.toLocaleString()} IPs` : ''}
             </option>
           ))}
         </select>
@@ -98,7 +103,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           </option>
           {countryOptions.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.name} · {c.nodeCount.toLocaleString()}
+              {c.name} · {c.nodeCount.toLocaleString()} nodes · {c.ipCount.toLocaleString()} IPs
             </option>
           ))}
         </select>
@@ -112,6 +117,13 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           + Add
         </button>
       </div>
+
+      {/* Tip: multiple locations ⇒ more distinct hosts ⇒ a guaranteed, faster deploy */}
+      <p className="text-xs text-text-muted leading-relaxed">
+        <span className="text-amber-400 font-medium">Tip:</span> add several locations to give your deployment
+        more distinct hosts to land on. Each instance needs its own public IP, so the <span className="font-medium">IP
+        count</span> — not the node count — is what guarantees the deploy, and more choices makes it faster.
+      </p>
 
       {/* Selected locations */}
       {selected.length > 0 ? (

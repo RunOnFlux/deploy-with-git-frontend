@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Trash2, AlertCircle, Loader2, Check, Globe, ChevronDown, ChevronUp, Zap, Info, GitPullRequest, Upload, Clipboard, X, ShieldCheck, SlidersHorizontal, Clock } from 'lucide-react';
 import {
   BILLING_PERIODS,
@@ -337,6 +337,24 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
     onChange({ ...config, [field]: value });
   }
 
+  // Total per-node hardware the app needs = main plan + any enabled add-on
+  // components (they all run on the same node). Plan ram/hdd are GB; add-on
+  // resources.ram is MB. Feeds the GeoSelector's capacity filter.
+  const geoHardware = useMemo(() => {
+    let cpu = Number(plan?.cpu) || 0;
+    let ram = Number(plan?.ram) || 0; // GB
+    let hdd = Number(plan?.hdd) || 0; // GB
+    const addComponent = (r) => {
+      if (!r) return;
+      cpu += Number(r.cpu) || 0;
+      ram += (Number(r.ram) || 0) / 1000; // MB → GB
+      hdd += Number(r.hdd) || 0;
+    };
+    if (config.database?.enabled) addComponent(config.database.resources);
+    if (config.redis?.enabled) addComponent(config.redis.resources);
+    return { cpu, ram, hdd };
+  }, [plan, config.database, config.redis]);
+
   // Setting a secret field auto-enables Enterprise mode
   function updateSecret(field, value) {
     onChange({ ...config, [field]: value, enterprise: true });
@@ -558,7 +576,13 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
             <Globe className="w-3.5 h-3.5" /> Geolocation <span className="text-text-muted font-normal">(optional)</span>
           </label>
           <p className="text-xs text-text-muted mb-2">Select regions to allow (✓) or forbid (✗). Leave empty for global deployment.</p>
-          <GeoSelector selected={geolocation} onChange={(v) => update('geolocation', v)} instances={plan?.instances ?? 1} />
+          <GeoSelector
+            selected={geolocation}
+            onChange={(v) => update('geolocation', v)}
+            instances={plan?.instances ?? 1}
+            hardware={geoHardware}
+            enterprise={enterprise || isEnterpriseForced || addonEnterpriseRequired}
+          />
         </div>
 
         <div className="mb-5">
