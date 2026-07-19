@@ -14,7 +14,7 @@
  */
 
 /** Ordered list of marketing routes, reused by the sitemap and the prerender. */
-export const MARKETING_ROUTES = ['/deploy-to-flux', '/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
+export const MARKETING_ROUTES = ['/deploy-to-flux', '/free-web-app-hosting', '/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
 
 export const MARKETING_PAGES = {
   '/deploy-to-flux': {
@@ -529,6 +529,75 @@ export const MARKETING_PAGES = {
       { q: 'Is Orbit’s free tier better than Render’s?', a: 'Orbit’s free tier is genuinely free forever with no credit card, whereas Render’s free web services are limited and can spin down when idle. Paid Orbit plans with dedicated resources start at $0.99/mo.' },
       { q: 'Can I deploy the same way I do on Render?', a: 'Yes. Orbit connects your GitHub, GitLab or Bitbucket repo and uses Nixpacks framework detection to build and deploy on every push.' },
       { q: 'Does Orbit charge for bandwidth like Render?', a: 'No. Orbit does not charge egress or bandwidth fees; you pay for the dedicated resources your app uses.' },
+    ],
+  },
+
+  '/free-web-app-hosting': {
+    slug: '/free-web-app-hosting',
+    title: 'Free Web App & Static Site Hosting | Orbit',
+    description:
+      'Host web apps and static sites free forever on the decentralized Flux cloud. Git push to deploy, no egress fees, no credit card. Paid plans from $0.99/mo.',
+    breadcrumb: 'Free Web App Hosting',
+    h1: 'Free Web App & Static Site Hosting',
+    intro:
+      'Orbit has a genuinely free-forever tier: connect a Git repo, push, and your web app or static site goes live on the decentralized Flux cloud — no credit card and no trial countdown. This page covers what you can host for free, how free hosting works on a decentralized network, and when it makes sense to move up to a paid plan from $0.99/mo.',
+    sections: [
+      {
+        heading: 'Free forever — not a 30-day trial',
+        blocks: [
+          { type: 'p', html: 'Plenty of platforms advertise a "free" plan that is really a countdown: a trial that expires, a service that spins down when idle, or a tier that quietly needs a card on file. Orbit\'s free plan is different — it is <strong>free forever</strong>, needs <strong>no credit card</strong> to start, and runs your app as a real deployment on the <a href="/decentralized-hosting">decentralized Flux cloud</a> rather than a throttled sandbox. It is meant for side projects, demos, portfolios and learning, and you can keep a project on it for as long as you like.' },
+        ],
+      },
+      {
+        heading: 'What you can host for free',
+        blocks: [
+          { type: 'p', html: 'Orbit deploys straight from your repository and detects the framework automatically with Nixpacks, so you are not limited to static files — you can host real applications on the free tier:' },
+          { type: 'ul', items: [
+            '<strong>Static sites</strong> — React, Vue, Svelte, Vite, Astro, or plain HTML/CSS/JS built to a static output.',
+            '<strong>Full-stack and backend apps</strong> — Node, Python (Django, Flask, FastAPI), Go, Ruby and more, running as real containers, not just static files.',
+            '<strong>Any Git provider</strong> — deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong> required.',
+          ] },
+          { type: 'p', html: 'Because every deployment is a genuine container rather than a function or a static bucket, long-running backends and server-side frameworks that other free tiers handle poorly work here too.' },
+        ],
+      },
+      {
+        heading: 'How can hosting be free? The decentralized model',
+        blocks: [
+          { type: 'p', html: 'Traditional hosts pay for centralized data centers and recoup it with metered bandwidth and expiring free tiers. Orbit runs on the <strong>Flux network</strong> — thousands of independent nodes operated by many people worldwide — so your app is packaged into a container and scheduled onto that shared, permissionless infrastructure. There is <strong>no single point of failure</strong>, <strong>no egress or bandwidth fees</strong>, and no single company deciding to sunset the free tier. It is the same architecture described in our guide to <a href="/decentralized-hosting">decentralized (web3) hosting</a>.' },
+        ],
+      },
+      {
+        heading: 'Free vs paid plans',
+        blocks: [
+          { type: 'p', html: 'Start free and move up only when you need dedicated resources for a production app. Paid plans add reserved CPU and RAM and start at just $0.99/mo:' },
+          { type: 'table', headers: ['Plan', 'Price', 'Best for'], rows: [
+            ['Free', '$0 forever', 'Side projects, demos, portfolios, learning'],
+            ['Standard', '$2.49/mo', 'Growing projects and small apps'],
+            ['Pro', '$3.99/mo', 'Active development and production apps'],
+            ['Custom', 'From $0.99/mo', 'Resources tailored to your app'],
+          ] },
+          { type: 'p', html: 'Every paid plan includes the first month free, dedicated resources, and the same no-egress-fees, no-lock-in model as the free tier — you pay for the compute your app uses, nothing else.' },
+        ],
+      },
+      {
+        heading: 'When to move up from the free tier',
+        blocks: [
+          { type: 'p', html: 'The free tier is ideal for getting a project online, but a busy production app benefits from dedicated CPU and RAM and more headroom. When your side project turns into something real, upgrading is a one-click change with no migration and no redeploy dance — your repo stays the source of truth. If you are weighing Orbit against a centralized platform, see how it compares as a <a href="/vercel-netlify-alternative">Vercel and Netlify alternative</a>, a <a href="/heroku-alternative">Heroku alternative</a>, or a <a href="/render-alternative">Render alternative</a>.' },
+        ],
+      },
+      {
+        heading: 'Deploy your first app free in one push',
+        blocks: [
+          { type: 'p', html: 'Connect a repository, and Orbit detects your framework, builds a container, and deploys it across the Flux network — you get a live URL in minutes, free. Add a <a href="/deploy-to-flux">Deploy to Flux button</a> to your README so anyone can launch their own copy in one click. No servers to manage, no card to enter, no trial to beat.' },
+        ],
+      },
+    ],
+    faqs: [
+      { q: 'Is Orbit web app hosting really free?', a: 'Yes. Orbit has a genuinely free-forever tier with no credit card required and no trial countdown. Your app runs as a real deployment on the decentralized Flux cloud. Paid plans with dedicated resources start at $0.99/mo, with the first month free.' },
+      { q: 'What can I host on the free tier?', a: 'Static sites (React, Vue, Svelte, Vite, Astro, plain HTML) and full-stack or backend apps (Node, Python, Go, Ruby and more) running as real containers. Orbit uses Nixpacks to detect your framework and build from GitHub, GitLab or Bitbucket with no Dockerfile.' },
+      { q: 'Do I need a credit card for free hosting?', a: 'No. The free tier requires no credit card to sign up or deploy. You only add a payment method if you choose to upgrade to a paid plan for dedicated resources.' },
+      { q: 'How is Orbit able to offer free hosting?', a: 'Orbit runs on the Flux network — thousands of independent nodes worldwide — instead of centralized data centers. There are no egress or bandwidth fees and no single company footing a data-center bill, which is what makes a genuinely free forever tier sustainable.' },
+      { q: 'How much do paid plans cost?', a: 'Paid plans start at $0.99/mo (Custom), with Standard at $2.49/mo and Pro at $3.99/mo, each including the first month free and dedicated CPU and RAM. There are no egress fees and no vendor lock-in.' },
     ],
   },
 };

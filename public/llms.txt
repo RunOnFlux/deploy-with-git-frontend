@@ -35,6 +35,7 @@ Orbit deploys to the Flux decentralized network, so no single company controls y
 ## Pages
 
 - [Home / pricing / features](https://orbit.runonflux.com/)
+- [Free web app & static site hosting](https://orbit.runonflux.com/free-web-app-hosting)
 - [Decentralized app hosting](https://orbit.runonflux.com/decentralized-hosting)
 - [Orbit vs Vercel](https://orbit.runonflux.com/vs/vercel)
 - [Vercel and Netlify alternative](https://orbit.runonflux.com/vercel-netlify-alternative)

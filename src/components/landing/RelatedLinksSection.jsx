@@ -9,6 +9,12 @@ const LINKS = [
     external: false,
   },
   {
+    href: '/free-web-app-hosting',
+    title: 'Free web app & static site hosting',
+    desc: 'Host apps and static sites free forever — no card, no egress fees. Paid plans from $0.99/mo.',
+    external: false,
+  },
+  {
     href: '/decentralized-hosting',
     title: 'What is decentralized hosting?',
     desc: 'The pillar guide to web3, censorship-resistant hosting with no vendor lock-in.',
