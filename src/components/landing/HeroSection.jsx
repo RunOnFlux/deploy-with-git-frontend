@@ -401,7 +401,7 @@ export default function HeroSection() {
                   onBlur={() => setInputFocused(false)}
                   autoComplete="off"
                   spellCheck="false"
-                  className={`w-full h-16 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-14' : 'pl-6'} pr-6 bg-gradient-to-b from-black/[91%] to-black/[86%] border border-border/50 rounded-xl text-text text-base placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] font-mono shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3)] focus:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3),0_0_0_3px_rgba(99,102,241,0.08)] ${!repoUrl ? '[caret-color:transparent]' : '[caret-color:theme(colors.indigo.400)]'}`}
+                  className={`hero-repo-input w-full h-16 ${parsed?.provider && PROVIDER_ICONS[parsed.provider] ? 'pl-14' : 'pl-6'} pr-6 bg-gradient-to-b from-black/[91%] to-black/[86%] border border-border/50 rounded-xl text-text text-base placeholder:text-text-muted/40 outline-none ring-0 focus:ring-0 focus:outline-none focus:border-primary/30 transition-[background-color,border-color,box-shadow] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] font-mono shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3)] focus:shadow-[inset_0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(0,0,0,0.3),0_0_0_3px_rgba(99,102,241,0.08)] ${!repoUrl ? '[caret-color:transparent]' : '[caret-color:theme(colors.indigo.400)]'}`}
                 />
                 
                 {/* Provider badge on the right (removed - icon is enough) */}
