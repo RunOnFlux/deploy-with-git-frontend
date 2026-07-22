@@ -122,7 +122,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
       <p className="text-xs text-text-muted leading-relaxed">
         <span className="text-amber-400 font-medium">Tip:</span> add several locations to give your deployment
         more distinct hosts to land on. Each instance needs its own public IP, so the <span className="font-medium">IP
-        count</span> — not the node count — is what guarantees the deploy, and more choices makes it faster.
+        count</span>, rather than the node count, is what guarantees the deployment. More choices also make deployment faster.
       </p>
 
       {/* Selected locations */}
@@ -160,7 +160,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           })}
         </div>
       ) : (
-        <p className="text-xs text-text-muted">No restriction — deploys globally to any available node.</p>
+        <p className="text-xs text-text-muted">No restriction. Deploys globally to any available node.</p>
       )}
     </div>
   );
