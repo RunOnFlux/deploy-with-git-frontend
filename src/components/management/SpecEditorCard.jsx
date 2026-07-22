@@ -385,7 +385,6 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const { zelidauth, loginType } = useAuth();
 
   // ── Local editable state ───────────────────────────────────────────────
-  const [description, setDescription]   = useState('');
   const [customDomain, setCustomDomain] = useState('');
   const [userEnvRows, setUserEnvRows]   = useState([]); // { key, value }
   const [hiddenEnvRows, setHiddenEnvRows] = useState([]); // { key, value } — preserved, never shown
@@ -415,7 +414,6 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   // ── Populate state from spec ─────────────────────────────────────────
   useEffect(() => {
     if (!spec) return;
-    setDescription(spec.description ?? '');
     const compose = spec.compose?.[0] ?? {};
     setCustomDomain(compose.domains?.[0] ?? '');
     setAppResources({
@@ -460,7 +458,6 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const isDirty = useCallback(() => {
     if (!spec) return false;
     const compose = spec.compose?.[0] ?? {};
-    if (description !== (spec.description ?? '')) return true;
     if (customDomain !== (compose.domains?.[0] ?? '')) return true;
     if (isCustomResourceSpec(spec)) {
       const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
@@ -489,7 +486,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     if (JSON.stringify(origUser)  !== JSON.stringify(userEnvRows))   return true;
     if (JSON.stringify(buildGeoSpec(geolocation)) !== JSON.stringify(spec.geolocation ?? [])) return true;
     return false;
-  }, [spec, description, customDomain, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
+  }, [spec, customDomain, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
 
   // ── Helpers ───────────────────────────────────────────────────────────
   function updateOrbit(key, value) {
@@ -558,7 +555,6 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
     const updatedSpec = {
       ...spec,
-      description,
       expire: remainingBlocks,
       ...(resourcesEditable ? { instances: resources.instances } : {}),
       geolocation: buildGeoSpec(geolocation),
@@ -765,7 +761,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       <h2 className="font-semibold text-text mb-3 shrink-0">App Settings</h2>
 
       {/* Tab bar */}
-      <div className="flex gap-1 mb-3 shrink-0 bg-background/40 rounded-lg p-1">
+      <div className="app-settings-tabs flex gap-1 mb-3 shrink-0 bg-background/40 rounded-lg p-1">
         {TABS.map(({ id, label, icon }) => (
           <button
             key={id}
@@ -789,16 +785,6 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
         {/* ── General ── */}
         {activeTab === 'general' && (
           <div className="space-y-3 py-1">
-            <div>
-              <label className="block text-xs text-text-muted mb-1">Description</label>
-              <input
-                className="input w-full text-sm"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Short description of your app"
-                disabled={isSaving}
-              />
-            </div>
             <div>
               <label className="block text-xs text-text-muted mb-1">Custom Domain</label>
               <input

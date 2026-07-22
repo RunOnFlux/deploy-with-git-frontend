@@ -181,13 +181,13 @@ export default function Billing() {
 
         {/* Expiring-soon alert */}
         {expiringSoon.length > 0 && (
-          <div className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
+          <div className="billing-expiry-warning flex items-start gap-3 p-4 mb-6 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
             <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm">
                 {expiringSoon.length} app{expiringSoon.length > 1 ? 's' : ''} expiring within 14 days
               </p>
-              <p className="text-xs text-amber-300/80 mt-0.5">
+              <p className="billing-expiry-warning-detail text-xs text-amber-300/80 mt-0.5">
                 Renew soon to avoid downtime:{' '}
                 {expiringSoon.map((a) => a.name).join(', ')}.
               </p>
