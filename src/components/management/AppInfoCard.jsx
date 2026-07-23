@@ -23,7 +23,7 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={handleCopy}
-      className="ml-1 p-0.5 rounded text-text-muted hover:text-text transition-colors"
+      className="ml-1 p-0.5 text-text-muted hover:text-text "
       title="Copy"
     >
       <Copy className={`w-3 h-3 ${copied ? 'text-accent' : ''}`} />
@@ -62,12 +62,12 @@ function SitePreview({ url }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block h-full rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors group relative"
+      className="block h-full overflow-hidden border border-border hover:border-primary/50 group relative"
       title="Open live site"
     >
       {/* Skeleton shown while loading */}
       {state === 'loading' && (
-        <div className="w-full h-full bg-surface-hover animate-pulse flex items-center justify-center">
+        <div className="w-full h-full bg-surface-hover flex items-center justify-center">
           <Monitor className="w-6 h-6 text-text-muted/40" />
         </div>
       )}
@@ -79,7 +79,7 @@ function SitePreview({ url }) {
         loading="lazy"
         onLoad={() => setState('loaded')}
         onError={() => setState('error')}
-        className={`w-full h-full object-cover object-top transition-opacity duration-300 ${state === 'loaded' ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+        className={`w-full h-full object-cover object-top ${state === 'loaded' ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
       />
 
       {/* Error fallback */}
@@ -92,8 +92,8 @@ function SitePreview({ url }) {
 
       {/* Hover overlay */}
       {state === 'loaded' && (
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <ExternalLink className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center">
+          <ExternalLink className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 drop-shadow-lg" />
         </div>
       )}
     </a>
@@ -102,7 +102,7 @@ function SitePreview({ url }) {
 
 function ResourceChip({ icon: Icon, label, value, color = 'text-text-muted' }) {
   return (
-    <div className="bg-surface-hover rounded-lg px-3 py-2.5 flex items-center gap-2 w-full">
+    <div className="bg-surface-hover px-3 py-2.5 flex items-center gap-2 w-full">
       <Icon className={`w-4 h-4 shrink-0 ${color}`} />
       <span className="text-xs text-text-muted shrink-0">{label}</span>
       <span className="text-xs font-semibold text-text ml-auto whitespace-nowrap">{value}</span>
@@ -167,22 +167,22 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
 
     if (!spec) {
     return (
-      <div className="card animate-pulse">
+      <div className="card ">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <div className="h-5 w-32 bg-surface-hover rounded mb-2" />
-            <div className="h-3 w-48 bg-surface-hover rounded" />
+            <div className="h-5 w-32 bg-surface-hover mb-2" />
+            <div className="h-3 w-48 bg-surface-hover " />
           </div>
-          <div className="h-6 w-16 bg-surface-hover rounded-full" />
+          <div className="h-6 w-16 bg-surface-hover " />
         </div>
         <div className="flex gap-3 mb-4">
-          <div className="w-2/3 bg-surface-hover rounded-xl" style={{ aspectRatio: '16/9' }} />
+          <div className="w-2/3 bg-surface-hover " style={{ aspectRatio: '16/9' }} />
           <div className="w-1/3 flex flex-col gap-2">
-            {[1,2,3,4].map((i) => <div key={i} className="h-10 bg-surface-hover rounded-lg" />)}
+            {[1,2,3,4].map((i) => <div key={i} className="h-10 bg-surface-hover " />)}
           </div>
         </div>
         <div className="space-y-3">
-          {[1,2,3].map((i) => <div key={i} className="h-8 bg-surface-hover rounded" />)}
+          {[1,2,3].map((i) => <div key={i} className="h-8 bg-surface-hover " />)}
         </div>
       </div>
     );
@@ -242,7 +242,7 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
         </div>
         <div className="flex items-center gap-2">
           {spec.isEnterprise && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/30">
               <ShieldCheck className="w-3 h-3" /> Enterprise
             </span>
           )}
@@ -260,9 +260,9 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
 
         {/* Resource chips — fixed width column */}
         <div className="w-44 shrink-0 flex flex-col gap-2 self-stretch">
-          <ResourceChip icon={Cpu}        label="CPU"    value={`${compose.cpu} vCPU`}  color="text-blue-400" />
-          <ResourceChip icon={MemoryStick} label="RAM"   value={ram}                    color="text-purple-400" />
-          <ResourceChip icon={HardDrive}  label="SSD"    value={`${compose.hdd} GB`}    color="text-amber-400" />
+          <ResourceChip icon={Cpu} label="CPU" value={`${compose.cpu} vCPU`} color="text-blue-400" />
+          <ResourceChip icon={MemoryStick} label="RAM" value={ram} color="text-purple-400" />
+          <ResourceChip icon={HardDrive} label="SSD" value={`${compose.hdd} GB`} color="text-amber-400" />
           <ResourceChip
             icon={ServerIcon}
             label="Nodes"

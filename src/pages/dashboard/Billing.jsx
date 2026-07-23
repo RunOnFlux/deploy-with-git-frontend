@@ -36,20 +36,20 @@ function ExpiryBadge({ daysLeft }) {
   if (daysLeft === null) return null;
   if (daysLeft < 0) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/25">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/25">
         <AlertTriangle className="w-3 h-3" /> Expired
       </span>
     );
   }
   if (daysLeft <= 14) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/25">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/25">
         <AlertTriangle className="w-3 h-3" /> {daysLeft}d left
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/25">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/25">
       <CheckCircle className="w-3 h-3" /> {daysLeft}d left
     </span>
   );
@@ -63,7 +63,7 @@ function PlanBadge({ plan }) {
     custom: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   };
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${colors[plan.id] ?? colors.custom}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold border ${colors[plan.id] ?? colors.custom}`}>
       <Zap className="w-3 h-3" /> {plan.label}
     </span>
   );
@@ -86,7 +86,7 @@ function AppBillingCard({ app, currentBlock, currentTimeMs, hasOtherOrbitApps, o
       {/* Top row */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Box className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
@@ -110,7 +110,7 @@ function AppBillingCard({ app, currentBlock, currentTimeMs, hasOtherOrbitApps, o
         ].map((resource) => {
           const Icon = resource.icon;
           return (
-            <div key={resource.label} className="bg-background/40 rounded-lg px-2 py-2">
+            <div key={resource.label} className="bg-background/40 px-2 py-2">
               <Icon className={`w-3.5 h-3.5 mx-auto mb-1 ${resource.color}`} />
               <p className="text-xs font-semibold text-text">{resource.value}</p>
               <p className="text-[10px] text-text-muted">{resource.label}</p>
@@ -134,7 +134,7 @@ function AppBillingCard({ app, currentBlock, currentTimeMs, hasOtherOrbitApps, o
           <button
             type="button"
             onClick={() => onRenew(app)}
-            className="inline-flex shrink-0 items-center gap-1 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors"
+            className="inline-flex shrink-0 items-center gap-1 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium "
           >
             Renew <ChevronRight className="w-3 h-3" />
           </button>
@@ -178,7 +178,7 @@ export default function Billing() {
             <button
               onClick={() => { refresh(); fetchCurrentBlock().then(setCurrentBlock); }}
               disabled={loading}
-              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+              className="p-2 text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-40"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -188,7 +188,7 @@ export default function Billing() {
 
         {/* Expiring-soon alert */}
         {expiringSoon.length > 0 && (
-          <div className="billing-expiry-warning flex items-start gap-3 p-4 mb-6 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
+          <div className="billing-expiry-warning flex items-start gap-3 p-4 mb-6 bg-amber-500/10 border border-amber-500/25 text-amber-300">
             <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm">
@@ -206,12 +206,12 @@ export default function Billing() {
         {(loading || blockLoading) && (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="card p-5 animate-pulse">
-                <div className="h-9 w-9 rounded-lg bg-surface-hover mb-3" />
-                <div className="h-4 w-32 rounded bg-surface-hover mb-2" />
-                <div className="h-3 w-48 rounded bg-surface-hover mb-4" />
+              <div key={i} className="card p-5 ">
+                <div className="h-9 w-9 bg-surface-hover mb-3" />
+                <div className="h-4 w-32 bg-surface-hover mb-2" />
+                <div className="h-3 w-48 bg-surface-hover mb-4" />
                 <div className="grid grid-cols-4 gap-2">
-                  {[1,2,3,4].map(j => <div key={j} className="h-12 rounded-lg bg-surface-hover" />)}
+                  {[1,2,3,4].map(j => <div key={j} className="h-12 bg-surface-hover" />)}
                 </div>
               </div>
             ))}
@@ -221,7 +221,7 @@ export default function Billing() {
         {/* Empty state */}
         {!loading && !blockLoading && apps.length === 0 && (
           <div className="card border-dashed flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 bg-primary/10 flex items-center justify-center mb-4">
               <CreditCard className="w-7 h-7 text-primary" />
             </div>
             <h3 className="font-semibold text-text mb-2">No active deployments</h3>
@@ -253,7 +253,7 @@ export default function Billing() {
 
         {/* Info footer */}
         {!loading && apps.length > 0 && (
-          <div className="mt-8 p-4 rounded-xl bg-surface/50 border border-border/20 text-sm text-text-muted">
+          <div className="mt-8 p-4 bg-surface/50 border border-border/20 text-sm text-text-muted">
             <p>
               Flux apps are prepaid for a fixed period. Renew an app before it expires to avoid downtime.{' '}
               <a

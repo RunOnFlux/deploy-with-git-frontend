@@ -91,7 +91,7 @@ function EnvImporter({ onImport }) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         onClick={() => fileRef.current?.click()}
-        className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm cursor-pointer transition-colors ${
+        className={`flex items-center justify-center gap-2 border border-dashed px-4 py-3 text-sm cursor-pointer ${
           dragging
             ? 'border-primary bg-primary/5 text-primary'
             : 'border-border text-text-muted hover:border-primary/50 hover:text-text-secondary hover:bg-surface-hover'
@@ -113,7 +113,7 @@ function EnvImporter({ onImport }) {
         <button
           type="button"
           onClick={pasteClipboard}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors"
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text "
         >
           <Clipboard className="w-3.5 h-3.5" /> Paste from clipboard
         </button>
@@ -127,7 +127,7 @@ function EnvImporter({ onImport }) {
 
       {/* Manual paste fallback */}
       {showPasteArea && (
-        <div className="mt-2 rounded-lg border border-border bg-surface p-3 space-y-2">
+        <div className="mt-2 border border-border bg-surface p-3 space-y-2">
           <p className="text-xs text-text-muted">Paste your <code className="font-mono">.env</code>, JSON or YAML below:</p>
           <textarea
             ref={textareaRef}
@@ -142,14 +142,14 @@ function EnvImporter({ onImport }) {
             <button
               type="button"
               onClick={submitPasteArea}
-              className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors"
+              className="px-3 py-1.5 bg-primary text-white text-xs font-medium hover:bg-primary-hover "
             >
               Import
             </button>
             <button
               type="button"
               onClick={() => { setShowPasteArea(false); setPasteText(''); }}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs text-text-muted hover:text-text transition-colors"
+              className="px-3 py-1.5 border border-border text-xs text-text-muted hover:text-text "
             >
               Cancel
             </button>
@@ -182,7 +182,7 @@ function EnvVarRow({ envVar, onChange, onRemove }) {
         <button
           type="button"
           onClick={onRemove}
-          className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded transition-colors"
+          className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 "
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -212,7 +212,7 @@ function ConfigSection({ title, description, children }) {
 function EnterpriseModeBlock({ enterprise, isEnterpriseForced, forceReason, onToggle }) {
   if (isEnterpriseForced) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+      <div className="flex items-start gap-3 border border-primary/30 bg-primary/5 px-4 py-3">
         <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-text">Enterprise mode enabled</p>
@@ -225,7 +225,7 @@ function EnterpriseModeBlock({ enterprise, isEnterpriseForced, forceReason, onTo
   }
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+    <div className="flex items-start gap-3 border border-border bg-surface px-4 py-3">
       <ShieldCheck className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
@@ -253,11 +253,11 @@ function EnterpriseModeBlock({ enterprise, isEnterpriseForced, forceReason, onTo
 
 function CollapsibleCard({ title, description, icon, expanded, onToggle, configured, children }) {
   return (
-    <div className="rounded-xl border border-border bg-surface/40 overflow-hidden">
+    <div className=" border border-border bg-surface/40 overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface-hover/40 transition-colors"
+        className="w-full flex items-start gap-3 p-4 text-left hover:bg-surface-hover/40 "
       >
         {icon}
         <div className="flex-1 min-w-0">
@@ -490,7 +490,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
               className="input-base w-36"
             />
             {portAutoDetected && !portTouched && (
-              <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
+              <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 ">
                 <Zap className="w-3.5 h-3.5" /> Auto-detected
               </span>
             )}
@@ -516,14 +516,14 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
                       className={`input-base w-36 ${additionalPort && !additionalPortValid ? 'border-red-500/50 focus:ring-red-500' : ''}`}
                     />
                     {additionalPort && !additionalPortTouched && (
-                      <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg">
+                      <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 ">
                         <Zap className="w-3.5 h-3.5" /> Auto-detected
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={removeAdditionalPort}
-                      className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
+                      className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 "
                       title="Remove second app port"
                       aria-label="Remove second app port"
                     >
@@ -544,7 +544,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
                 <button
                   type="button"
                   onClick={openAdditionalPort}
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover "
                 >
                   <Plus className="w-4 h-4" /> Add second app port
                 </button>
@@ -590,7 +590,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           <div className="flex flex-wrap gap-2">
             {BILLING_PERIODS.map((bp) => (
               <button key={bp.months} type="button" onClick={() => update('billingPeriod', bp)}
-                className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 border text-sm font-medium ${
                   billingPeriod?.months === bp.months
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
@@ -638,12 +638,12 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         <label className="block text-sm font-medium text-text mb-3">Environment variables</label>
 
         {(isEnterpriseForced || enterprise) ? (
-          <div className="flex items-start gap-2 text-xs text-primary/80 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 mb-3">
+          <div className="flex items-start gap-2 text-xs text-primary/80 bg-primary/5 border border-primary/20 px-3 py-2 mb-3">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             Environment variables are end-to-end encrypted and not visible on the blockchain.
           </div>
         ) : (
-          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-2 mb-3 light:text-amber-700 env-warning">
+          <div className="flex items-start gap-2 text-xs text-amber-300/80 bg-amber-400/5 border border-amber-400/15 px-3 py-2 mb-3 light:text-amber-700 env-warning">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
               Environment variables are stored publicly on the Flux blockchain.{' '}
@@ -666,7 +666,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         <button
           type="button"
           onClick={addEnvVar}
-          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
+          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover "
         >
           <Plus className="w-4 h-4" /> Add variable
         </button>
@@ -719,7 +719,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-text">PR preview builds</p>
-                <span className="text-xs text-text-muted bg-surface-hover border border-border rounded px-1.5 py-0.5">Static sites only</span>
+                <span className="text-xs text-text-muted bg-surface-hover border border-border px-1.5 py-0.5">Static sites only</span>
               </div>
               <button
                 type="button"

@@ -12,20 +12,20 @@ import { useAuth } from '../../context/AuthContext';
 import { REDIS_ADDON, isDatabaseCompose } from '../../services/databaseSpec';
 
 const ACTION_BUTTONS = [
-  { id: 'redeploy',      label: 'Redeploy',      icon: RefreshCcw,   variant: 'secondary' },
-  { id: 'hard-redeploy', label: 'Hard Redeploy',  icon: Zap,          variant: 'warning'   },
-  { id: 'restart',       label: 'Restart',        icon: RotateCcw,    variant: 'secondary' },
-  { id: 'start',         label: 'Start',          icon: Play,         variant: 'secondary' },
-  { id: 'stop',          label: 'Stop',           icon: Square,       variant: 'secondary' },
-  { id: 'pause',         label: 'Pause',          icon: PauseCircle,  variant: 'secondary' },
-  { id: 'unpause',       label: 'Unpause',        icon: PlayCircle,   variant: 'secondary' },
-  { id: 'remove',        label: 'Remove',         icon: Trash2,       variant: 'danger'    },
+  { id: 'redeploy', label: 'Redeploy', icon: RefreshCcw, variant: 'secondary' },
+  { id: 'hard-redeploy', label: 'Hard Redeploy', icon: Zap, variant: 'warning' },
+  { id: 'restart', label: 'Restart', icon: RotateCcw, variant: 'secondary' },
+  { id: 'start', label: 'Start', icon: Play, variant: 'secondary' },
+  { id: 'stop', label: 'Stop', icon: Square, variant: 'secondary' },
+  { id: 'pause', label: 'Pause', icon: PauseCircle, variant: 'secondary' },
+  { id: 'unpause', label: 'Unpause', icon: PlayCircle, variant: 'secondary' },
+  { id: 'remove', label: 'Remove', icon: Trash2, variant: 'danger' },
 ];
 
 const LOG_TABS = [
-  { id: 'build',      label: 'Build Logs',     icon: Wrench      },
-  { id: 'orbit-app',  label: 'App Logs',        icon: ScrollText  },
-  { id: 'app',        label: 'Container Logs',  icon: Terminal    },
+  { id: 'build', label: 'Build Logs', icon: Wrench },
+  { id: 'orbit-app', label: 'App Logs', icon: ScrollText },
+  { id: 'app', label: 'Container Logs', icon: Terminal },
 ];
 
 function getAddonLogTabs(spec, appName) {
@@ -69,8 +69,8 @@ function mapRunningStatus(runningstatus) {
 function variantClass(variant) {
   switch (variant) {
     case 'warning': return 'border border-warning/30 text-warning hover:bg-warning/10';
-    case 'danger':  return 'border border-danger/30 text-danger hover:bg-danger/10';
-    default:        return 'border border-border text-text-secondary hover:bg-surface-hover hover:text-text';
+    case 'danger': return 'border border-danger/30 text-danger hover:bg-danger/10';
+    default: return 'border border-border text-text-secondary hover:bg-surface-hover hover:text-text';
   }
 }
 
@@ -154,7 +154,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
   const selectedAddonLog = addonLogTabs.find((tab) => tab.id === activeTab);
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="border border-border overflow-hidden">
       {/* ── Node header ── */}
       <div className="flex items-center justify-between px-4 py-3 bg-surface-hover">
         <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
               <GitCommit className="w-3 h-3" />
               {orbitStatus.last_deployment.commit}
               {orbitStatus.last_deployment.build_status && (
-                <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-medium ${
                   orbitStatus.last_deployment.build_status === 'success'
                     ? 'bg-accent/15 text-accent'
                     : 'bg-danger/15 text-danger'
@@ -180,7 +180,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
         </div>
         <button
           onClick={() => setLogsOpen((v) => !v)}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors"
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text "
         >
           {logsOpen ? (
             <><ChevronUp className="w-4 h-4" /> Hide logs</>
@@ -197,7 +197,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
           onClick={() => runDeploy()}
           disabled={!!loadingAction || !mgmtPort || !webhookSecret}
           title={!webhookSecret ? 'WEBHOOK_SECRET not configured for this app' : 'Pull latest commit and build if changed'}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium disabled:opacity-40 border border-primary/40 text-primary hover:bg-primary/10`}
         >
           {loadingAction === 'redeploy-orbit' ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -223,7 +223,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
                 onClick={() => runAction(id)}
                 disabled={!!loadingAction}
                 title={isConfirm ? `Click again to confirm` : label}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium disabled:opacity-40 ${variantClass(isConfirm ? 'danger' : variant)}`}
               >
                 {isLoading ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -235,7 +235,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
               {isConfirm && (
                 <button
                   onClick={() => setConfirmAction(null)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border border-border text-text-muted hover:bg-surface-hover hover:text-text"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border text-text-muted hover:bg-surface-hover hover:text-text"
                 >
                   Cancel
                 </button>
@@ -247,7 +247,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
 
       {/* ── Action result / progress ── */}
       {(progressMsg || actionResult) && (
-        <div className={`mx-4 mb-3 flex items-start gap-2 p-2.5 rounded-lg text-xs ${
+        <div className={`mx-4 mb-3 flex items-start gap-2 p-2.5 text-xs ${
           progressMsg
             ? 'bg-surface-hover border border-border text-text-muted'
             : actionResult.type === 'success'
@@ -275,7 +275,7 @@ export default function InstanceCard({ node, appName, spec, mgmtPort, webhookSec
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium border-b-2 ${
                     activeTab === id
                       ? 'border-primary text-primary'
                       : 'border-transparent text-text-muted hover:text-text'

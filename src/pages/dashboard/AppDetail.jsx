@@ -97,7 +97,7 @@ export default function AppDetail() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+              className="p-2 text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-40"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -106,7 +106,7 @@ export default function AppDetail() {
         />
 
         {specError && (
-          <div className="mb-6 p-4 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+          <div className="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger text-sm">
             Failed to load app spec: {specError}
           </div>
         )}
@@ -131,7 +131,7 @@ export default function AppDetail() {
           {isLoading && nodeStatuses.length === 0 ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-surface-hover rounded-xl animate-pulse" />
+                <div key={i} className="h-20 bg-surface-hover " />
               ))}
             </div>
           ) : nodeStatuses.length === 0 ? (

@@ -1,7 +1,7 @@
 const STATUS_CONFIG = {
   running: {
     label: 'Running',
-    dot: 'bg-accent animate-pulse',
+    dot: 'bg-accent ',
     className: 'bg-accent/10 text-accent border-accent/20',
   },
   partial: {
@@ -16,17 +16,17 @@ const STATUS_CONFIG = {
   },
   installing: {
     label: 'Installing',
-    dot: 'bg-primary animate-pulse',
+    dot: 'bg-primary ',
     className: 'bg-primary/10 text-primary border-primary/20',
   },
   loading: {
     label: 'Checking…',
-    dot: 'bg-text-muted animate-pulse',
+    dot: 'bg-text-muted ',
     className: 'bg-surface-hover text-text-muted border-border',
   },
   unknown: {
     label: 'Deploying',
-    dot: 'bg-text-muted animate-pulse',
+    dot: 'bg-text-muted ',
     className: 'bg-surface-hover text-text-muted border-border',
   },
 };
@@ -36,9 +36,9 @@ export default function StatusBadge({ status = 'unknown', className = '' }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${config.className} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium border ${config.className} ${className}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.dot}`} />
+      <span className={`w-1.5 h-1.5 shrink-0 ${config.dot}`} />
       {config.label}
     </span>
   );

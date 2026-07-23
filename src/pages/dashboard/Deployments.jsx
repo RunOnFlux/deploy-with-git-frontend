@@ -31,7 +31,7 @@ export default function Deployments() {
               <button
                 onClick={refresh}
                 disabled={loading}
-                className="p-2 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+                className="p-2 text-text-muted hover:text-text hover:bg-surface-hover disabled:opacity-40"
                 title="Refresh"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -54,7 +54,7 @@ export default function Deployments() {
               placeholder="Search deployments…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-border text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary "
             />
           </div>
         )}
@@ -63,7 +63,7 @@ export default function Deployments() {
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="card animate-pulse h-44 bg-surface-hover" />
+              <div key={i} className="card h-44 bg-surface-hover" />
             ))}
           </div>
         )}
@@ -93,7 +93,7 @@ export default function Deployments() {
         {/* Empty state */}
         {!loading && apps.length === 0 && (
           <div className="card border-dashed flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 bg-primary/10 flex items-center justify-center mb-4">
               <Rocket className="w-7 h-7 text-primary" />
             </div>
             <h3 className="font-semibold text-text mb-2">No deployments yet</h3>

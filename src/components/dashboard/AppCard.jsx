@@ -6,7 +6,7 @@ import StatusBadge from './StatusBadge';
 import { fetchNodeOrbitStatus, getMgmtPort, getSpecEnvValue } from '../../services/managementService';
 
 function Skel({ className }) {
-  return <div className={`animate-pulse rounded bg-surface-hover ${className}`} />;
+  return <div className={` bg-surface-hover ${className}`} />;
 }
 
 function AppCardSkeleton({ compact }) {
@@ -17,7 +17,7 @@ function AppCardSkeleton({ compact }) {
           <Skel className="h-4 w-2/5 mb-1.5" />
           {!compact && <Skel className="h-3 w-3/5" />}
         </div>
-        <Skel className="h-5 w-16 rounded-full shrink-0" />
+        <Skel className="h-5 w-16 shrink-0" />
       </div>
 
       <Skel className="h-3 w-3/4 mb-3" />
@@ -118,7 +118,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
           ) : <span />}
           <Link
             to={`/dashboard/deployments/${app.name}`}
-            className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary "
           >
             Manage
             <ExternalLink className="w-3 h-3" />
@@ -129,7 +129,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
   }
 
   return (
-    <div className="card hover:border-primary/30 transition-colors group">
+    <div className="card hover:border-primary/30 group">
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
@@ -149,7 +149,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
             href={app.gitRepo}
             target="_blank"
             rel="noopener noreferrer"
-            className="truncate hover:text-primary transition-colors"
+            className="truncate hover:text-primary "
             onClick={(e) => e.stopPropagation()}
           >
             {repo}
@@ -189,7 +189,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
                 href={commitFull && app.gitRepo ? `${app.gitRepo.replace(/\.git$/, '')}/commit/${commitFull}` : undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 shrink-0 font-mono hover:text-primary transition-colors"
+                className="flex items-center gap-1 shrink-0 font-mono hover:text-primary "
                 onClick={(e) => e.stopPropagation()}
               >
                 <GitCommit className="w-3 h-3" />
@@ -207,7 +207,7 @@ export default function AppCard({ app, compact = false, onRetry }) {
         </div>
         <Link
           to={`/dashboard/deployments/${app.name}`}
-          className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary transition-colors group-hover:text-primary"
+          className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-primary group-hover:text-primary"
         >
           Manage
           <ExternalLink className="w-3 h-3" />

@@ -33,11 +33,11 @@ export default function CookieSettingsDialog({ isOpen, onClose }) {
       aria-modal="true"
       aria-label="Cookie settings"
     >
-      <div className="relative w-full max-w-md bg-surface border border-border/50 rounded-2xl shadow-2xl p-6">
+      <div className="relative w-full max-w-md bg-surface border border-border/50 shadow-2xl p-6">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
+          className="absolute top-4 right-4 p-1.5 text-text-muted hover:text-text hover:bg-surface-hover "
           aria-label="Close"
         >
           <X className="w-4 h-4" />
@@ -52,7 +52,7 @@ export default function CookieSettingsDialog({ isOpen, onClose }) {
         {/* Categories */}
         <div className="space-y-3 mb-6">
           {/* Essential — always on */}
-          <div className="rounded-xl border border-border/40 bg-background/40 p-4">
+          <div className=" border border-border/40 bg-background/40 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="text-sm font-medium text-text">Essential Cookies</h3>
@@ -68,7 +68,7 @@ export default function CookieSettingsDialog({ isOpen, onClose }) {
           </div>
 
           {/* Analytics — toggleable */}
-          <div className="rounded-xl border border-border/40 bg-background/40 p-4">
+          <div className=" border border-border/40 bg-background/40 p-4">
             <div className="min-w-0 mb-3">
               <h3 className="text-sm font-medium text-text">Analytics</h3>
               <p className="text-xs text-text-muted mt-0.5">
@@ -80,7 +80,7 @@ export default function CookieSettingsDialog({ isOpen, onClose }) {
                 type="button"
                 onClick={() => setConsent('granted')}
                 aria-pressed={consent === 'granted'}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex-1 px-4 py-2 text-sm font-medium ${
                   consent === 'granted'
                     ? 'bg-primary/10 border border-primary/50 text-primary ring-1 ring-primary/20'
                     : 'bg-background/40 border border-border/40 text-text-secondary hover:border-border/70'
@@ -92,7 +92,7 @@ export default function CookieSettingsDialog({ isOpen, onClose }) {
                 type="button"
                 onClick={() => setConsent('denied')}
                 aria-pressed={consent === 'denied'}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex-1 px-4 py-2 text-sm font-medium ${
                   consent === 'denied'
                     ? 'bg-red-500/10 border border-red-500/50 text-red-400 ring-1 ring-red-500/20'
                     : 'bg-background/40 border border-border/40 text-text-secondary hover:border-border/70'

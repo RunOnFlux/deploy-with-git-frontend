@@ -41,10 +41,10 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
             end={item.end}
             onClick={onNavClick}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-3 py-2 text-sm font-medium border-l-2 ${
                 isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text'
+                  ? 'bg-primary/10 text-primary border-primary'
+                  : 'border-transparent text-text-secondary hover:bg-surface-hover hover:text-text'
               }`
             }
           >
@@ -60,29 +60,29 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
           href="https://github.com/RunOnFlux/deploy-with-git-samples"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"
+          className="flex items-center gap-3 px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover hover:text-text group"
         >
           <Github className="w-4 h-4 shrink-0" />
           <span className="flex-1">Deployment Samples</span>
-          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 " />
         </a>
         <a
           href="https://docs.runonflux.com/fluxcloud/register-new-app/deploy-with-git/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-text-secondary hover:bg-surface-hover hover:text-text transition-colors group"
+          className="flex items-center gap-3 px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover hover:text-text group"
         >
           <BookOpen className="w-4 h-4 shrink-0" />
           <span className="flex-1">Documentation</span>
-          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-50 " />
         </a>
       </div>
 
       {/* User section */}
       <div className="p-3 border-t border-border shrink-0">
         <div ref={menuRef} className="relative">
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-hover transition-colors min-w-0">
-            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          <div className="flex items-center gap-2 px-2 py-1.5 hover:bg-surface-hover min-w-0">
+            <div className="w-7 h-7 bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
               {user?.email?.[0]?.toUpperCase() ?? user?.displayName?.[0]?.toUpperCase() ?? '?'}
             </div>
             <span className="text-xs text-text-secondary truncate flex-1">
@@ -90,7 +90,7 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
             </span>
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="shrink-0 p-1 rounded hover:bg-surface text-text-muted hover:text-text transition-colors"
+              className="shrink-0 p-1 hover:bg-surface text-text-muted hover:text-text "
               aria-label="User menu"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -98,10 +98,10 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
           </div>
 
           {menuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface border border-border rounded-lg shadow-lg py-1 z-50">
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface border border-border shadow-lg py-1 z-50">
               <button
                 onClick={() => { toggleTheme(); setMenuOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-hover "
               >
                 {theme === 'dark'
                   ? <Sun className="w-4 h-4" />
@@ -111,7 +111,7 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
               <div className="h-px bg-border mx-2 my-1" />
               <button
                 onClick={() => { setMenuOpen(false); onLogout(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-danger hover:bg-danger/10 "
               >
                 <LogOut className="w-4 h-4" />
                 Sign out
@@ -164,7 +164,6 @@ export default function DashboardLayout() {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 w-64 flex flex-col border-r border-border bg-surface
-          transition-transform duration-200 ease-in-out
           lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:translate-x-0 lg:shrink-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -193,7 +192,7 @@ export default function DashboardLayout() {
         <header className="lg:hidden h-14 flex items-center gap-3 px-4 border-b border-border bg-surface sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-text-muted hover:text-text transition-colors"
+            className="text-text-muted hover:text-text "
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
@@ -212,7 +211,7 @@ export default function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setShowCookieSettings(true)}
-                className="hover:text-text transition-colors"
+                className="hover:text-text "
               >
                 Cookie Settings
               </button>

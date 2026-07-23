@@ -98,7 +98,7 @@ function BuildLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
               <button
                 key={r.id}
                 onClick={() => setSelectedId(r.id)}
-                className={`w-full px-2.5 py-2 text-left border-b border-border/50 transition-colors flex items-center gap-1.5 ${
+                className={`w-full px-2.5 py-2 text-left border-b border-border/50 flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-primary/10 text-primary'
                     : 'text-text-muted hover:text-text hover:bg-surface'
@@ -106,7 +106,7 @@ function BuildLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
               >
                 <span className="font-mono text-xs font-medium shrink-0">{short}</span>
                 {isCurrent && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" title="Current" />
+                  <span className="w-1.5 h-1.5 bg-success shrink-0" title="Current" />
                 )}
                 <span className="text-[10px] opacity-60 ml-auto shrink-0">{fmtDate(r.deployed_at)}</span>
               </button>
@@ -137,11 +137,11 @@ function BuildLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
             {error && <span className="text-xs text-danger truncate" title={error}>{error}</span>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+            <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text " title="Refresh">
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
             {lines.length > 0 && (
-              <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
+              <button onClick={downloadLogs} className="text-text-muted hover:text-text " title="Download">
                 <Download className="w-3.5 h-3.5" />
               </button>
             )}
@@ -224,11 +224,11 @@ function OrbitAppLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
           {error && <span className="text-xs text-danger truncate max-w-xs" title={error}>{error}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text " title="Refresh">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           {lines.length > 0 && (
-            <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
+            <button onClick={downloadLogs} className="text-text-muted hover:text-text " title="Download">
               <Download className="w-3.5 h-3.5" />
             </button>
           )}
@@ -333,11 +333,11 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth, container, downloa
           {error && <span className="text-xs text-danger truncate max-w-xs" title={error}>{error}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text transition-colors" title="Refresh">
+          <button onClick={() => setRefreshKey(k => k + 1)} className="text-text-muted hover:text-text " title="Refresh">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           {lines.length > 0 && (
-            <button onClick={downloadLogs} className="text-text-muted hover:text-text transition-colors" title="Download">
+            <button onClick={downloadLogs} className="text-text-muted hover:text-text " title="Download">
               <Download className="w-3.5 h-3.5" />
             </button>
           )}

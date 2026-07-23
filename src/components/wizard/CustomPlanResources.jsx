@@ -17,7 +17,7 @@ function InstancesPicker({ value, min, onChange }) {
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(n)}
-                className={`w-8 h-8 rounded-lg text-sm font-semibold border transition-colors ${
+                className={`w-8 h-8 text-sm font-semibold border ${
                   value === n
                     ? 'bg-primary text-white border-primary'
                     : disabled
@@ -47,7 +47,7 @@ export function PlanResourceSummary({ plan }) {
   const ramLabel = plan.ram >= 1000 ? `${plan.ram / 1000} GB` : formatRamMb(plan.ram);
 
   return (
-    <div className="mb-5 rounded-xl border border-border bg-surface/40 p-4">
+    <div className="mb-5 border border-border bg-surface/40 p-4">
       <div className="flex items-start gap-3 mb-3">
         <Server className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>
@@ -64,7 +64,7 @@ export function PlanResourceSummary({ plan }) {
           { label: 'Storage', value: `${plan.hdd} GB` },
           { label: 'Instances', value: String(plan.instances) },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg bg-background/40 border border-border/40 px-3 py-2">
+          <div key={label} className=" bg-background/40 border border-border/40 px-3 py-2">
             <p className="text-[10px] text-text-muted uppercase tracking-wide">{label}</p>
             <p className="text-sm font-semibold text-text mt-0.5">{value}</p>
           </div>
@@ -91,7 +91,7 @@ export default function CustomPlanResources({ plan, config, onPlanChange }) {
   }
 
   return (
-    <div className="mb-5 rounded-xl border border-border bg-surface/40 p-4">
+    <div className="mb-5 border border-border bg-surface/40 p-4">
       <div className="flex items-start gap-3 mb-3">
         <Server className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>

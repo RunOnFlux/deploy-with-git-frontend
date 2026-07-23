@@ -43,7 +43,7 @@ function WizardProgress({ current }) {
             <div key={s.label} className="flex items-center flex-1 last:flex-none">
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                  className={`w-8 h-8 flex items-center justify-center text-xs font-bold border-2 ${
                     done
                       ? 'border-primary bg-primary text-white'
                       : active
@@ -63,7 +63,7 @@ function WizardProgress({ current }) {
               </div>
               {i < STEPS.length - 1 && (
                 <div
-                  className={`h-px flex-1 mx-2 mb-4 transition-colors ${done ? 'bg-primary' : 'bg-border'}`}
+                  className={`h-px flex-1 mx-2 mb-4 ${done ? 'bg-primary' : 'bg-border'}`}
                 />
               )}
             </div>
@@ -293,7 +293,7 @@ export default function DeployWizard() {
       <div className="p-6">
         <Link
           to="/dashboard/deployments"
-          className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to deployments

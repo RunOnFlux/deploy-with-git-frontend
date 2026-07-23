@@ -161,7 +161,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         </div>
       )}
       {dupCheckStatus === 'done' && !eligible && (
-        <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3 mb-4">
+        <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">Free first month not applicable</p>
@@ -285,7 +285,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
             <span className="text-xs text-text-muted">Env vars</span>
             <div className="mt-1 space-y-1">
               {config.extraEnvVars.map((ev, i) => (
-                <div key={i} className="font-mono text-xs text-text bg-surface-hover rounded px-2 py-1">
+                <div key={i} className="font-mono text-xs text-text bg-surface-hover px-2 py-1">
                   {ev.key}={ev.value ? '(set)' : '(empty)'}
                 </div>
               ))}
@@ -296,12 +296,12 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
 
       {/* Raw JSON toggle */}
       <button type="button" onClick={() => setJsonOpen((v) => !v)}
-        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text transition-colors w-full mb-2">
+        className="flex items-center gap-2 text-sm text-text-secondary hover:text-text w-full mb-2">
         {jsonOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         {jsonOpen ? 'Hide' : 'Show'} spec preview
       </button>
       {jsonOpen && (
-        <pre className="bg-surface-hover rounded-lg p-4 text-xs font-mono text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap">
+        <pre className="bg-surface-hover p-4 text-xs font-mono text-text-secondary overflow-auto max-h-64 whitespace-pre-wrap">
           {JSON.stringify({
             plan: { id: plan?.id, cpu: plan?.cpu, ram: plan?.ram, hdd: plan?.hdd, instances: plan?.instances },
             repo: { url: maskGitUrl(repo.url), branch: repo.branch, subdirectory: repo.subdirectory },
@@ -320,7 +320,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       )}
 
       {/* Terms of Service */}
-      <div className="mt-5 p-4 border border-border rounded-xl bg-surface/40">
+      <div className="mt-5 p-4 border border-border bg-surface/40">
         <button
           type="button"
           onClick={() => onTermsChange?.(!termsAccepted)}

@@ -91,7 +91,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           <CreditCard className="w-5 h-5 text-primary" />
           <h2 className="font-heading text-xl font-bold text-text">Complete Payment</h2>
         </div>
-        <div className="p-4 rounded-xl border border-border bg-surface">
+        <div className="p-4 border border-border bg-surface">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
             <p className="text-sm font-medium text-text">Stripe checkout opened in a new window</p>
@@ -117,7 +117,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           </div>
         </div>
         {blockedUrl && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400">
+          <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400">
             <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>
               Popup blocked.{' '}
@@ -139,7 +139,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           <CreditCard className="w-5 h-5 text-primary" />
           <h2 className="font-heading text-xl font-bold text-text">Complete Payment</h2>
         </div>
-        <div className="p-4 rounded-xl border border-border bg-surface">
+        <div className="p-4 border border-border bg-surface">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
             <p className="text-sm font-medium text-text">ZelCore payment opened</p>
@@ -313,7 +313,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
 
       {/* Price load error */}
       {priceError && !priceLoading && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 mb-5">
+        <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 mb-5">
           <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p>{priceError}</p>
@@ -326,7 +326,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
 
       {/* Payment error */}
       {status === 'error' && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400 mb-5">
+        <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 text-sm text-red-400 mb-5">
           <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p>{error}</p>
@@ -343,7 +343,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           type="button"
           onClick={handleStripe}
           disabled={status === 'pending'}
-          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CreditCard className="w-5 h-5 text-primary shrink-0" />
           <div className="text-left flex-1">
@@ -357,9 +357,9 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           type="button"
           onClick={handleZelCore}
           disabled={status === 'pending' || !priceFlux}
-          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <img src="/zelcore.svg" alt="ZelCore" className="w-5 h-5 shrink-0 rounded-full" />
+          <img src="/zelcore.svg" alt="ZelCore" className="w-5 h-5 shrink-0 " />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">ZelCore Wallet</p>
             <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
@@ -371,7 +371,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           type="button"
           onClick={handleSSP}
           disabled={status === 'pending' || !priceFlux}
-          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-surface hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <img src="/ssp.svg" alt="SSP" className="w-5 h-5 shrink-0" />
           <div className="text-left flex-1">
@@ -388,7 +388,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
 
       {/* Back / skip */}
       {onBack && status !== 'pending' && (
-        <button type="button" onClick={onBack} className="mt-5 text-sm text-text-muted hover:text-text transition-colors">
+        <button type="button" onClick={onBack} className="mt-5 text-sm text-text-muted hover:text-text ">
           ← Back
         </button>
       )}

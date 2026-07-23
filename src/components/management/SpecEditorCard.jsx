@@ -32,15 +32,15 @@ const HIDDEN_KEYS = new Set([
 
 // Orbit-managed settings shown with typed UI controls (editable)
 const ORBIT_SETTINGS_DEFS = [
-  { key: 'POLLING_INTERVAL', label: 'Polling Interval', type: 'select'   },
-  { key: 'APP_PORT',         label: 'App Port',         type: 'number', aliases: ['PORT'] },
-  { key: 'GIT_BRANCH',       label: 'Git Branch',       type: 'text',   aliases: ['BRANCH'] },
-  { key: 'GIT_TOKEN',        label: 'Git Token',        type: 'password' },
-  { key: 'BUILD_COMMAND',    label: 'Build Command',    type: 'text'    },
-  { key: 'RUN_COMMAND',      label: 'Run Command',      type: 'text'    },
-  { key: 'PROJECT_PATH',     label: 'Project Path',     type: 'text'    },
-  { key: 'WEBHOOK_SECRET',   label: 'Webhook Secret',   type: 'password' },
-  { key: 'API_KEY',          label: 'API Key',          type: 'password' },
+  { key: 'POLLING_INTERVAL', label: 'Polling Interval', type: 'select' },
+  { key: 'APP_PORT', label: 'App Port', type: 'number', aliases: ['PORT'] },
+  { key: 'GIT_BRANCH', label: 'Git Branch', type: 'text', aliases: ['BRANCH'] },
+  { key: 'GIT_TOKEN', label: 'Git Token', type: 'password' },
+  { key: 'BUILD_COMMAND', label: 'Build Command', type: 'text' },
+  { key: 'RUN_COMMAND', label: 'Run Command', type: 'text' },
+  { key: 'PROJECT_PATH', label: 'Project Path', type: 'text' },
+  { key: 'WEBHOOK_SECRET', label: 'Webhook Secret', type: 'password' },
+  { key: 'API_KEY', label: 'API Key', type: 'password' },
 ];
 
 const ALL_ORBIT_KEYS = new Set(
@@ -48,13 +48,13 @@ const ALL_ORBIT_KEYS = new Set(
 );
 
 const POLLING_OPTIONS = [
-  { value: '300',   label: '5 minutes'  },
-  { value: '600',   label: '10 minutes' },
-  { value: '1800',  label: '30 minutes' },
-  { value: '3600',  label: '1 hour'     },
-  { value: '21600', label: '6 hours'    },
-  { value: '43200', label: '12 hours'   },
-  { value: '86400', label: '24 hours'   },
+  { value: '300', label: '5 minutes' },
+  { value: '600', label: '10 minutes' },
+  { value: '1800', label: '30 minutes' },
+  { value: '3600', label: '1 hour' },
+  { value: '21600', label: '6 hours' },
+  { value: '43200', label: '12 hours' },
+  { value: '86400', label: '24 hours' },
 ];
 
 function fixedPlanForSpec(spec) {
@@ -183,7 +183,7 @@ function InstancesPicker({ value, min, disabled, onChange }) {
                 type="button"
                 disabled={isDisabled}
                 onClick={() => onChange(n)}
-                className={`w-8 h-8 rounded-lg text-sm font-semibold border transition-colors ${
+                className={`w-8 h-8 text-sm font-semibold border ${
                   value === n
                     ? 'bg-primary text-white border-primary'
                     : isDisabled
@@ -312,7 +312,7 @@ function EnvImporter({ onImport, disabled }) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         onClick={() => !disabled && fileRef.current?.click()}
-        className={`flex items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-xs cursor-pointer transition-colors ${
+        className={`flex items-center justify-center gap-2 border border-dashed px-4 py-2.5 text-xs cursor-pointer ${
           disabled ? 'opacity-40 cursor-not-allowed' :
           dragging ? 'border-primary bg-primary/5 text-primary'
                    : 'border-border text-text-muted hover:border-primary/50 hover:text-text-secondary hover:bg-surface-hover'
@@ -325,7 +325,7 @@ function EnvImporter({ onImport, disabled }) {
       </div>
       <div className="flex items-center gap-2 mt-1.5">
         <button type="button" onClick={pasteClipboard} disabled={disabled}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors disabled:opacity-40">
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text disabled:opacity-40">
           <Clipboard className="w-3.5 h-3.5" /> Paste from clipboard
         </button>
         {feedback && (
@@ -336,7 +336,7 @@ function EnvImporter({ onImport, disabled }) {
         )}
       </div>
       {showPasteArea && (
-        <div className="mt-2 rounded-lg border border-border bg-surface p-3 space-y-2">
+        <div className="mt-2 border border-border bg-surface p-3 space-y-2">
           <p className="text-xs text-text-muted">Paste your <code className="font-mono">.env</code>, JSON or YAML below:</p>
           <textarea ref={textareaRef} value={pasteText} onChange={(e) => setPasteText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitPasteArea(); }}
@@ -344,9 +344,9 @@ function EnvImporter({ onImport, disabled }) {
             className="w-full input-base font-mono text-xs resize-none" />
           <div className="flex gap-2">
             <button type="button" onClick={submitPasteArea}
-              className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-hover transition-colors">Import</button>
+              className="px-3 py-1.5 bg-primary text-white text-xs font-medium hover:bg-primary-hover ">Import</button>
             <button type="button" onClick={() => { setShowPasteArea(false); setPasteText(''); }}
-              className="px-3 py-1.5 rounded-lg border border-border text-xs text-text-muted hover:text-text transition-colors">Cancel</button>
+              className="px-3 py-1.5 border border-border text-xs text-text-muted hover:text-text ">Cancel</button>
           </div>
         </div>
       )}
@@ -373,7 +373,7 @@ function PasswordInput({ value, onChange, placeholder, disabled }) {
         type="button"
         tabIndex={-1}
         onClick={() => setShow((s) => !s)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors"
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text "
       >
         {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
       </button>
@@ -386,7 +386,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
   // ── Local editable state ───────────────────────────────────────────────
   const [customDomain, setCustomDomain] = useState('');
-  const [userEnvRows, setUserEnvRows]   = useState([]); // { key, value }
+  const [userEnvRows, setUserEnvRows] = useState([]); // { key, value }
   const [hiddenEnvRows, setHiddenEnvRows] = useState([]); // { key, value } — preserved, never shown
   const [appResources, setAppResources] = useState({ cpu: 1, ram: 2000, hdd: 10, instances: 1 });
   const [addonResources, setAddonResources] = useState({});
@@ -394,13 +394,13 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   // e.g. { POLLING_INTERVAL: '60', APP_PORT: '3000', BRANCH: 'main', ... }
   const [orbitSettings, setOrbitSettings] = useState({});
 
-  const [activeTab, setActiveTab]         = useState('general');
+  const [activeTab, setActiveTab] = useState('general');
 
   const [geolocation, setGeolocation] = useState([]);
 
   // Save flow state
-  const [savePhase, setSavePhase]     = useState(null);
-  const [saveError, setSaveError]     = useState(null);
+  const [savePhase, setSavePhase] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   // If paid update: show payment step with { txid, verifiedSpec, price }
   const [paymentContext, setPaymentContext] = useState(null);
   // After successful registration: blockchain polling + redeploy prompt
@@ -435,8 +435,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
     const all = parseEnvParams(compose.environmentParameters ?? []);
     const hidden = [];
-    const orbit  = {};
-    const user   = [];
+    const orbit = {};
+    const user = [];
 
     for (const row of all) {
       if (HIDDEN_KEYS.has(row.key)) {
@@ -476,14 +476,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
     const allOrig = parseEnvParams(compose.environmentParameters ?? []);
     const origOrbit = {};
-    const origUser  = [];
+    const origUser = [];
     for (const row of allOrig) {
       if (HIDDEN_KEYS.has(row.key)) continue;
       if (ALL_ORBIT_KEYS.has(row.key)) origOrbit[row.key] = row.value;
       else origUser.push(row);
     }
     if (JSON.stringify(origOrbit) !== JSON.stringify(orbitSettings)) return true;
-    if (JSON.stringify(origUser)  !== JSON.stringify(userEnvRows))   return true;
+    if (JSON.stringify(origUser) !== JSON.stringify(userEnvRows)) return true;
     if (JSON.stringify(buildGeoSpec(geolocation)) !== JSON.stringify(spec.geolocation ?? [])) return true;
     return false;
   }, [spec, customDomain, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
@@ -533,7 +533,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       .filter(([k]) => k.trim())
       .map(([k, v]) => ({ key: k, value: v }));
     const validUser = userEnvRows.filter((r) => r.key.trim());
-    const allRows   = [...hiddenEnvRows, ...orbitRows, ...validUser];
+    const allRows = [...hiddenEnvRows, ...orbitRows, ...validUser];
     const resourcesEditable = isCustomResourceSpec(spec);
     const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
     const resources = normalizeAppResources(appResources, minInstances);
@@ -623,8 +623,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     }
 
     setSavePhase('signing');
-    const timestamp   = Date.now();
-    const dataToSign  = buildDataToSign(verifiedSpec, timestamp, true);
+    const timestamp = Date.now();
+    const dataToSign = buildDataToSign(verifiedSpec, timestamp, true);
     let signature;
     try {
       if (loginType === 'firebase') {
@@ -687,8 +687,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
   const isSaving = savePhase !== null;
   const phaseLabel = {
-    verifying:   'Verifying…',
-    signing:     'Waiting for signature…',
+    verifying: 'Verifying…',
+    signing: 'Waiting for signature…',
     registering: 'Registering update…',
   };
 
@@ -714,11 +714,11 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
     if (!spec) {
     return (
-      <div className="card animate-pulse">
-        <div className="h-5 w-28 bg-surface-hover rounded mb-4" />
+      <div className="card ">
+        <div className="h-5 w-28 bg-surface-hover mb-4" />
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-9 bg-surface-hover rounded" />
+            <div key={i} className="h-9 bg-surface-hover " />
           ))}
         </div>
       </div>
@@ -748,12 +748,12 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const redisAddon = addonComponents.find(({ kind }) => kind === 'redis');
 
   const TABS = [
-    { id: 'general',  label: 'General',      icon: <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'general', label: 'General', icon: <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" /> },
     ...(dbAddon ? [{ id: 'db', label: 'DB', icon: <Database className="w-3.5 h-3.5 shrink-0" /> }] : []),
     ...(redisAddon ? [{ id: 'redis', label: 'Redis', icon: <Server className="w-3.5 h-3.5 shrink-0" /> }] : []),
-    { id: 'geo',      label: 'Geolocation',  icon: <Globe className="w-3.5 h-3.5 shrink-0" /> },
-    { id: 'deploy',   label: 'Deploy',       icon: <Settings2 className="w-3.5 h-3.5 shrink-0" /> },
-    { id: 'env',      label: `Env (${userEnvRows.length})`, icon: <KeyRound className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'geo', label: 'Geolocation', icon: <Globe className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'deploy', label: 'Deploy', icon: <Settings2 className="w-3.5 h-3.5 shrink-0" /> },
+    { id: 'env', label: `Env (${userEnvRows.length})`, icon: <KeyRound className="w-3.5 h-3.5 shrink-0" /> },
   ];
 
   return (
@@ -761,14 +761,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       <h2 className="font-semibold text-text mb-3 shrink-0">App Settings</h2>
 
       {/* Tab bar */}
-      <div className="app-settings-tabs flex gap-1 mb-3 shrink-0 bg-background/40 rounded-lg p-1">
+      <div className="app-settings-tabs flex gap-1 mb-3 shrink-0 bg-background/40 p-1">
         {TABS.map(({ id, label, icon }) => (
           <button
             key={id}
             type="button"
             data-active={activeTab === id}
             onClick={() => setActiveTab(id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium ${
               activeTab === id
                 ? 'bg-surface shadow text-text'
                 : 'text-text-muted hover:text-text-secondary'
@@ -796,9 +796,9 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                 disabled={isSaving}
               />
               <p className="text-xs text-text-muted mt-1">
-                Add a <code className="bg-surface-hover px-1 rounded">CNAME</code> record pointing{' '}
-                <code className="bg-surface-hover px-1 rounded">yourdomain.com</code> to{' '}
-                <code className="bg-surface-hover px-1 rounded select-all">
+                Add a <code className="bg-surface-hover px-1 ">CNAME</code> record pointing{' '}
+                <code className="bg-surface-hover px-1 ">yourdomain.com</code> to{' '}
+                <code className="bg-surface-hover px-1 select-all">
                   {spec?.name}.app.runonflux.io
                 </code>{' '}
                 before applying changes.
@@ -974,7 +974,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                   <button
                     onClick={() => removeRow(idx)}
                     disabled={isSaving}
-                    className="text-danger hover:text-danger/80 transition-colors p-1 disabled:opacity-40"
+                    className="text-danger hover:text-danger/80 p-1 disabled:opacity-40"
                     title="Remove"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -985,7 +985,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
             <button
               onClick={addRow}
               disabled={isSaving}
-              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 disabled:opacity-40"
             >
               <Plus className="w-3.5 h-3.5" />
               Add variable
@@ -999,7 +999,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       <div className="shrink-0 pt-3 mt-1 border-t border-border/50">
       {/* ── Status / Save ── */}
       {saveError && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-danger/10 border border-danger/20 mb-3 text-sm text-danger">
+        <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/20 mb-3 text-sm text-danger">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           {saveError}
         </div>
@@ -1007,7 +1007,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
       {/* ── Update tracker ── shown after successful registration */}
       {updateContext && (
-        <div className="rounded-lg border border-border overflow-hidden mb-3">
+        <div className=" border border-border overflow-hidden mb-3">
           {/* Blockchain confirmation row */}
           <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-hover border-b border-border/50">
             {updateContext.polling === 'confirmed' ? (
@@ -1045,7 +1045,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                 <button
                   onClick={handleRedeployAll}
                   disabled={updateContext.redeploying || nodeStatuses.length === 0}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {updateContext.redeploying ? (
                     <><Loader2 className="w-3.5 h-3.5 animate-spin" />Redeploying…</>
@@ -1062,7 +1062,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       <button
         onClick={handleSave}
         disabled={isSaving || !isDirty()}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border text-text-secondary hover:bg-surface-hover hover:text-text transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-border text-text-secondary hover:bg-surface-hover hover:text-text disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
       >
         {isSaving ? (
           <>

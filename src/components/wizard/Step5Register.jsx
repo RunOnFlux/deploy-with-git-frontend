@@ -97,7 +97,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
       const localSpec = buildSpec({ zelid, contactsRef, plan, repo: repoForSpec, config, ports });
 
       // 3. Verify spec with Flux backend → get normalized spec to sign
-      //    Falls back to local spec if verify times out or fails (like minecraft)
+      // Falls back to local spec if verify times out or fails (like minecraft)
       const requiresEnterpriseAddon = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
       const isEnterprise = repo.isPrivate || !!config.enterprise || requiresEnterpriseAddon;
       let normalizedSpec;
@@ -278,7 +278,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
                     ? <XCircle className="w-5 h-5 text-red-400 shrink-0" />
                     : <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
                 ) : (
-                  <div className="w-5 h-5 rounded-full border-2 border-border shrink-0" />
+                  <div className="w-5 h-5 border-2 border-border shrink-0" />
                 )}
                 <span className={isCurrent ? (phase === 'test_failed' ? 'text-red-400 font-medium' : 'text-text font-medium') : isDone ? 'text-text-secondary' : 'text-text-muted'}>
                   {PHASE_LABELS[p]}
@@ -291,21 +291,21 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       {/* Build logs — shown during install and after (collapsible) */}
       {buildLogs.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden mb-5">
+        <div className=" border border-border overflow-hidden mb-5">
           <button
             type="button"
             onClick={() => setLogsOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface hover:bg-surface-hover text-sm text-text-muted transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface hover:bg-surface-hover text-sm text-text-muted "
           >
             <div className="flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5" />
               <span>Build logs</span>
               {!buildLogsComplete && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
               {buildLogsComplete && phase !== 'test_failed' && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">passed</span>
+                <span className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-400">passed</span>
               )}
               {phase === 'test_failed' && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">failed</span>
+                <span className="text-xs px-1.5 py-0.5 bg-red-500/10 text-red-400">failed</span>
               )}
             </div>
             <span className="text-xs">{logsOpen ? '▲' : '▼'}</span>
@@ -324,7 +324,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       {/* Error */}
       {phase === 'error' && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400 mb-5">
+        <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 text-sm text-red-400 mb-5">
           <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
           {error}
         </div>
@@ -332,7 +332,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       {/* Test failed warning */}
       {phase === 'test_failed' && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 mb-5">
+        <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400 mb-5">
           <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
           Test installation failed. Check the logs above. You can retry or skip to payment anyway.
         </div>
@@ -340,7 +340,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       {/* Success — advancing to payment */}
       {phase === 'done' && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-400">
+        <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 text-sm text-green-400">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           Test passed. Proceeding to payment…
         </div>

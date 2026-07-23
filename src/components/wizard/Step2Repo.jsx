@@ -340,7 +340,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
             required
           />
           {provider && (
-            <span className={`absolute right-2 px-2 py-0.5 rounded text-xs font-semibold ${provider.color}`}>
+            <span className={`absolute right-2 px-2 py-0.5 text-xs font-semibold ${provider.color}`}>
               {provider.label}
             </span>
           )}
@@ -393,7 +393,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
 
       {/* ── Private repo credentials ── */}
       {(repoStatus === 'inaccessible' || repo.isPrivate) && (
-        <div className="border border-amber-500/30 rounded-xl p-4 bg-amber-500/5 mb-5">
+        <div className="border border-amber-500/30 p-4 bg-amber-500/5 mb-5">
           <div className="flex items-start gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-300 space-y-1">
@@ -459,7 +459,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                   type="button"
                   onClick={handleTestAuth}
                   disabled={!repo.token || authTestStatus === 'testing'}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium ${
                     authTestStatus === 'error'
                       ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/15'
                       : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 disabled:opacity-40 disabled:cursor-not-allowed'
@@ -512,7 +512,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                   <ChevronDown className="w-4 h-4 text-text-muted" />
                 </button>
                 {branchOpen && (
-                  <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-surface border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                  <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-surface border border-border shadow-lg max-h-52 overflow-y-auto">
                     {branches.map((b) => (
                       <button
                         key={b.name}
@@ -521,7 +521,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                           onChange({ ...repo, branch: b.name, branchTouched: true });
                           setBranchOpen(false);
                         }}
-                        className={`flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-surface-hover transition-colors ${b.name === repo.branch ? 'text-primary' : 'text-text'}`}
+                        className={`flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-surface-hover ${b.name === repo.branch ? 'text-primary' : 'text-text'}`}
                       >
                         <span className="flex items-center gap-2">
                           <GitBranch className="w-3.5 h-3.5 text-text-muted" />
@@ -571,7 +571,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                 </button>
               )}
               {subdirOpen && directories.length > 0 && (
-                <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-surface border border-border shadow-lg max-h-48 overflow-y-auto">
                   {directories.map((dir) => (
                     <button
                       key={dir}
@@ -580,7 +580,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                         onChange({ ...repo, subdirectory: `/${dir}` });
                         setSubdirOpen(false);
                       }}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-surface-hover transition-colors ${
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-surface-hover ${
                         repo.subdirectory === `/${dir}` || repo.subdirectory === dir
                           ? 'text-primary'
                           : 'text-text'
@@ -623,7 +623,7 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
                     subdirectory: proj.path.startsWith('/') ? proj.path : `/${proj.path}`,
                   })
                 }
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 border text-xs font-medium ${
                   repo.subdirectory === proj.path || repo.subdirectory === `/${proj.path}`
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
@@ -639,12 +639,12 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
       {/* ── Detection badges ── */}
       <div className="space-y-2">
         {requiresRunCommand && (
-          <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">
+          <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 px-3 py-2">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
               No start command detected. Add a{' '}
-              <code className="font-mono bg-surface px-1 rounded">RUN_COMMAND</code> env var in
-              Configure (e.g. <code className="font-mono bg-surface px-1 rounded">node server.js</code>).
+              <code className="font-mono bg-surface px-1 ">RUN_COMMAND</code> env var in
+              Configure (e.g. <code className="font-mono bg-surface px-1 ">node server.js</code>).
             </span>
           </div>
         )}
@@ -655,16 +655,16 @@ export default function Step2Repo({ repo, onChange, onPortDetected, onConfigImpo
           </div>
         )}
         {compatibilityStatus === 'incompatible' && (
-          <div className="flex items-start gap-2 text-xs text-red-400 bg-red-400/5 border border-red-400/20 rounded-lg px-3 py-2">
+          <div className="flex items-start gap-2 text-xs text-red-400 bg-red-400/5 border border-red-400/20 px-3 py-2">
             <XCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             {compatibilityMessage}
           </div>
         )}
         {compatibilityStatus === 'warning' && (
-          <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">
+          <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 px-3 py-2">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             {compatibilityMessage}. You can still deploy, but you may need to set{' '}
-            <code className="font-mono bg-surface px-1 rounded">RUN_COMMAND</code>.
+            <code className="font-mono bg-surface px-1 ">RUN_COMMAND</code>.
           </div>
         )}
       </div>

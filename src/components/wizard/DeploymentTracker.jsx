@@ -82,7 +82,7 @@ export default function DeploymentTracker({
   return (
     <div className="space-y-4 mt-4">
       {/* Registration success header */}
-      <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+      <div className="p-4 bg-green-500/10 border border-green-500/20">
         <div className="flex items-center gap-2 mb-1">
           <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
           <span className="font-medium text-green-400">App registered successfully!</span>
@@ -93,7 +93,7 @@ export default function DeploymentTracker({
       </div>
 
       {/* Payment info */}
-      <div className="p-4 rounded-lg bg-surface border border-border">
+      <div className="p-4 bg-surface border border-border">
         <h3 className="text-sm font-semibold text-text mb-3 flex items-center gap-2">
           <Clock className="w-4 h-4 text-text-muted" />
           Payment Info
@@ -109,7 +109,7 @@ export default function DeploymentTracker({
               Send FLUX to this address to fund your deployment. The first month is <span className="text-green-400 font-medium">free for new apps</span>.
             </p>
             {(priceFlux != null || priceUsd != null) && (
-              <div className="flex items-center gap-3 px-2.5 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm mb-1">
+              <div className="flex items-center gap-3 px-2.5 py-2 bg-primary/10 border border-primary/20 text-sm mb-1">
                 <span className="text-text-muted text-xs">Amount:</span>
                 {priceFlux != null && (
                   <span className="font-semibold text-text">{priceFlux} <span className="text-xs text-text-muted">FLUX</span></span>
@@ -122,13 +122,13 @@ export default function DeploymentTracker({
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-surface-hover border border-border">
+            <div className="flex items-center gap-2 p-2.5 bg-surface-hover border border-border">
               <span className="text-xs font-mono text-text-secondary flex-1 break-all select-all">
                 {paymentAddress}
               </span>
               <button
                 onClick={copyAddress}
-                className="shrink-0 p-1.5 rounded hover:bg-border transition-colors"
+                className="shrink-0 p-1.5 hover:bg-border "
                 title="Copy address"
               >
                 {copied
@@ -143,7 +143,7 @@ export default function DeploymentTracker({
       </div>
 
       {/* Deployment status */}
-      <div className="p-4 rounded-lg bg-surface border border-border">
+      <div className="p-4 bg-surface border border-border">
         <h3 className="text-sm font-semibold text-text mb-3">Deployment Status</h3>
         <div className="space-y-2.5">
           {DEPLOY_PHASES.map((p, i) => {
@@ -160,7 +160,7 @@ export default function DeploymentTracker({
                 ) : isCurrent ? (
                   <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
                 ) : (
-                  <div className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
+                  <div className="w-4 h-4 border-2 border-border shrink-0" />
                 )}
                 <span
                   className={
@@ -192,7 +192,7 @@ export default function DeploymentTracker({
 
       {/* Live when deployed */}
       {isDeployed && (
-        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+        <div className="p-4 bg-green-500/10 border border-green-500/20">
           <h3 className="text-sm font-semibold text-green-400 mb-2">🎉 Your app is live!</h3>
           <a
             href={appUrl}
@@ -208,11 +208,11 @@ export default function DeploymentTracker({
 
       {/* Build logs (collapsible) */}
       {buildLogs.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className=" border border-border overflow-hidden">
           <button
             type="button"
             onClick={() => setLogsOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface hover:bg-surface-hover text-sm text-text-muted transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface hover:bg-surface-hover text-sm text-text-muted "
           >
             <div className="flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5" />
@@ -221,7 +221,7 @@ export default function DeploymentTracker({
                 <Loader2 className="w-3 h-3 animate-spin text-primary" />
               )}
               {buildLogsComplete && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">done</span>
+                <span className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-400">done</span>
               )}
             </div>
             <span className="text-xs">{logsOpen ? '▲ collapse' : '▼ expand'}</span>

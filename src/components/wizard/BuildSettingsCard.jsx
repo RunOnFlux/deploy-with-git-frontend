@@ -27,7 +27,7 @@ export default function BuildSettingsCard({ config, onChange }) {
   const hasOverrides = Boolean(runtime || installCommand || buildCommand || runCommand);
 
   return (
-    <div className="mb-5 rounded-xl border border-border bg-surface/40 p-4">
+    <div className="mb-5 border border-border bg-surface/40 p-4">
       <div className="flex items-start gap-3 mb-3">
         <Hammer className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div className="flex-1">
@@ -52,7 +52,7 @@ export default function BuildSettingsCard({ config, onChange }) {
                 key={r.value}
                 type="button"
                 onClick={() => update('runtime', runtime === r.value ? '' : r.value)}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 border text-xs font-medium ${
                   runtime === r.value
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
