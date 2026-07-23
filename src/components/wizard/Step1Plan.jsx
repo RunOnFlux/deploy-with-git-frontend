@@ -139,8 +139,8 @@ function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSel
 
 export default function Step1Plan({ plan, onChange }) {
   const { apps } = useApps();
-  const freePlanDisabled = apps.length > 1;
-  const freePlanDisabledReason = 'The Free plan is limited to accounts with one Orbit app.';
+  const freePlanDisabled = apps.length >= 1;
+  const freePlanDisabledReason = 'The Free plan is available only for your first Orbit app.';
 
   function handleSelect(p) {
     if (p.id === 'custom') {
