@@ -766,6 +766,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
           <button
             key={id}
             type="button"
+            data-active={activeTab === id}
             onClick={() => setActiveTab(id)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ${
               activeTab === id

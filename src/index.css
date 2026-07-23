@@ -65,9 +65,14 @@
 [data-theme="light"] .app-settings-tabs {
   background-color: rgb(0 0 0 / 8%);
 }
+[data-theme="light"] .app-settings-tabs button[data-active="false"] {
+  color: #475569;
+}
 
 [data-theme="light"] .billing-expiry-warning {
   color: #92400e;
+  background-color: #fffbeb;
+  border-color: #fcd34d;
 }
 [data-theme="light"] .billing-expiry-warning-detail {
   color: #78350f;

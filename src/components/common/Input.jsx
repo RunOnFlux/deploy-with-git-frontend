@@ -43,10 +43,10 @@ const Input = forwardRef(function Input(
           disabled={disabled}
           className={[
             'w-full px-3 py-2.5 rounded-lg text-sm',
-            'bg-white/5 border text-text placeholder-text-muted',
-            'outline-none transition-colors',
+            'bg-background border text-text placeholder-text-muted',
+            'outline-none transition-colors focus:ring-1 focus:ring-primary/30',
             error
-              ? 'border-red-500 focus:border-red-400'
+              ? 'border-red-500 focus:border-red-400 focus:ring-red-400/20'
               : 'border-border focus:border-primary',
             LeftIcon ? 'pl-9' : '',
             RightIcon ? 'pr-9' : '',

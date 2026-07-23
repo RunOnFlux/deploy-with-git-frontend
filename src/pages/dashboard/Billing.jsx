@@ -69,12 +69,15 @@ function PlanBadge({ plan }) {
   );
 }
 
-function AppBillingCard({ app, currentBlock, hasOtherOrbitApps, onRenew }) {
+function AppBillingCard({ app, currentBlock, currentTimeMs, hasOtherOrbitApps, onRenew }) {
   const plan = detectPlan(app);
   const period = detectBillingPeriod(app.expire);
 
   const blocksLeft = currentBlock != null ? (app.height + app.expire) - currentBlock : null;
   const daysLeft = blocksLeft != null ? Math.floor(blocksLeft / BLOCKS_PER_DAY) : null;
+  const expiryDate = daysLeft !== null && daysLeft >= 0
+    ? new Date(currentTimeMs + daysLeft * 86400000).toLocaleDateString()
+    : null;
 
   const isFree = plan.id === 'free';
 
@@ -104,23 +107,26 @@ function AppBillingCard({ app, currentBlock, hasOtherOrbitApps, onRenew }) {
           { icon: MemoryStick, label: 'RAM', value: `${(app.ram / 1000).toFixed(1)} GB`, color: 'text-purple-400' },
           { icon: HardDrive, label: 'SSD', value: `${app.hdd} GB`, color: 'text-amber-400' },
           { icon: Server, label: 'Nodes', value: `×${app.instances}`, color: 'text-green-400' },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="bg-background/40 rounded-lg px-2 py-2">
-            <Icon className={`w-3.5 h-3.5 mx-auto mb-1 ${color}`} />
-            <p className="text-xs font-semibold text-text">{value}</p>
-            <p className="text-[10px] text-text-muted">{label}</p>
-          </div>
-        ))}
+        ].map((resource) => {
+          const Icon = resource.icon;
+          return (
+            <div key={resource.label} className="bg-background/40 rounded-lg px-2 py-2">
+              <Icon className={`w-3.5 h-3.5 mx-auto mb-1 ${resource.color}`} />
+              <p className="text-xs font-semibold text-text">{resource.value}</p>
+              <p className="text-[10px] text-text-muted">{resource.label}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Billing period + expiry */}
-      <div className="flex items-center justify-between text-xs text-text-muted border-t border-border/30 pt-3">
-        <span className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-3 text-xs text-text-muted border-t border-border/30 pt-3 flex-wrap">
+        <span className="flex items-center gap-1 min-w-0 flex-wrap">
           <Clock className="w-3.5 h-3.5" />
           {period.label} plan
-          {daysLeft !== null && daysLeft >= 0 && (
+          {expiryDate && (
             <span className="ml-1 text-text-secondary">
-              · expires ~{new Date(Date.now() + daysLeft * 86400000).toLocaleDateString()}
+              · expires ~{expiryDate}
             </span>
           )}
         </span>
@@ -128,7 +134,7 @@ function AppBillingCard({ app, currentBlock, hasOtherOrbitApps, onRenew }) {
           <button
             type="button"
             onClick={() => onRenew(app)}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors"
+            className="inline-flex shrink-0 items-center gap-1 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors"
           >
             Renew <ChevronRight className="w-3 h-3" />
           </button>
@@ -143,6 +149,7 @@ export default function Billing() {
   const [currentBlock, setCurrentBlock] = useState(null);
   const [blockLoading, setBlockLoading] = useState(true);
   const [renewApp, setRenewApp] = useState(null);
+  const [currentTimeMs] = useState(() => Date.now());
 
   useEffect(() => {
     fetchCurrentBlock().then((b) => {
@@ -236,6 +243,7 @@ export default function Billing() {
                 key={app.name}
                 app={app}
                 currentBlock={currentBlock}
+                currentTimeMs={currentTimeMs}
                 hasOtherOrbitApps={apps.length > 1}
                 onRenew={setRenewApp}
               />
