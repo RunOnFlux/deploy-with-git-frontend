@@ -342,7 +342,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
   // resources.ram is MB. Feeds the GeoSelector's capacity filter.
   const geoHardware = useMemo(() => {
     let cpu = Number(plan?.cpu) || 0;
-    let ram = Number(plan?.ram) || 0; // GB
+    let ram = (Number(plan?.ram) || 0) / 1000; // MB → GB
     let hdd = Number(plan?.hdd) || 0; // GB
     const addComponent = (r) => {
       if (!r) return;
@@ -562,7 +562,6 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         <DatabaseAddon
           plan={plan}
           config={config}
-          appName={appName}
           appPorts={appPorts}
           onChange={onChange}
           onPlanChange={onPlanChange}
@@ -575,7 +574,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           <label className="block text-sm font-medium text-text mb-1 flex items-center gap-1.5">
             <Globe className="w-3.5 h-3.5" /> Geolocation <span className="text-text-muted font-normal">(optional)</span>
           </label>
-          <p className="text-xs text-text-muted mb-2">Select regions to allow (✓) or forbid (✗). Leave empty for global deployment.</p>
+          <p className="text-xs text-text-muted mb-2">Add regions from the dropdown, then click a region to toggle allow (✓) / forbid (✗). Leave empty for global deployment.</p>
           <GeoSelector
             selected={geolocation}
             onChange={(v) => update('geolocation', v)}

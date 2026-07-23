@@ -90,38 +90,33 @@ function EnvValuePreview({ envKey, value, placeholder, revealed, copied, info, o
   );
 }
 
-export default function DatabaseAddon({ plan, config, appName, appPorts, onChange, onPlanChange }) {
+export default function DatabaseAddon({ plan, config, appPorts, onChange, onPlanChange }) {
   const database = config.database ?? createDefaultDatabaseConfig();
   const redis = config.redis ?? createDefaultRedisConfig();
   const [copied, setCopied] = useState(null);
   const [revealed, setRevealed] = useState({});
 
   const databaseConnectionString = useMemo(() => {
-    if (!database.enabled || !appName || !database.password) return '';
+    if (!database.enabled || !database.password) return '';
     return getDatabaseConnectionString({
       type: database.type,
       componentName: database.componentName,
       password: database.password,
       dbName: database.dbName,
     });
-  }, [database, appName]);
+  }, [database]);
 
   const redisConnectionString = useMemo(() => {
-    if (!redis.enabled || !appName || !redis.password) return '';
+    if (!redis.enabled || !redis.password) return '';
     return getRedisConnectionString({
       componentName: redis.componentName,
       password: redis.password,
     });
-  }, [redis, appName]);
+  }, [redis]);
 
   if (plan?.id !== 'custom') return null;
 
   const clusterAddonEnabled = database.enabled || redis.enabled;
-  const duplicateComponentName =
-    database.enabled &&
-    redis.enabled &&
-    database.componentName &&
-    database.componentName === redis.componentName;
 
   function collectUsedPorts(skip) {
     const used = [...(appPorts ?? [])];
@@ -273,30 +268,18 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {databaseNeedsName(database.type) && (
                 <div>
-                  <label className="block text-xs text-text-muted mb-1">Component name</label>
+                  <label className="block text-xs text-text-muted mb-1">Database name</label>
                   <input
                     type="text"
-                    value={database.componentName}
-                    onChange={(e) => updateDatabase({ componentName: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                    className={`input-base w-full font-mono text-sm ${duplicateComponentName ? 'border-red-400/60 focus:border-red-400' : ''}`}
-                    maxLength={16}
+                    value={database.dbName}
+                    onChange={(e) => updateDatabase({ dbName: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
+                    className="input-base w-full font-mono text-sm"
+                    maxLength={32}
                   />
                 </div>
-                {databaseNeedsName(database.type) && (
-                  <div>
-                    <label className="block text-xs text-text-muted mb-1">Database name</label>
-                    <input
-                      type="text"
-                      value={database.dbName}
-                      onChange={(e) => updateDatabase({ dbName: e.target.value.replace(/[^a-zA-Z0-9_]/g, '') })}
-                      className="input-base w-full font-mono text-sm"
-                      maxLength={32}
-                    />
-                  </div>
-                )}
-              </div>
+              )}
 
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">DB resources</p>
@@ -347,7 +330,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
                 <EnvValuePreview
                   envKey={envKey}
                   value={databaseConnectionString}
-                  placeholder="Enter an app name to preview the connection string"
+                  placeholder="Connection string will appear here"
                   revealed={!!revealed.database}
                   copied={copied === 'database'}
                   info={databaseInfo}
@@ -375,24 +358,6 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
 
           {redis.enabled && (
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-text-muted mb-1">Component name</label>
-                  <input
-                    type="text"
-                    value={redis.componentName}
-                    onChange={(e) => updateRedis({ componentName: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                    className={`input-base w-full font-mono text-sm ${duplicateComponentName ? 'border-red-400/60 focus:border-red-400' : ''}`}
-                    maxLength={16}
-                  />
-                </div>
-              </div>
-              {duplicateComponentName && (
-                <p className="text-xs text-red-400">
-                  Database and Redis component names must be different.
-                </p>
-              )}
-
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Redis resources</p>
                 <ResourceSlider
@@ -442,7 +407,7 @@ export default function DatabaseAddon({ plan, config, appName, appPorts, onChang
                 <EnvValuePreview
                   envKey={REDIS_ADDON.envKey}
                   value={redisConnectionString}
-                  placeholder="Enter an app name to preview the connection string"
+                  placeholder="Connection string will appear here"
                   revealed={!!revealed.redis}
                   copied={copied === 'redis'}
                   info={redisInfo}

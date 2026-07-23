@@ -70,8 +70,8 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
   }
 
   const selectCls =
-    'h-9 w-full rounded-lg border border-border bg-surface text-text text-sm px-3 ' +
-    'outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    'h-9 w-full border border-border bg-surface text-text text-sm px-3 ' +
+    'outline-none focus:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed';
 
   return (
     <div className={`flex flex-col gap-3 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -133,7 +133,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
             return (
               <div
                 key={g.code}
-                className={`flex items-center rounded-lg overflow-hidden border ${
+                className={`flex items-center overflow-hidden border ${
                   isForbidden ? 'border-red-500/40' : 'border-primary/40'
                 }`}
               >
@@ -141,7 +141,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
                   type="button"
                   onClick={() => toggleType(g.code)}
                   title={`Currently ${isForbidden ? 'forbidden' : 'allowed'} — click to toggle`}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium ${
                     isForbidden ? 'bg-red-500/20 text-red-400' : 'bg-primary/20 text-primary'
                   }`}
                 >
@@ -150,7 +150,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
                 <button
                   type="button"
                   onClick={() => removeCode(g.code)}
-                  className="px-2 py-1.5 text-xs border-l border-border text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="px-2 py-1.5 text-xs border-l border-border text-text-muted hover:text-red-400 hover:bg-red-500/10 "
                   title="Remove"
                 >
                   ×
