@@ -69,7 +69,7 @@ function PlanBadge({ plan }) {
   );
 }
 
-function AppBillingCard({ app, currentBlock, onRenew }) {
+function AppBillingCard({ app, currentBlock, hasOtherOrbitApps, onRenew }) {
   const plan = detectPlan(app);
   const period = detectBillingPeriod(app.expire);
 
@@ -124,7 +124,7 @@ function AppBillingCard({ app, currentBlock, onRenew }) {
             </span>
           )}
         </span>
-        {!isFree && (
+        {(!isFree || hasOtherOrbitApps) && (
           <button
             type="button"
             onClick={() => onRenew(app)}
@@ -232,7 +232,13 @@ export default function Billing() {
         {!loading && !blockLoading && apps.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {apps.map((app) => (
-              <AppBillingCard key={app.name} app={app} currentBlock={currentBlock} onRenew={setRenewApp} />
+              <AppBillingCard
+                key={app.name}
+                app={app}
+                currentBlock={currentBlock}
+                hasOtherOrbitApps={apps.length > 1}
+                onRenew={setRenewApp}
+              />
             ))}
           </div>
         )}

@@ -1,5 +1,6 @@
 import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock } from 'lucide-react';
 import { PLANS, normalizeCustomPlan } from '../../services/deployService';
+import { useApps } from '../../hooks/useApps';
 
 const PLAN_COLORS = {
   free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400' },
@@ -27,22 +28,26 @@ const PLAN_RESOURCES = {
              { icon: Server, label: 'Instances', value: '1 – 3' }],
 };
 
-function PlanCard({ plan, selected, onSelect }) {
-  const isSelected = selected?.id === plan.id;
+function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSelect }) {
+  const isSelected = !disabled && selected?.id === plan.id;
   const isRecommended = plan.badge === 'Popular';
   const resources = PLAN_RESOURCES[plan.id] ?? [];
 
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => onSelect(plan)}
-      className={`relative flex flex-col gap-4 w-full text-left rounded-2xl border-2 p-6 transition-all duration-300 hover:-translate-y-1 ${
-        isSelected
+      title={disabled ? disabledReason : undefined}
+      className={`relative flex flex-col gap-4 w-full text-left rounded-2xl border-2 p-6 transition-all duration-300 ${
+        disabled
+          ? 'border-border bg-surface opacity-60 cursor-not-allowed'
+          : isSelected
           ? 'border-primary bg-primary/5 shadow-lg shadow-primary/15'
           : isRecommended
           ? 'border-primary/30 bg-surface hover:border-primary/60'
           : 'border-border bg-surface hover:border-border-hover'
-      }`}
+      } ${disabled ? '' : 'hover:-translate-y-1'}`}
     >
       {/* Most Popular badge */}
       {isRecommended && (
@@ -81,14 +86,14 @@ function PlanCard({ plan, selected, onSelect }) {
 
       {/* First month free / Free forever pill */}
       <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-[11px] font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
-        <Gift className="w-3 h-3 shrink-0" />
-        {plan.priceMonthly === 0 ? 'Free forever*' : 'First month free*'}
+        {disabled ? <Lock className="w-3 h-3 shrink-0" /> : <Gift className="w-3 h-3 shrink-0" />}
+        {disabled ? 'Unavailable' : plan.priceMonthly === 0 ? 'Free forever*' : 'First month free*'}
       </div>
 
       {/* Plan header */}
       <div className="text-center pb-4 border-b border-border flex flex-col justify-center min-h-[5rem]">
         <h3 className="font-heading text-xl font-semibold text-text mb-1">{plan.label}</h3>
-        <p className="text-sm text-text-muted">{plan.description}</p>
+        <p className="text-sm text-text-muted">{disabled ? disabledReason : plan.description}</p>
       </div>
 
       {/* Resource rows */}
@@ -109,13 +114,17 @@ function PlanCard({ plan, selected, onSelect }) {
       {/* CTA */}
       <div className="pt-1">
         <div className={`w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-colors flex items-center justify-center gap-1.5 ${
-          isSelected
+          disabled
+            ? 'bg-surface-hover text-text-muted border border-border'
+            : isSelected
             ? 'bg-primary/10 text-primary border border-primary/30'
             : isRecommended
             ? 'bg-primary text-white'
             : 'bg-surface-hover text-text border border-border'
         }`}>
-          {isSelected ? (
+          {disabled ? (
+            <><Lock className="w-4 h-4" /> Choose another plan</>
+          ) : isSelected ? (
             <><Check className="w-4 h-4" /> Plan Selected</>
           ) : plan.priceMonthly === 0 ? (
             <><Rocket className="w-4 h-4" /> Start Deploying</>
@@ -129,6 +138,10 @@ function PlanCard({ plan, selected, onSelect }) {
 }
 
 export default function Step1Plan({ plan, onChange }) {
+  const { apps } = useApps();
+  const freePlanDisabled = apps.length > 1;
+  const freePlanDisabledReason = 'The Free plan is limited to accounts with one Orbit app.';
+
   function handleSelect(p) {
     if (p.id === 'custom') {
       onChange(normalizeCustomPlan(p));
@@ -149,7 +162,14 @@ export default function Step1Plan({ plan, onChange }) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {PLANS.map((p) => (
-          <PlanCard key={p.id} plan={p} selected={plan} onSelect={handleSelect} />
+          <PlanCard
+            key={p.id}
+            plan={p}
+            selected={plan}
+            disabled={p.id === 'free' && freePlanDisabled}
+            disabledReason={p.id === 'free' ? freePlanDisabledReason : ''}
+            onSelect={handleSelect}
+          />
         ))}
       </div>
 
