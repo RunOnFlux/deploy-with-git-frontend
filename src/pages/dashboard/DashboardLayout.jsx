@@ -187,7 +187,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Right side: mobile top bar + page content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="dashboard-content flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
         <header className="lg:hidden h-14 flex items-center gap-3 px-4 border-b border-border bg-surface sticky top-0 z-30">
           <button
