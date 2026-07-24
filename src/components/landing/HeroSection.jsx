@@ -732,7 +732,7 @@ export default function HeroSection() {
                 </motion.p>
               ) : (
                 <p className="mt-5 text-center text-xs text-text-muted/75 font-light">
-                  Secure authentication • Pre-configured deployment settings • Takes 60 seconds
+                  Zero-config builds • Dedicated resources • No vendor lock-in
                 </p>
               )}
             </AnimatePresence>
