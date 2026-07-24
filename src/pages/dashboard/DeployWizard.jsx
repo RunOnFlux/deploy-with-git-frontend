@@ -43,7 +43,7 @@ function WizardProgress({ current }) {
             <div key={s.label} className="flex items-center flex-1 last:flex-none">
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-8 h-8 flex items-center justify-center text-xs font-bold border-2 ${
+                  className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold border-2 ${
                     done
                       ? 'border-primary bg-primary text-white'
                       : active
