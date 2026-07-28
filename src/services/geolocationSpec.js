@@ -29,13 +29,19 @@ export function registerGeoLabels(geo) {
   }
 }
 
-/** Resolve a geo code ('EU' or 'EU_DE') to a display label. */
+/** Resolve a geo code ('EU', 'EU_DE' or 'NA_US_North Carolina') to a display label. */
 export function labelForGeoCode(code) {
   if (!code) return '';
   if (geoLabelMap.has(code)) return geoLabelMap.get(code);
-  // Unknown country code — show "Continent · CC" rather than the raw token.
   if (code.includes('_')) {
-    const [cont, cc] = code.split('_');
+    const parts = code.split('_');
+    const [cont, cc] = parts;
+    // Region codes are the region's own name — show it against its country.
+    if (parts.length > 2) {
+      const countryLabel = geoLabelMap.get(`${cont}_${cc}`) || cc;
+      return `${parts.slice(2).join('_')} · ${countryLabel}`;
+    }
+    // Unknown country code — show "Continent · CC" rather than the raw token.
     const contLabel = geoLabelMap.get(cont) || cont;
     return `${contLabel} · ${cc}`;
   }

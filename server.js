@@ -341,6 +341,9 @@ function computeGeoBreakdown(nodes, filter) {
   };
   const conts = new Map(); // code -> { code, name, nodeCount, ips:Set }
   const countries = new Map(); // `${cont}_${cc}` -> { continentCode, code, name, nodeCount, ips:Set }
+  // `${cont}_${cc}_${regionName}` — FluxOS's third geolocation level, matched
+  // against the node's regionName verbatim, so it is carried through untouched.
+  const regions = new Map();
   for (const n of nodes) {
     if (!fits(n)) continue;
     if (!conts.has(n.continentCode)) {
@@ -354,11 +357,22 @@ function computeGeoBreakdown(nodes, filter) {
     }
     const cc = countries.get(key);
     cc.nodeCount++; if (n.ip) cc.ips.add(n.ip);
+
+    if (!n.regionName) continue; // can't be placed by region — country is as deep as it goes
+    const regKey = `${key}_${n.regionName}`;
+    if (!regions.has(regKey)) {
+      regions.set(regKey, {
+        continentCode: n.continentCode, countryCode: n.countryCode,
+        code: n.regionName, name: n.regionName, nodeCount: 0, ips: new Set(),
+      });
+    }
+    const rr = regions.get(regKey);
+    rr.nodeCount++; if (n.ip) rr.ips.add(n.ip);
   }
   const finalize = (m) => [...m.values()]
     .map(({ ips, ...rest }) => ({ ...rest, ipCount: ips.size }))
     .sort((a, b) => b.ipCount - a.ipCount);
-  return { continents: finalize(conts), countries: finalize(countries) };
+  return { continents: finalize(conts), countries: finalize(countries), regions: finalize(regions) };
 }
 
 async function getRawNodes() {

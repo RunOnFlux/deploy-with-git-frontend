@@ -2,6 +2,16 @@ import { useMemo, useState } from 'react';
 import { GEO_OPTIONS, labelForGeoCode } from '../../services/geolocationSpec';
 import { useDeployCapacity } from '../../hooks/useNetworkStats';
 
+// Countries where a region can be picked. The US on purpose and only the US:
+// it is where distance inside one country actually costs the player latency
+// (coast to coast is ~60-80ms). Elsewhere the country is a precise enough choice.
+const REGION_PICKER_COUNTRIES = new Set(['US']);
+// Pinning to one region shrinks the host pool hard, so a region only qualifies
+// if it keeps spare IPs for a failed placement or a later relocation — and the
+// country needs several such regions before the extra picker is worth showing.
+const REGION_IP_HEADROOM = 2;
+const MIN_REGIONS_TO_OFFER = 2;
+
 /**
  * Capacity-aware geolocation picker. Mirrors the FluxOS / sibling-site location
  * step: only continents/countries that can actually host THIS app are offered —
@@ -24,6 +34,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
 
   const [continent, setContinent] = useState('');
   const [country, setCountry] = useState('');
+  const [region, setRegion] = useState('');
 
   const selectedCodes = useMemo(() => new Set(selected.map((g) => g.code)), [selected]);
   const wholeContinentAdded = continent && selectedCodes.has(continent);
@@ -51,12 +62,34 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
       .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount }));
   }, [geo, continent, instances, selectedCodes, wholeContinentAdded]);
 
+  const wholeCountryAdded = Boolean(country) && selectedCodes.has(`${continent}_${country}`);
+
+  // Regions inside the chosen country — US only (see REGION_PICKER_COUNTRIES),
+  // and even there only when it splits into several regions that each keep spare
+  // IPs beyond the instance count.
+  const regionOptions = useMemo(() => {
+    if (!geo?.regions || !continent || !REGION_PICKER_COUNTRIES.has(country)
+      || wholeContinentAdded || wholeCountryAdded) return [];
+    const opts = geo.regions
+      .filter((r) => r.continentCode === continent
+        && r.countryCode === country
+        && r.ipCount >= instances + REGION_IP_HEADROOM
+        && !selectedCodes.has(`${continent}_${country}_${r.code}`))
+      .map((r) => ({ code: r.code, name: r.name, nodeCount: r.nodeCount, ipCount: r.ipCount }));
+    return opts.length >= MIN_REGIONS_TO_OFFER ? opts : [];
+  }, [geo, continent, country, instances, selectedCodes, wholeContinentAdded, wholeCountryAdded]);
+
   function addLocation() {
     if (!continent) return;
-    const code = country ? `${continent}_${country}` : continent;
+    let code = continent;
+    if (country) {
+      code = `${continent}_${country}`;
+      if (region) code += `_${region}`;
+    }
     if (selectedCodes.has(code)) return;
     onChange([...selected, { code, type: 'allowed' }]);
     setCountry('');
+    setRegion('');
   }
 
   function removeCode(code) {
@@ -80,7 +113,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
         <select
           aria-label="Continent"
           value={continent}
-          onChange={(e) => { setContinent(e.target.value); setCountry(''); }}
+          onChange={(e) => { setContinent(e.target.value); setCountry(''); setRegion(''); }}
           className={selectCls}
         >
           <option value="">Select continent…</option>
@@ -94,7 +127,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
         <select
           aria-label="Country (optional)"
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={(e) => { setCountry(e.target.value); setRegion(''); }}
           disabled={!continent || wholeContinentAdded || !geo}
           className={selectCls}
         >
@@ -117,6 +150,30 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           + Add
         </button>
       </div>
+
+      {/* Region — only rendered for countries whose nodes genuinely spread out */}
+      {regionOptions.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <select
+            aria-label="Region (optional)"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            className={selectCls}
+          >
+            <option value="">Any region</option>
+            {regionOptions.map((r) => (
+              <option key={r.code} value={r.code}>
+                {r.name} · {r.nodeCount.toLocaleString()} nodes · {r.ipCount.toLocaleString()} IPs
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-text-muted leading-relaxed">
+            This country has hosts in several regions. Narrowing to one cuts latency for nearby
+            users, but leaves fewer hosts to deploy on — leave it on <span className="font-medium">Any
+            region</span> if you are not sure.
+          </p>
+        </div>
+      )}
 
       {/* Tip: multiple locations ⇒ more distinct hosts ⇒ a guaranteed, faster deploy */}
       <p className="text-xs text-text-muted leading-relaxed">
