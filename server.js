@@ -19,12 +19,25 @@ import {
   DEFAULT_FIREBASE,
   DEFAULT_GA_MEASUREMENT_ID,
 } from './config/defaults.js';
+// Same module scripts/prerender.mjs walks to decide what to prerender, so the
+// served routes and the built shells cannot drift apart.
+import { MARKETING_PAGES } from './src/content/pagesContent.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Prerendered marketing routes, keyed by their canonical path — no trailing
+// slash, matching both the sitemap and each page's <link rel="canonical">.
+// Derived from MARKETING_PAGES so a new page needs no second registration here.
+const MARKETING_SHELLS = new Map(
+  Object.keys(MARKETING_PAGES).map((p) => {
+    const path = p.startsWith('/') ? p : `/${p}`;
+    return [path, join(path.replace(/^\//, ''), 'index.html')];
+  }),
+);
 
 app.use(cors());
 // JSON parsing only for routes that explicitly need it (see below).
@@ -38,8 +51,36 @@ app.use(cors());
 //  - other unhashed public files (favicons, og-banner, robots.txt, sitemap.xml)
 //    get a short cache so updates still appear within the hour.
 if (process.env.NODE_ENV === 'production') {
+  // Send the trailing-slash form to the canonical one.
+  //
+  // These pages used to be reachable at both, and the two forms disagreed about
+  // which was real: express.static's default `redirect: true` answered
+  // /decentralized-hosting with a 301 to /decentralized-hosting/, while the
+  // markup served there named /decentralized-hosting as canonical — a URL that
+  // redirected away again. Google indexed both and split the signals; the same
+  // page sat at pos 34 under one form and pos 62 under the other.
+  //
+  // This runs before express.static so the static handler never sees the
+  // trailing-slash form, and `redirect: false` below stops it manufacturing the
+  // opposite redirect.
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (req.path.length > 1 && req.path.endsWith('/')) {
+      const stripped = req.path.slice(0, -1);
+      if (MARKETING_SHELLS.has(stripped)) {
+        const query = req.originalUrl.slice(req.path.length);
+        return res.redirect(301, stripped + query);
+      }
+    }
+    return next();
+  });
+
   app.use(
     express.static(join(__dirname, 'dist'), {
+      // Never 301 a directory request to its trailing-slash form: for these
+      // routes that is the non-canonical URL, and the redirect above already
+      // points the other way.
+      redirect: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache');
@@ -749,9 +790,16 @@ app.get('/api/screenshot', async (req, res) => {
 });
 
 if (process.env.NODE_ENV === 'production') {
-  app.get('/*splat', (_req, res) => {
-    // SPA fallback: always revalidate so a new deploy is picked up immediately.
+  app.get('/*splat', (req, res) => {
+    // Always revalidate so a new deploy is picked up immediately.
     res.setHeader('Cache-Control', 'no-cache');
+    // express.static no longer resolves a bare directory to its index (see
+    // `redirect: false` above), so the prerendered shells are served here by
+    // their canonical, slashless path. Without this they would fall through to
+    // the SPA shell and every marketing URL would serve the homepage's markup
+    // to crawlers.
+    const shell = MARKETING_SHELLS.get(req.path);
+    if (shell) return res.sendFile(join(__dirname, 'dist', shell));
     res.sendFile(join(__dirname, 'dist', 'index.html'));
   });
 }
