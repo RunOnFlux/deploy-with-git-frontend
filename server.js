@@ -39,6 +39,18 @@ const MARKETING_SHELLS = new Map(
   }),
 );
 
+// Client-only routes that render real UI but are not prerendered — they must
+// still answer 200 with the SPA shell rather than the 404 one. Mirrors the
+// non-marketing <Route>s in src/App.jsx; keep the two in step when adding a page.
+const SPA_ROUTES = new Set(['/', '/login', '/deploy', '/successcheckout']);
+// /dashboard has nested and parameterised children (deployments/:appName, …), so
+// it is matched by prefix rather than enumerated.
+const SPA_PREFIXES = ['/dashboard'];
+
+const isSpaRoute = (path) =>
+  SPA_ROUTES.has(path) ||
+  SPA_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+
 app.use(cors());
 // JSON parsing only for routes that explicitly need it (see below).
 // The Flux API proxy forwards raw bodies to preserve content-type.
@@ -793,6 +805,7 @@ if (process.env.NODE_ENV === 'production') {
   app.get('/*splat', (req, res) => {
     // Always revalidate so a new deploy is picked up immediately.
     res.setHeader('Cache-Control', 'no-cache');
+
     // express.static no longer resolves a bare directory to its index (see
     // `redirect: false` above), so the prerendered shells are served here by
     // their canonical, slashless path. Without this they would fall through to
@@ -800,7 +813,16 @@ if (process.env.NODE_ENV === 'production') {
     // to crawlers.
     const shell = MARKETING_SHELLS.get(req.path);
     if (shell) return res.sendFile(join(__dirname, 'dist', shell));
-    res.sendFile(join(__dirname, 'dist', 'index.html'));
+
+    if (isSpaRoute(req.path)) {
+      return res.sendFile(join(__dirname, 'dist', 'index.html'));
+    }
+
+    // Anything else is a genuine 404 and now says so. Answering 200 with the SPA
+    // shell turned every typo, dead backlink and probe into a "valid page" as far
+    // as a crawler is concerned, which wastes crawl budget on URLs that will
+    // never rank and can get thin near-duplicates of the homepage indexed.
+    return res.status(404).sendFile(join(__dirname, 'dist', '404.html'));
   });
 }
 

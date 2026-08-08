@@ -135,4 +135,35 @@ for (const [routePath, page] of Object.entries(MARKETING_PAGES)) {
   console.log(`[prerender] wrote ${routePath} -> ${outPath.replace(distDir, 'dist')}`)
 }
 
+// The 404 shell. server.js serves this with a real 404 status for unknown paths,
+// which is the whole point: answering 200 with the SPA shell made every typo and
+// dead backlink look like a valid page to a crawler, and Google spends crawl
+// budget on them instead of the pages that matter.
+//
+// Rendering '/404' hits the <Route path="*"> NotFound element, so the shell shows
+// the real not-found page rather than the homepage. data-ssr-path is stamped with
+// '/404' and almost never matches the URL being served, so main.jsx takes the
+// createRoot path instead of hydrating — correct here, since NotFound renders the
+// same whatever the path was.
+const notFound = await render('/404')
+let notFoundHtml = withRoot(baseHtml, '/404', notFound.html)
+notFoundHtml = notFoundHtml.replace(JSONLD_SCRIPT, '')
+notFoundHtml = notFoundHtml.replace(
+  /<title>[\s\S]*?<\/title>/i,
+  '<title>Page Not Found | Orbit</title>',
+)
+notFoundHtml = notFoundHtml.replace(
+  /<meta name="description"[^>]*>/i,
+  '<meta name="description" content="This page does not exist. Browse the Orbit guides, or deploy a Git repo to the Flux decentralized cloud." />',
+)
+// A 404 has no canonical URL to declare — swap it for an explicit noindex. The
+// `follow` keeps any links on the page crawlable so the crawler can find its way
+// back into the site.
+notFoundHtml = notFoundHtml.replace(
+  /<link rel="canonical"[^>]*>/i,
+  '<meta name="robots" content="noindex, follow" />',
+)
+await writeFile(join(distDir, '404.html'), notFoundHtml, 'utf8')
+console.log('[prerender] wrote 404 -> dist/404.html (noindex)')
+
 console.log(`[prerender] done — ${count} route(s) server-rendered.`)
