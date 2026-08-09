@@ -65,6 +65,11 @@ RUN npm install --omit=dev --no-package-lock --no-audit --no-fund \
 COPY --chown=node:node server.js docker-entrypoint.sh ./
 COPY --chown=node:node config ./config
 COPY --chown=node:node --from=builder /app/dist ./dist
+# server.js reads the marketing route list from this module so the served routes
+# and the prerendered shells cannot drift. It is the only thing it needs from
+# src/, and it has no imports of its own — the rest of src/ deliberately stays
+# out of the runtime image.
+COPY --chown=node:node src/content/pagesContent.js ./src/content/pagesContent.js
 
 RUN chmod +x docker-entrypoint.sh
 
