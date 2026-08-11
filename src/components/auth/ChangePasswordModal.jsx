@@ -15,7 +15,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
+  // One toggle per field: revealing the current password and checking a new one
+  // you just typed are separate needs.
+  const [reveal, setReveal] = useState({ current: false, next: false, confirm: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
@@ -25,7 +27,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setShowPass(false);
+      setReveal({ current: false, next: false, confirm: false });
       setError('');
       setDone(false);
     }
@@ -56,14 +58,15 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
     }
   }
 
-  const revealToggle = (
+  const revealToggle = field => (
     <button
       type="button"
-      onClick={() => setShowPass(v => !v)}
+      onClick={() => setReveal(current => ({ ...current, [field]: !current[field] }))}
       className="absolute right-3 bottom-3 text-text-muted hover:text-text transition-colors"
+      aria-label={reveal[field] ? 'Hide password' : 'Show password'}
       tabIndex={-1}
     >
-      {showPass ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+      {reveal[field] ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
     </button>
   );
 
@@ -99,7 +102,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
           <div className="relative">
             <Input
               label="Current password"
-              type={showPass ? 'text' : 'password'}
+              type={reveal.current ? 'text' : 'password'}
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -107,33 +110,39 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               placeholder="Enter your current password"
               required
             />
-            {revealToggle}
+            {revealToggle('current')}
           </div>
 
-          <Input
-            label="New password"
-            type={showPass ? 'text' : 'password'}
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            leftIcon={LockClosedIcon}
-            placeholder="Create a strong password"
-            hint="Minimum 8 characters"
-            required
-            minLength={8}
-          />
+          <div className="relative">
+            <Input
+              label="New password"
+              type={reveal.next ? 'text' : 'password'}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              leftIcon={LockClosedIcon}
+              placeholder="Create a strong password"
+              hint="Minimum 8 characters"
+              required
+              minLength={8}
+            />
+            {revealToggle('next')}
+          </div>
 
-          <Input
-            label="Confirm new password"
-            type={showPass ? 'text' : 'password'}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            leftIcon={LockClosedIcon}
-            placeholder="Repeat the new password"
-            required
-            minLength={8}
-          />
+          <div className="relative">
+            <Input
+              label="Confirm new password"
+              type={reveal.confirm ? 'text' : 'password'}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              leftIcon={LockClosedIcon}
+              placeholder="Repeat the new password"
+              required
+              minLength={8}
+            />
+            {revealToggle('confirm')}
+          </div>
 
           <div className="flex gap-3">
             <Button type="button" variant="secondary" fullWidth onClick={onClose} className="!h-12">
