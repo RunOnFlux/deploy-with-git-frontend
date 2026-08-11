@@ -33,6 +33,9 @@ export default function LoginPage() {
   const [verifyPassword, setVerifyPassword] = useState('');
   const [verifying, setVerifying]     = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [resetting, setResetting]     = useState(false);
+  const [resetSent, setResetSent]     = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) navigate(redirectTo, { replace: true });
@@ -67,7 +70,31 @@ export default function LoginPage() {
     return () => clearTimeout(id);
   }, [resendCooldown]);
 
+  // Firebase throttles reset mails server-side; keep the button disabled rather
+  // than firing a request that would just come back rejected.
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const id = setTimeout(() => setResetCooldown(c => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resetCooldown]);
+
   function switchTab(t) { setTab(t); setError(''); }
+
+  async function handlePasswordReset(e) {
+    e.preventDefault();
+    if (resetCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      await authService.sendPasswordReset(email);
+      setResetSent(true);
+      setResetCooldown(60);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -153,6 +180,54 @@ export default function LoginPage() {
                   Use a different method
                 </button>
               </div>
+            ) : resetting ? (
+              /* ── password reset request ── */
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center"
+                     style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                  <EnvelopeIcon className="w-6 h-6" style={{ color: '#6366f1' }} />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-xl font-semibold text-text">Reset your password</h2>
+                  <p className="text-sm text-text-muted mt-1">
+                    Enter the email address on your account and we&apos;ll send you a link to set a new password.
+                  </p>
+                </div>
+
+                {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">{error}</p>}
+
+                {resetSent && (
+                  <p className="text-sm text-text-muted text-center px-4 py-3 rounded-lg"
+                     style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                    If an account exists for that address, a reset link is on its way. Remember to check your spam folder.
+                  </p>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-text mb-1.5">Email</label>
+                  <input type="email" autoComplete="email" value={email}
+                         onChange={e => setEmail(e.target.value)}
+                         placeholder="you@example.com" required className={inputCls} />
+                </div>
+
+                <button type="submit" disabled={loading || resetCooldown > 0}
+                        className="w-full h-11 rounded-lg text-sm font-semibold text-white flex items-center justify-center disabled:opacity-40"
+                        style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', marginTop: 16 }}>
+                  {loading
+                    ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : resetCooldown > 0
+                      ? `Resend in ${resetCooldown}s`
+                      : resetSent ? 'Resend reset link' : 'Send reset link'}
+                </button>
+
+                <p className="text-sm text-text-muted text-center mt-5">
+                  <button type="button"
+                          onClick={() => { setResetting(false); setResetSent(false); setError(''); }}
+                          className="text-primary hover:underline font-medium">
+                    Back to sign in
+                  </button>
+                </p>
+              </form>
             ) : (
               <>
                 {/* Heading */}
@@ -219,7 +294,9 @@ export default function LoginPage() {
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-sm font-medium text-text">Password</label>
                       {tab === TAB.SIGNIN && (
-                        <button type="button" className="text-xs text-text-muted hover:text-primary transition-colors">
+                        <button type="button"
+                                onClick={() => { setResetting(true); setResetSent(false); setError(''); }}
+                                className="text-xs text-text-muted hover:text-primary transition-colors">
                           Forgot password?
                         </button>
                       )}

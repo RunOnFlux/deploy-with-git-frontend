@@ -9,6 +9,10 @@ import {
   setPersistence,
   browserLocalPersistence,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   updateProfile,
 } from 'firebase/auth';
 
@@ -100,6 +104,47 @@ export async function sendVerificationEmail(user) {
     return { success: true };
   } catch (error) {
     console.error('Send verification email error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send a password reset email. The link in the mail points at the Firebase
+ * project's own hosted action handler, so there is no reset page to serve here.
+ */
+export async function sendPasswordReset(email) {
+  try {
+    await sendPasswordResetEmail(requireAuth(), email);
+    return { success: true };
+  } catch (error) {
+    console.error('Send password reset email error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Change the signed-in user's password.
+ *
+ * Firebase only allows this on a recent login, so the current password is used
+ * to reauthenticate first. That doubles as proof the person typing is the
+ * account owner and not someone who walked up to an unlocked machine.
+ */
+export async function changePassword(currentPassword, newPassword) {
+  const user = requireAuth().currentUser;
+  if (!user?.email) {
+    const error = new Error('You must be signed in to change your password');
+    error.code = 'auth/no-current-user';
+    throw error;
+  }
+
+  try {
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, newPassword);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Change password error:', error);
     throw error;
   }
 }

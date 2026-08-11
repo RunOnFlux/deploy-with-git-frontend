@@ -12,6 +12,7 @@ const VIEW = {
   EMAIL_LOGIN: 'email_login',
   EMAIL_REGISTER: 'email_register',
   VERIFY_EMAIL: 'verify_email', // Post-registration email check
+  FORGOT_PASSWORD: 'forgot_password',
 };
 
 /**
@@ -35,6 +36,10 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
   const [verifyPassword, setVerifyPassword] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Password reset
+  const [resetSent, setResetSent] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
+
   // Prefetch dashboard chunks while the user is signing in so navigation
   // after auth is instant (no Suspense fallback delay).
   useEffect(() => {
@@ -51,6 +56,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
       setEmail('');
       setPassword('');
       setName('');
+      setResetSent(false);
     }
   }, [isOpen]);
 
@@ -74,6 +80,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
     const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(id);
   }, [resendCooldown]);
+
+  // Reset-link cooldown timer. Firebase throttles these mails server-side, so the
+  // button stays disabled rather than firing a request that comes back rejected.
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const id = setTimeout(() => setResetCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resetCooldown]);
 
   function clearError() {
     if (error) setError('');
@@ -119,6 +133,22 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
       setResendCooldown(60);
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handlePasswordReset(e) {
+    e.preventDefault();
+    if (resetCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      await authService.sendPasswordReset(email);
+      setResetSent(true);
+      setResetCooldown(60);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -239,6 +269,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
             </button>
           </div>
 
+          <button
+            type="button"
+            onClick={() => { clearError(); setResetSent(false); setView(VIEW.FORGOT_PASSWORD); }}
+            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors self-end -mt-3"
+          >
+            Forgot your password?
+          </button>
+
           <Button type="submit" fullWidth loading={loading} className="!h-12 !text-base">
             Sign in
           </Button>
@@ -338,6 +376,64 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
               Sign in
             </button>
           </p>
+        </form>
+      )}
+
+      {/* ── Forgot password ── */}
+      {view === VIEW.FORGOT_PASSWORD && (
+        <form onSubmit={handlePasswordReset} className="flex flex-col gap-5">
+          <button
+            type="button"
+            onClick={() => { clearError(); setView(VIEW.EMAIL_LOGIN); }}
+            className="text-sm text-text-secondary hover:text-text text-left transition-colors flex items-center gap-1"
+          >
+            ← Back
+          </button>
+
+          <div className="mb-1">
+            <h2 className="text-2xl font-semibold text-text mb-2">Reset your password</h2>
+            <p className="text-sm text-text-secondary/70">
+              Enter the email address on your account and we&apos;ll send you a link to set a new password.
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+              {error}
+            </p>
+          )}
+
+          {resetSent && (
+            <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-center">
+              <p className="text-sm font-medium text-text">Check your inbox</p>
+              <p className="text-xs text-text-secondary mt-1">
+                If an account exists for that address, a reset link is on its way. Remember to check your spam folder.
+              </p>
+            </div>
+          )}
+
+          <Input
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            leftIcon={EnvelopeIcon}
+            placeholder="you@example.com"
+            required
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            loading={loading}
+            disabled={resetCooldown > 0}
+            className="!h-12 !text-base"
+          >
+            {resetCooldown > 0
+              ? `Resend in ${resetCooldown}s`
+              : resetSent ? 'Resend reset link' : 'Send reset link'}
+          </Button>
         </form>
       )}
 

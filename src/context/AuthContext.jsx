@@ -15,6 +15,9 @@ function formatUser(firebaseUser) {
     displayName: firebaseUser.displayName,
     photoURL: firebaseUser.photoURL,
     emailVerified: firebaseUser.emailVerified,
+    // Google and wallet sessions have no password to change — the sidebar entry
+    // keys off this.
+    hasPassword: firebaseUser.providerData?.some(p => p.providerId === 'password') ?? false,
   };
 }
 

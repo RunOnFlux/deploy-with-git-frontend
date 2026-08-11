@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket } from 'lucide-react';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket, KeyRound } from 'lucide-react';
 import OrbitSpinner from '../../components/common/OrbitSpinner';
 import CookieSettingsDialog from '../../components/common/CookieSettingsDialog';
+import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
 
 const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -13,7 +14,7 @@ const navItems = [
   { to: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];
 
-function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
+function SidebarContent({ user, onNavClick, onLogout, onChangePassword, theme, toggleTheme }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -108,6 +109,16 @@ function SidebarContent({ user, onNavClick, onLogout, theme, toggleTheme }) {
                   : <Moon className="w-4 h-4" />}
                 {theme === 'dark' ? 'Light mode' : 'Dark mode'}
               </button>
+              {/* Google and wallet sessions have no password to change. */}
+              {user?.hasPassword && (
+                <button
+                  onClick={() => { setMenuOpen(false); onChangePassword(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-muted hover:text-text hover:bg-surface-hover "
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Change password
+                </button>
+              )}
               <div className="h-px bg-border mx-2 my-1" />
               <button
                 onClick={() => { setMenuOpen(false); onLogout(); }}
@@ -130,6 +141,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCookieSettings, setShowCookieSettings] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // (data-theme is managed globally by ThemeProvider in ThemeContext)
 
@@ -181,6 +193,7 @@ export default function DashboardLayout() {
           user={user}
           onNavClick={() => setSidebarOpen(false)}
           onLogout={handleLogout}
+          onChangePassword={() => { setSidebarOpen(false); setShowChangePassword(true); }}
           theme={theme}
           toggleTheme={toggleTheme}
         />
@@ -219,6 +232,11 @@ export default function DashboardLayout() {
           </footer>
         </main>
       </div>
+
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
 
       <CookieSettingsDialog
         isOpen={showCookieSettings}
