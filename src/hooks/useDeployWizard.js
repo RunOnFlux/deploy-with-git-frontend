@@ -106,7 +106,8 @@ const INITIAL_STATE = {
   },
 
   // Free tier eligibility (set in Step4 after checking permanent messages)
-  eligibleForFree: true,
+  // Fail closed until the on-chain eligibility check confirms a free first month.
+  eligibleForFree: false,
 
   // Per-step errors
   errors: {},

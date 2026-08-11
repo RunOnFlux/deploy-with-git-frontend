@@ -613,13 +613,15 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     // remaining blocks so this stays a maintenance update (same expiry, no extension).
     verifiedSpec.expire = remainingBlocks;
 
-    // Calculate price — if flux > 0 the update requires payment.
-    // Default to null on error so we don't silently skip a payment that may be owed.
+    // Calculate price before signing. A failed lookup must not silently skip a
+    // payment that may be owed; a successful zero result remains a maintenance update.
     let price = null;
     try {
       price = await calculatePrice(verifiedSpec, zelidauth);
-    } catch {
-      // Non-fatal: treat as unknown price (will not show payment screen)
+    } catch (err) {
+      setSaveError(`Could not calculate the update price: ${err.message || 'Please try again.'}`);
+      setSavePhase(null);
+      return;
     }
 
     setSavePhase('signing');

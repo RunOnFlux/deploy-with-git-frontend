@@ -68,7 +68,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   const [showCreds, setShowCreds] = useState(false);
   const [showAddonEnv, setShowAddonEnv] = useState({});
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
-  const [eligible, setEligible] = useState(true);
+  const [eligible, setEligible] = useState(false);
+  const [eligibilityUnknown, setEligibilityUnknown] = useState(false);
 
   const clusterAddonEnabled = !!(config.database?.enabled || config.redis?.enabled);
   // Enterprise apps (private repos and cluster add-ons are auto-encrypted) follow a stricter free-first-month rule.
@@ -106,15 +107,18 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   // account, not per app or repo.
   useEffect(() => {
     if (!zelid) {
-      onEligibilityChecked?.(true);
+      setEligible(false);
+      setEligibilityUnknown(true);
+      onEligibilityChecked?.(false);
       setDupCheckStatus('done');
       return;
     }
     setDupCheckStatus('checking');
 
-    const markEligible = () => {
-      setEligible(true);
-      onEligibilityChecked?.(true);
+    const markUnknown = () => {
+      setEligible(false);
+      setEligibilityUnknown(true);
+      onEligibilityChecked?.(false);
     };
 
     (async () => {
@@ -125,7 +129,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         );
         const json = await resp.json();
         if (json.status !== 'success' || !Array.isArray(json.data)) {
-          markEligible(); // fail open
+          markUnknown(); // unknown eligibility must not bypass payment
           return;
         }
 
@@ -134,10 +138,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         // Per-customer rule: any app the owner has ever registered on Flux disqualifies the
         // free first month — one free month per Flux Cloud account, not per app or repo.
         const priorApp = registerMessages[0];
+        setEligibilityUnknown(false);
         setEligible(!priorApp);
         onEligibilityChecked?.(!priorApp);
       } catch {
-        markEligible(); // fail open
+        markUnknown(); // unknown eligibility must not bypass payment
       } finally {
         setDupCheckStatus('done');
       }
@@ -160,7 +165,18 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking deployment eligibility…
         </div>
       )}
-      {dupCheckStatus === 'done' && !eligible && (
+      {dupCheckStatus === 'done' && eligibilityUnknown && (
+        <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Free eligibility could not be verified</p>
+            <p className="text-xs text-amber-300/80 mt-1">
+              Pricing will be calculated before payment so a required charge is not skipped.
+            </p>
+          </div>
+        </div>
+      )}
+      {dupCheckStatus === 'done' && !eligible && !eligibilityUnknown && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -187,7 +203,9 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           label="Price"
           value={
             plan?.priceMonthly === 0
-              ? 'Free'
+              ? eligible
+                ? 'Free'
+                : 'Calculated at checkout'
               : plan?.priceMonthly
               ? `$${plan.priceMonthly}/mo${eligible ? ' (first month free)' : ''}`
               : 'Calculated at checkout'

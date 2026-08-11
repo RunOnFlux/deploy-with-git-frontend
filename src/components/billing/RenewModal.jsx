@@ -10,6 +10,7 @@ import {
   signWithSSP,
   signWithZelCore,
   calculatePrice,
+  validatePaidPrice,
   getPaymentAddress,
   pollUpdate,
   BLOCKS_PER_MONTH,
@@ -47,6 +48,7 @@ function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm
   const [prices, setPrices] = useState({});
   const [pricesLoading, setPricesLoading] = useState(true);
   const [priceError, setPriceError] = useState('');
+  const [priceReload, setPriceReload] = useState(0);
   const { zelidauth } = useAuth();
 
   const selectedPeriod = renewalOptions[selected];
@@ -71,7 +73,7 @@ function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm
     Promise.all(
       renewalOptions.map(async (period, i) => {
         const spec = buildRenewalSpec(rawSpec, period.expireBlocks);
-        const price = await calculatePrice(spec, zelidauth);
+        const price = validatePaidPrice(await calculatePrice(spec, zelidauth));
         return { i, price };
       }),
     )
@@ -90,7 +92,7 @@ function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm
       });
 
     return () => { cancelled = true; };
-  }, [rawSpec, renewalOptions, zelidauth]);
+  }, [rawSpec, renewalOptions, zelidauth, priceReload]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -176,7 +178,12 @@ function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm
       </div>
 
       {priceError && (
-        <p className="text-sm text-amber-400 -mt-2">{priceError}</p>
+        <div className="text-sm text-amber-400 -mt-2">
+          <p>{priceError}</p>
+          <button type="button" onClick={() => setPriceReload((value) => value + 1)} className="mt-1 text-xs underline">
+            Retry pricing
+          </button>
+        </div>
       )}
 
       {/* Actions */}
@@ -198,7 +205,7 @@ function PeriodPicker({ app, rawSpec, blocksRemaining, renewalOptions, onConfirm
 }
 
 // ─── Signing step ─────────────────────────────────────────────────────────────
-function SigningStep({ app, rawSpec, period, onDone, onError }) {
+function SigningStep({ rawSpec, period, onDone, onError }) {
   const { zelidauth, loginType } = useAuth();
   const ran = useRef(false);
 
@@ -293,6 +300,11 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
   }
 
   async function handleStripe() {
+    if (!(priceUsd > 0) || !(priceFlux > 0)) {
+      setError('A valid renewal price is required before checkout.');
+      setStatus('error');
+      return;
+    }
     const popup = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
     popupRef.current = popup;
     if (popup) popup.document.write('<p style="font-family:sans-serif;padding:2rem;color:#aaa">Redirecting to Stripe checkout…</p>');
@@ -315,7 +327,7 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
             name: 'renewal',
             description: `Orbit renewal: ${app.name}`,
             hash: txid,
-            price: parseFloat((priceUsd ?? 0).toFixed(2)),
+            price: parseFloat(priceUsd.toFixed(2)),
             productName: app.name,
             ...(subscription ? { period: months } : {}),
             success_url: `${window.location.origin}/successcheckout`,
@@ -476,7 +488,7 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
         <div>
           <p className="text-xs text-text-muted mb-0.5">Total due</p>
           <p className="text-xl font-bold text-text">${priceUsd}</p>
-          {priceFlux && <p className="text-xs text-text-muted">{priceFlux} FLUX</p>}
+          {priceFlux > 0 && <p className="text-xs text-text-muted">{priceFlux} FLUX</p>}
         </div>
         <div className="text-xs text-text-muted text-right">
           <p className="text-primary font-medium">{period.label}</p>
@@ -495,7 +507,7 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
       )}
 
       <div className="space-y-2.5">
-        <button type="button" onClick={handleStripe} disabled={status === 'pending'}
+        <button type="button" onClick={handleStripe} disabled={status === 'pending' || !(priceUsd > 0) || !(priceFlux > 0)}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed">
           <CreditCard className="w-5 h-5 text-primary shrink-0" />
           <div className="text-left flex-1">
@@ -505,22 +517,22 @@ function PaymentStep({ app, txid, priceUsd, priceFlux, period, onClose }) {
           {status === 'pending' ? <Loader2 className="w-4 h-4 animate-spin text-text-muted" /> : <ArrowRight className="w-4 h-4 text-text-muted" />}
         </button>
 
-        <button type="button" onClick={handleZelCore} disabled={status === 'pending' || !priceFlux || addrLoading}
+        <button type="button" onClick={handleZelCore} disabled={status === 'pending' || !(priceFlux > 0) || addrLoading}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed">
           <img src="/zelcore.svg" alt="ZelCore" className="w-5 h-5 shrink-0 " />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">ZelCore Wallet</p>
-            <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : addrLoading ? 'Loading…' : 'Unavailable'}</p>
+            <p className="text-xs text-text-muted">{priceFlux > 0 ? `${priceFlux} FLUX` : addrLoading ? 'Loading…' : 'Unavailable'}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-text-muted" />
         </button>
 
-        <button type="button" onClick={handleSSP} disabled={status === 'pending' || !priceFlux || addrLoading}
+        <button type="button" onClick={handleSSP} disabled={status === 'pending' || !(priceFlux > 0) || addrLoading}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed">
           <img src="/ssp.svg" alt="SSP" className="w-5 h-5 shrink-0" />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">SSP Wallet</p>
-            <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : addrLoading ? 'Loading…' : 'Unavailable'}</p>
+            <p className="text-xs text-text-muted">{priceFlux > 0 ? `${priceFlux} FLUX` : addrLoading ? 'Loading…' : 'Unavailable'}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-text-muted" />
         </button>
@@ -542,7 +554,6 @@ export default function RenewModal({ app, currentBlock, onClose }) {
   const [priceUsd, setPriceUsd] = useState(null);
   const [priceFlux, setPriceFlux] = useState(null);
   const [txid, setTxid] = useState(null);
-  const [verifiedSpec, setVerifiedSpec] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   const blocksRemaining = useMemo(
@@ -588,7 +599,6 @@ export default function RenewModal({ app, currentBlock, onClose }) {
   function handleSigningProgress(step, result) {
     if (step === 'done') {
       setTxid(result.txid);
-      setVerifiedSpec(result.verifiedSpec);
       setPhase('paying');
     } else {
       setSigningPhase(step);
@@ -655,7 +665,6 @@ export default function RenewModal({ app, currentBlock, onClose }) {
         {phase === 'signing' && (
           <>
             <SigningStep
-              app={app}
               rawSpec={rawSpec}
               period={period}
               onDone={handleSigningProgress}

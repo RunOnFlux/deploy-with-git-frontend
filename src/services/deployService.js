@@ -319,14 +319,14 @@ export function redactSpecCredentials(spec) {
  * @param {string} params.email
  * @param {object} params.plan - { cpu, ram (MB), hdd, instances }
  * @param {object} params.repo - { url, branch, subdirectory }
- * @param {object} params.config - { appName, port, additionalPort, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
+ * @param {object} params.config - { appName, port, additionalPort, customDomain, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
  * @param {[number, number, number?]} params.ports - [extPort, additionalExtPort?, mgmtPort]
  */
 export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
   const plan = normalizeCustomPlan(rawPlan);
   const [extPort] = ports;
   const {
-    appName, port, additionalPort, billingPeriod, geolocation = [], extraEnvVars = [],
+    appName, port, additionalPort, customDomain, billingPeriod, geolocation = [], extraEnvVars = [],
     pollingInterval, runtime, runtimeVersion,
     buildCommand, runCommand, installCommand, prPreviewEnabled,
     webhookSecret, apiKey,
@@ -452,7 +452,7 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
         description: 'cloudgit',
         repotag: 'runonflux/orbit:latest',
         ports: orbitExternalPorts,
-        domains: orbitExternalPorts.map(() => ''),
+        domains: orbitExternalPorts.map((_, index) => (index === 0 ? customDomain?.trim() ?? '' : '')),
         environmentParameters: envParams,
         commands: [],
         containerPorts: orbitContainerPorts,
@@ -633,6 +633,19 @@ export async function calculatePrice(spec, _zelidauth) {
     throw new Error(json.data || 'Failed to calculate price');
   }
   return json.data; // { usd, flux, fluxDiscount }
+}
+
+/**
+ * Validate pricing for a flow that is known to require payment.
+ * Free deployments bypass paid flows before calling this helper.
+ */
+export function validatePaidPrice(price) {
+  const usd = Number(price?.usd);
+  const flux = Number(price?.flux);
+  if (!Number.isFinite(usd) || usd <= 0 || !Number.isFinite(flux) || flux <= 0) {
+    throw new Error('The pricing service returned an invalid zero price. Please retry.');
+  }
+  return { ...price, usd, flux };
 }
 
 /**

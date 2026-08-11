@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { calculatePrice, getPaymentAddress } from '../../services/deployService';
+import { calculatePrice, getPaymentAddress, validatePaidPrice } from '../../services/deployService';
 import DeploymentTracker from './DeploymentTracker';
 import { CreditCard, Loader2, XCircle, ArrowRight, ExternalLink } from 'lucide-react';
 import { getRuntimeConfig } from '../../config/runtimeConfig.js';
@@ -35,12 +35,16 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
     if (!verifiedSpec || !zelidauth || isFree) return;
     setPriceLoading(true);
     setPriceError('');
+    setPriceUsd(null);
+    setPriceFlux(null);
+    setPaymentAddress(null);
     Promise.all([
       calculatePrice(verifiedSpec, zelidauth),
       getPaymentAddress(zelidauth),
     ]).then(([price, addr]) => {
-      if (price?.usd != null) setPriceUsd(price.usd);
-      if (price?.flux != null) setPriceFlux(price.flux);
+      const paidPrice = validatePaidPrice(price);
+      setPriceUsd(paidPrice.usd);
+      setPriceFlux(paidPrice.flux);
       if (addr) setPaymentAddress(addr);
     }).catch((err) => {
       setPriceError(err.message || 'Failed to load pricing. Check your connection.');
@@ -170,6 +174,11 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
 
   async function handleStripe() {
     if (!zelidauth) { setError('Not authenticated.'); setStatus('error'); return; }
+    if (!(priceUsd > 0) || !(priceFlux > 0)) {
+      setError('A valid price has not loaded yet. Please retry pricing.');
+      setStatus('error');
+      return;
+    }
 
     // Open popup synchronously before async fetch to avoid popup blockers
     const popup = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
@@ -198,7 +207,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
             name: plan?.id || 'standard',
             description: `Orbit deployment: ${appName}`,
             hash: txid,
-            price: parseFloat((priceUsd ?? 0).toFixed(2)),
+            price: parseFloat(priceUsd.toFixed(2)),
             productName: appName,
             ...(months > 1 ? { period: months } : {}),
             success_url: `${window.location.origin}/successcheckout`,
@@ -292,7 +301,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
           <div>
             <p className="text-xs text-text-muted mb-0.5">Total due</p>
             <p className="text-xl font-bold text-text">${priceUsd}</p>
-            {priceFlux && <p className="text-xs text-text-muted">{priceFlux} FLUX</p>}
+            {priceFlux > 0 && <p className="text-xs text-text-muted">{priceFlux} FLUX</p>}
           </div>
           <div className="text-xs text-text-muted text-right">
             <p>{plan?.label || plan?.name || 'Standard'} plan</p>
@@ -342,7 +351,7 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
         <button
           type="button"
           onClick={handleStripe}
-          disabled={status === 'pending'}
+          disabled={status === 'pending' || priceLoading || !(priceUsd > 0) || !(priceFlux > 0)}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CreditCard className="w-5 h-5 text-primary shrink-0" />
@@ -356,13 +365,13 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
         <button
           type="button"
           onClick={handleZelCore}
-          disabled={status === 'pending' || !priceFlux}
+          disabled={status === 'pending' || !(priceFlux > 0) || !paymentAddress}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <img src="/zelcore.svg" alt="ZelCore" className="w-5 h-5 shrink-0 " />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">ZelCore Wallet</p>
-            <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
+            <p className="text-xs text-text-muted">{priceFlux > 0 ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
           </div>
           {status === 'pending' ? <Loader2 className="w-4 h-4 animate-spin text-text-muted" /> : <ArrowRight className="w-4 h-4 text-text-muted" />}
         </button>
@@ -370,13 +379,13 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
         <button
           type="button"
           onClick={handleSSP}
-          disabled={status === 'pending' || !priceFlux}
+          disabled={status === 'pending' || !(priceFlux > 0) || !paymentAddress}
           className="w-full flex items-center gap-3 p-4 border border-border bg-surface hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <img src="/ssp.svg" alt="SSP" className="w-5 h-5 shrink-0" />
           <div className="text-left flex-1">
             <p className="text-sm font-medium text-text">SSP Wallet</p>
-            <p className="text-xs text-text-muted">{priceFlux ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
+            <p className="text-xs text-text-muted">{priceFlux > 0 ? `${priceFlux} FLUX` : priceLoading ? 'Loading…' : 'Unavailable'}</p>
           </div>
           {status === 'pending' ? <Loader2 className="w-4 h-4 animate-spin text-text-muted" /> : <ArrowRight className="w-4 h-4 text-text-muted" />}
         </button>
@@ -395,4 +404,3 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
     </div>
   );
 }
-
