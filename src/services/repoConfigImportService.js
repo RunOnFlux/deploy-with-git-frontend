@@ -43,6 +43,10 @@ const ORBIT_RUNTIME_ALIASES = {
   dotnet: 'dotnet',
   '.net': 'dotnet',
   bun: 'bun',
+  erlang: 'erlang',
+  otp: 'erlang',
+  elixir: 'elixir',
+  dart: 'dart',
 };
 
 const FLUX_PLAN_IDS = new Set(['free', 'standard', 'pro', 'custom']);

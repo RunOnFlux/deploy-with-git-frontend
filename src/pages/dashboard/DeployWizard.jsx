@@ -17,7 +17,23 @@ import Step6Payment from '../../components/wizard/Step6Payment';
 // Allowed plan IDs for deep-link prefill
 const PLAN_ALIASES = { free: 'free', standard: 'standard', developer: 'standard', dev: 'standard', pro: 'pro', custom: 'custom' };
 const POLLING_ALIASES = { disabled: 'disabled', '1h': '3600', '2h': '7200', '6h': '21600', '12h': '43200', '24h': '86400' };
-const RUNTIME_ALIASES = { node: 'node', nodejs: 'node', python: 'python', py: 'python', go: 'go', golang: 'go', rust: 'rust', java: 'java', php: 'php', ruby: 'ruby', dotnet: 'dotnet' };
+const RUNTIME_ALIASES = {
+  node: 'node',
+  nodejs: 'node',
+  python: 'python',
+  py: 'python',
+  go: 'go',
+  golang: 'go',
+  rust: 'rust',
+  java: 'java',
+  php: 'php',
+  ruby: 'ruby',
+  dotnet: 'dotnet',
+  erlang: 'erlang',
+  otp: 'erlang',
+  elixir: 'elixir',
+  dart: 'dart',
+};
 const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
 const STEPS = [

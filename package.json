@@ -10,6 +10,7 @@
     "build": "vite build && npm run build:ssr && npm run prerender",
     "build:ssr": "vite build --ssr src/entry-server.jsx --outDir dist-ssr",
     "prerender": "node scripts/prerender.mjs",
+    "test": "node --test",
     "lint": "eslint .",
     "preview": "vite preview"
   },

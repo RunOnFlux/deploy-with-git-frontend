@@ -9,6 +9,9 @@ const RUNTIMES = [
   { value: 'php', label: 'PHP' },
   { value: 'ruby', label: 'Ruby' },
   { value: 'dotnet', label: '.NET' },
+  { value: 'erlang', label: 'Erlang' },
+  { value: 'elixir', label: 'Elixir' },
+  { value: 'dart', label: 'Dart' },
 ];
 
 const BUILD_COMMAND_FIELDS = [
