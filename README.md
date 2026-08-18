@@ -18,7 +18,7 @@ Deploy any Git repository to the **Flux Decentralized Cloud** in minutes. Orbit 
 
 ### Deployment Wizard
 - 🚀 **6-step guided wizard** — Repo → Plan → Config → Review → Payment → Status
-- 🧠 **Repo intelligence** — auto-detects framework, port, build/run commands from GitHub
+- 🧠 **Repo intelligence** — auto-detects 100+ frameworks and runtimes, including Erlang, Elixir, and Dart, plus ports and build/run commands
 - 📦 **Plan selection** — Free, Developer, Pro, Custom with live price calculation
 - 🌍 **Geo-targeting** — choose continent or specific country for node placement
 - 💳 **Stripe Checkout** — fiat payments via Flux payment bridge

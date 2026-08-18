@@ -109,7 +109,7 @@ export function buildJsonLd() {
       url: `${ORIGIN}/`,
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Web',
-      description: `Git-native deployment platform for the Flux decentralized network. Deploy any stack — Next.js, Vue, Rust, Go, Rails and more — across ${SITE_FACTS.nodeCount} of global nodes. Free tier, zero configuration, built-in CI/CD.`,
+      description: `Git-native deployment platform for the Flux decentralized network. Deploy any stack — Next.js, Vue, Rust, Go, Rails, Erlang, Elixir, Dart and more — across ${SITE_FACTS.nodeCount} of global nodes. Free tier, zero configuration, built-in CI/CD.`,
       offers: ORBIT_PLANS.map((plan) => ({
         '@type': 'Offer',
         name: plan.name,

@@ -53,7 +53,7 @@ export const FAQS = [
   },
   {
     q: 'What frameworks are supported?',
-    a: 'Orbit supports 100+ frameworks including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, and more. Framework detection is automatic based on your project files.',
+    a: 'Orbit supports 100+ frameworks and runtimes including Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, Erlang, Elixir, Dart, and more. Detection is automatic based on your project files.',
   },
   {
     q: 'Is the free tier really free forever?',
@@ -76,8 +76,8 @@ export const FAQS = [
     a: 'Absolutely. Orbit auto-detects Next.js, Remix, Nuxt, SvelteKit, Astro, Create React App, Vite and every other popular JavaScript framework, builds the production output, and serves it from the Flux network. Static sites and single-page apps deploy in the same zero-config flow as full-stack apps.',
   },
   {
-    q: 'Can I deploy a backend such as Django, FastAPI, Go, or Rust, not just a static site?',
-    a: 'Yes, and this is a real advantage over static-first hosts. Orbit runs your app as a full long-running container, so backends and server frameworks like Django, Flask, FastAPI, Rails, Express, Go and Rust services work natively. This includes background workers and persistent processes that serverless platforms handle poorly or not at all.',
+    q: 'Can I deploy a backend such as Django, Elixir, Dart, Go, or Rust, not just a static site?',
+    a: 'Yes, and this is a real advantage over static-first hosts. Orbit runs your app as a full long-running container, so backends and server frameworks like Django, Flask, FastAPI, Rails, Express, Go, Rust, Erlang, Elixir and Dart work natively. This includes background workers and persistent processes that serverless platforms handle poorly or not at all.',
   },
   {
     q: 'How does automatic deployment from GitHub work?',
@@ -109,7 +109,7 @@ export const FAQS = [
 export const FEATURES = [
   { key: 'unlimited-builds', title: 'Unlimited Builds', description: 'No limit on build count or build duration. Ship as often as you need.' },
   { key: 'dedicated-resources', title: 'Dedicated Resources', description: 'No shared hardware. Your rented CPU, RAM and storage are exclusively yours, not a metered slice of someone else’s server. Performance stays predictable, and there is no vendor lock-in.' },
-  { key: 'frameworks', title: '100+ Frameworks', description: 'Node.js, Python, Rust, Go, Java, .NET, PHP and more, auto-detected every time.' },
+  { key: 'frameworks', title: '100+ Frameworks', description: 'Node.js, Python, Rust, Go, Java, .NET, PHP, Erlang, Elixir, Dart and more, auto-detected every time.' },
   { key: 'zero-config', title: 'Zero Configuration', description: 'Auto-detects project type, installs dependencies, and builds automatically.' },
   { key: 'cicd', title: 'Built-in CI/CD', description: 'GitHub, GitLab, and Bitbucket webhooks plus polling mode. Your workflow, your choice.' },
   { key: 'custom-domain', title: 'Custom Domain + SSL', description: "Connect your own domain with automatic SSL via Flux's reverse proxy network." },

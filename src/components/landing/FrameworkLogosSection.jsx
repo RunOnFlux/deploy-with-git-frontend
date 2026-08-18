@@ -43,19 +43,23 @@ const FRAMEWORKS = [
   // Rust
   { name: 'Actix Web',    color: '#f74c00' },
   { name: 'Rocket',       color: '#d33847' },
+  // Erlang / Elixir / Dart
+  { name: 'Erlang',       color: '#a90533' },
+  { name: 'Elixir',       color: '#8b5cf6' },
+  { name: 'Dart',         color: '#40c4ff' },
 ];
 
 // Duplicate for seamless loop
 const ITEMS = [...FRAMEWORKS, ...FRAMEWORKS];
 
-import { Globe, Layers, Gift, Infinity } from 'lucide-react';
+import { Globe, Layers, Gift, Infinity as InfinityIcon } from 'lucide-react';
 import { useNetworkStats, formatNodeCount } from '../../hooks/useNetworkStats';
 
 const STATS = [
   { key: 'nodes', value: 'thousands of', label: 'global nodes', Icon: Globe },
   { value: '100+',    label: 'frameworks',    Icon: Layers    },
   { value: 'Free',    label: 'forever tier',  Icon: Gift      },
-  { value: 'Unlimited', label: 'builds forever', Icon: Infinity  },
+  { value: 'Unlimited', label: 'builds forever', Icon: InfinityIcon },
 ];
 
 export default function FrameworkLogosSection() {
@@ -67,7 +71,7 @@ export default function FrameworkLogosSection() {
   return (
     <div className="border-b border-border/50 bg-surface/20">
       <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4">
-        {items.map((s, i) => (
+        {items.map((s) => (
           <div
             key={s.label}
             className="group relative flex flex-col items-center py-7 px-4 overflow-hidden

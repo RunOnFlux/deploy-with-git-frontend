@@ -12,7 +12,7 @@
 
 ## Frameworks
 
-Orbit supports 50+ frameworks, auto-detected from the repository, including: Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, and Rust.
+Orbit supports 100+ frameworks and runtimes, auto-detected from the repository, including: Next.js, Remix, SvelteKit, Astro, Nuxt, Create React App, Vite, Django, FastAPI, Flask, Rails, Go, Rust, Erlang, Elixir, and Dart.
 
 ## Pricing
 

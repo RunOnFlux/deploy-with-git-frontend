@@ -99,7 +99,7 @@ export const MARKETING_PAGES = {
           },
           {
             type: 'p',
-            html: 'It works for static sites and full-stack apps alike: Next.js, React, Vue, Svelte, plus backends like Django, FastAPI, Go and Rust. There is a free-forever tier with no credit card required, so you can put a real app on decentralized infrastructure in a few minutes. See how it stacks up against the incumbents in our <a href="/vs/vercel">Orbit vs. Vercel comparison</a>.',
+            html: 'It works for static sites and full-stack apps alike: Next.js, React, Vue, Svelte, plus backends like Django, FastAPI, Go, Rust, Erlang, Elixir and Dart. There is a free-forever tier with no credit card required, so you can put a real app on decentralized infrastructure in a few minutes. See how it stacks up against the incumbents in our <a href="/vs/vercel">Orbit vs. Vercel comparison</a>.',
           },
         ],
       },
@@ -176,7 +176,7 @@ export const MARKETING_PAGES = {
         blocks: [
           {
             type: 'p',
-            html: 'Vercel is optimized for front-end and serverless functions. Long-running servers, background workers, WebSocket services, and heavier backend frameworks are awkward or impossible in that model. Orbit runs your app as a full, long-running container, so Django, FastAPI, Flask, Rails, Express, Go and Rust services run natively, including persistent processes and workers. If you have outgrown serverless, this is the biggest practical difference.',
+            html: 'Vercel is optimized for front-end and serverless functions. Long-running servers, background workers, WebSocket services, and heavier backend frameworks are awkward or impossible in that model. Orbit runs your app as a full, long-running container, so Django, FastAPI, Flask, Rails, Express, Go, Rust, Erlang, Elixir and Dart services run natively, including persistent processes and workers. If you have outgrown serverless, this is the biggest practical difference.',
           },
         ],
       },
@@ -205,7 +205,7 @@ export const MARKETING_PAGES = {
       },
       {
         q: 'Can Orbit run backends that Vercel can’t?',
-        a: 'Often, yes. Because Orbit runs full long-running containers, backend frameworks like Django, FastAPI, Rails, Go and Rust run natively alongside background workers and persistent WebSocket servers. Vercel’s serverless model handles these workloads poorly or not at all.',
+        a: 'Often, yes. Because Orbit runs full long-running containers, backend frameworks like Django, FastAPI, Rails, Go, Rust, Erlang, Elixir and Dart run natively alongside background workers and persistent WebSocket servers. Vercel’s serverless model handles these workloads poorly or not at all.',
       },
       {
         q: 'What does “decentralized” give me over Vercel?',
@@ -276,7 +276,7 @@ export const MARKETING_PAGES = {
         blocks: [
           {
             type: 'p',
-            html: 'Netlify pioneered the Jamstack deploy experience and is superb for static sites, forms, and serverless functions. Like Vercel it meters build minutes, bandwidth, and function invocations, and its Pro plan runs about $19/month, with backend workloads pushed into short-lived serverless functions. Orbit runs your app as a persistent container instead, so a Django, FastAPI, Rails, Express, Go or Rust service runs exactly as it would on a normal server, including WebSockets and background jobs, on decentralized infrastructure at a lower fixed price.',
+            html: 'Netlify pioneered the Jamstack deploy experience and is superb for static sites, forms, and serverless functions. Like Vercel it meters build minutes, bandwidth, and function invocations, and its Pro plan runs about $19/month, with backend workloads pushed into short-lived serverless functions. Orbit runs your app as a persistent container instead, so a Django, FastAPI, Rails, Express, Go, Rust, Erlang, Elixir or Dart service runs exactly as it would on a normal server, including WebSockets and background jobs, on decentralized infrastructure at a lower fixed price.',
           },
         ],
       },
@@ -285,7 +285,7 @@ export const MARKETING_PAGES = {
         blocks: [
           {
             type: 'p',
-            html: 'Cloudflare Pages is fast and generous on its free static tier, backed by Cloudflare’s enormous edge network. But dynamic work has to run in Cloudflare Workers, a proprietary V8-isolate runtime with its own APIs and limits rather than a general-purpose container. If your app needs a real Node, Python, Go or Rust process, a database driver, a long-running connection, or anything outside the Workers model, you hit a wall. Orbit runs standard containers, so what builds locally deploys unchanged, with no rewrite for a bespoke edge runtime and no lock-in to one provider’s platform.',
+            html: 'Cloudflare Pages is fast and generous on its free static tier, backed by Cloudflare’s enormous edge network. But dynamic work has to run in Cloudflare Workers, a proprietary V8-isolate runtime with its own APIs and limits rather than a general-purpose container. If your app needs a real Node, Python, Go, Rust, Erlang, Elixir or Dart process, a database driver, a long-running connection, or anything outside the Workers model, you hit a wall. Orbit runs standard containers, so what builds locally deploys unchanged, with no rewrite for a bespoke edge runtime and no lock-in to one provider’s platform.',
           },
         ],
       },
@@ -301,7 +301,7 @@ export const MARKETING_PAGES = {
             items: [
               '<strong>Decentralized & censorship-resistant:</strong> no single company can deplatform you or take the network down.',
               '<strong>Dedicated resources, lower price:</strong> real CPU and RAM from $0.99–$3.99/mo instead of a metered serverless slice.',
-              '<strong>Real backends:</strong> full containers run Django, FastAPI, Rails, Go, Rust, workers and WebSockets natively.',
+              '<strong>Real backends:</strong> full containers run Django, FastAPI, Rails, Go, Rust, Erlang, Elixir, Dart, workers and WebSockets natively.',
               '<strong>Genuinely free forever:</strong> a free tier with no credit card and no non-commercial restriction.',
               '<strong>No vendor lock-in:</strong> you deploy portable containers, not a proprietary runtime.',
             ],
@@ -342,7 +342,7 @@ export const MARKETING_PAGES = {
       },
       {
         q: 'Is Orbit a Cloudflare Pages alternative for dynamic apps?',
-        a: 'Yes. Cloudflare Pages runs dynamic code only in its proprietary Workers runtime. Orbit runs standard long-running containers, so full Node, Python, Go and Rust servers deploy unchanged with databases, WebSockets and background jobs, without rewriting for a bespoke edge runtime.',
+        a: 'Yes. Cloudflare Pages runs dynamic code only in its proprietary Workers runtime. Orbit runs standard long-running containers, so full Node, Python, Go, Rust, Erlang, Elixir and Dart servers deploy unchanged with databases, WebSockets and background jobs, without rewriting for a bespoke edge runtime.',
       },
       {
         q: 'How is Orbit cheaper than Vercel, Netlify and Cloudflare Pages?',
@@ -380,7 +380,7 @@ export const MARKETING_PAGES = {
       {
         heading: 'How Orbit is different',
         blocks: [
-          { type: 'p', html: 'Orbit keeps the part of Heroku everyone loves: connect a repo, push, and get a live URL. It runs this workflow on the <strong>Flux decentralized cloud</strong>, with thousands of independent nodes across many countries and <strong>no single point of failure</strong>. Framework detection is automatic via Nixpacks, so most Node, Python, Go, Ruby, static and full-stack apps deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong> required. Every app gets <strong>dedicated CPU and RAM</strong>, there are <strong>no egress fees</strong>, the free tier is genuinely free forever, paid plans start at <strong>$0.99/mo</strong>, and there is no vendor lock-in.' },
+          { type: 'p', html: 'Orbit keeps the part of Heroku everyone loves: connect a repo, push, and get a live URL. It runs this workflow on the <strong>Flux decentralized cloud</strong>, with thousands of independent nodes across many countries and <strong>no single point of failure</strong>. Framework detection is automatic via Nixpacks, so most Node, Python, Go, Ruby, Erlang, Elixir, Dart, static and full-stack apps deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong> required. Every app gets <strong>dedicated CPU and RAM</strong>, there are <strong>no egress fees</strong>, the free tier is genuinely free forever, paid plans start at <strong>$0.99/mo</strong>, and there is no vendor lock-in.' },
         ],
       },
       {
@@ -554,7 +554,7 @@ export const MARKETING_PAGES = {
           { type: 'p', html: 'Orbit deploys straight from your repository and detects the framework automatically with Nixpacks, so you are not limited to static files — you can host real applications on the free tier:' },
           { type: 'ul', items: [
             '<strong>Static sites</strong> — React, Vue, Svelte, Vite, Astro, or plain HTML/CSS/JS built to a static output.',
-            '<strong>Full-stack and backend apps</strong> — Node, Python (Django, Flask, FastAPI), Go, Ruby and more, running as real containers, not just static files.',
+            '<strong>Full-stack and backend apps</strong> — Node, Python (Django, Flask, FastAPI), Go, Ruby, Erlang, Elixir, Dart and more, running as real containers, not just static files.',
             '<strong>Any Git provider</strong> — deploy from GitHub, GitLab or Bitbucket with <strong>no Dockerfile</strong> required.',
           ] },
           { type: 'p', html: 'Because every deployment is a genuine container rather than a function or a static bucket, long-running backends and server-side frameworks that other free tiers handle poorly work here too.' },
@@ -594,7 +594,7 @@ export const MARKETING_PAGES = {
     ],
     faqs: [
       { q: 'Is Orbit web app hosting really free?', a: 'Yes. Orbit has a genuinely free-forever tier with no credit card required and no trial countdown. Your app runs as a real deployment on the decentralized Flux cloud. Paid plans with dedicated resources start at $0.99/mo, with the first month free.' },
-      { q: 'What can I host on the free tier?', a: 'Static sites (React, Vue, Svelte, Vite, Astro, plain HTML) and full-stack or backend apps (Node, Python, Go, Ruby and more) running as real containers. Orbit uses Nixpacks to detect your framework and build from GitHub, GitLab or Bitbucket with no Dockerfile.' },
+      { q: 'What can I host on the free tier?', a: 'Static sites (React, Vue, Svelte, Vite, Astro, plain HTML) and full-stack or backend apps (Node, Python, Go, Ruby, Erlang, Elixir, Dart and more) running as real containers. Orbit uses Nixpacks to detect your framework and build from GitHub, GitLab or Bitbucket with no Dockerfile.' },
       { q: 'Do I need a credit card for free hosting?', a: 'No. The free tier requires no credit card to sign up or deploy. You only add a payment method if you choose to upgrade to a paid plan for dedicated resources.' },
       { q: 'How is Orbit able to offer free hosting?', a: 'Orbit runs on the Flux network — thousands of independent nodes worldwide — instead of centralized data centers. There are no egress or bandwidth fees and no single company footing a data-center bill, which is what makes a genuinely free forever tier sustainable.' },
       { q: 'How much do paid plans cost?', a: 'Paid plans start at $0.99/mo (Custom), with Standard at $2.49/mo and Pro at $3.99/mo, each including the first month free and dedicated CPU and RAM. There are no egress fees and no vendor lock-in.' },

@@ -65,11 +65,12 @@ export default function HowItWorksSection() {
           </p>
           <p className="text-text-secondary/70 text-base leading-relaxed max-w-3xl mx-auto mt-4">
             That detection step is why Orbit is not limited to static sites or to one ecosystem.
-            Node.js, Python, Go, Rust, Java, .NET, PHP and Ruby all work out of the box, and
+            Node.js, Python, Go, Rust, Java, .NET, PHP, Ruby, Erlang, Elixir and Dart all work out of the box, and
             front-end frameworks like Next.js, Remix, Nuxt, SvelteKit, Astro and Vite build and
             deploy in the same zero-config flow. Because your app runs as a full long-running
             container rather than a serverless function, the backends other platforms handle
-            poorly run natively. That includes Django, Flask, FastAPI, Rails, Express, Go and Rust
+            poorly run natively. That includes Django, Flask, FastAPI, Rails, Express, Go, Rust,
+            Erlang, Elixir and Dart
             services, background workers, and persistent processes. If it builds into a container, Orbit can
             deploy it.
           </p>
