@@ -425,8 +425,76 @@ const FRAMEWORK_BY_MARKER = {
   'composer.json': 'PHP',
   'Gemfile': 'Ruby',
   'Dockerfile': null,
-  'index.html': null,
+  'index.html': 'Static HTML',
 };
+
+/**
+ * List files directly inside the selected project path. This intentionally does
+ * not recurse: the Orbit image detects a plain static project from `*.html` in
+ * the project root (PROJECT_PATH), then promotes a non-index HTML file during
+ * packaging. Private-repository credentials are forwarded to the provider API.
+ */
+async function listFilesAtPath(parsed, branch, projectPath, authHeaders = {}, signal) {
+  const path = buildBasePath(projectPath).replace(/\/$/, '');
+  const headers = { Accept: 'application/json', ...authHeaders };
+  const requestSignal = signal || AbortSignal.timeout(8000);
+
+  try {
+    if (parsed.provider === 'github.com') {
+      const apiPath = path
+        ? `contents/${path.split('/').map(encodeURIComponent).join('/')}`
+        : 'contents';
+      const url = `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/${apiPath}?ref=${encodeURIComponent(branch)}`;
+      const resp = await fetch(url, { headers, signal: requestSignal });
+      if (!resp.ok) return null;
+      const items = await resp.json();
+      if (!Array.isArray(items)) return null;
+      return items.filter((item) => item.type === 'file').map((item) => item.name);
+    }
+
+    if (parsed.provider === 'gitlab.com') {
+      const enc = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
+      const pathParam = path ? `&path=${encodeURIComponent(path)}` : '';
+      const files = [];
+
+      // GitLab returns at most 100 tree entries per page. Read every page so a
+      // static HTML file is not missed in repositories with many root files.
+      for (let page = 1; page <= 100; page++) {
+        const url = `https://gitlab.com/api/v4/projects/${enc}/repository/tree?ref=${encodeURIComponent(branch)}${pathParam}&per_page=100&page=${page}`;
+        const resp = await fetch(url, { headers, signal: requestSignal });
+        if (!resp.ok) return null;
+        const items = await resp.json();
+        if (!Array.isArray(items)) return null;
+        files.push(...items.filter((item) => item.type === 'blob').map((item) => item.name));
+        if (items.length < 100) break;
+      }
+      return files;
+    }
+
+    if (parsed.provider === 'bitbucket.org') {
+      const pathSeg = path
+        ? `${encodeURIComponent(branch)}/${path}`
+        : encodeURIComponent(branch);
+      let url = `https://api.bitbucket.org/2.0/repositories/${parsed.owner}/${parsed.repo}/src/${pathSeg}/?pagelen=100`;
+      const files = [];
+
+      for (let page = 0; url && page < 100; page++) {
+        const resp = await fetch(url, { headers, signal: requestSignal });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        files.push(...(data.values || [])
+          .filter((item) => item.type === 'commit_file')
+          .map((item) => item.path.split('/').pop()));
+        url = data.next || '';
+      }
+      return files;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 /**
  * Returns {status: 'compatible'|'warning'|'incompatible', message, framework, markerFile}
@@ -463,6 +531,22 @@ export async function checkCompatibility(parsed, branch, projectPath, authHeader
     }
   }
 
+  // Match the Orbit image's plain-static fallback: any lowercase `*.html`
+  // file directly in PROJECT_PATH is deployable, even when not named index.html.
+  const files = await listFilesAtPath(parsed, branch, projectPath, authHeaders, signal);
+  if (signal?.aborted) return { status: 'idle', message: '', framework: null };
+  const htmlFile = files
+    ?.filter((name) => name.endsWith('.html'))
+    .sort((a, b) => a.localeCompare(b))[0];
+  if (htmlFile) {
+    return {
+      status: 'compatible',
+      message: `Found ${htmlFile}`,
+      framework: 'Static HTML',
+      markerFile: htmlFile,
+    };
+  }
+
   return {
     status: 'incompatible',
     message: 'No recognized project files found. This repo may not be compatible with Orbit.',
@@ -497,6 +581,21 @@ export async function testPrivateAuth(parsed, username, token) {
       headers: { Accept: 'application/json', ...authHeaders },
       signal: AbortSignal.timeout(10000),
     });
+
+    if (resp.ok && parsed.provider === 'gitlab.com') {
+      // Project metadata can be readable even when the token cannot inspect the
+      // repository. Verify the permission Orbit needs for branch/file detection.
+      const treeResp = await fetch(`${apiUrl}/repository/tree?per_page=1`, {
+        headers: { Accept: 'application/json', ...authHeaders },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (treeResp.ok) return { success: true };
+      if (treeResp.status === 401) return { success: false, error: 'Invalid credentials' };
+      if (treeResp.status === 403) {
+        return { success: false, error: 'Token needs read_repository, read_api, or api scope' };
+      }
+      return { success: false, error: 'Token cannot read repository files' };
+    }
 
     if (resp.ok) return { success: true };
     if (resp.status === 401) return { success: false, error: 'Invalid credentials' };
