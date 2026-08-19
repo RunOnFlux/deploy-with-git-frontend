@@ -11,7 +11,7 @@ import {
   generateRedisPorts,
   getDatabaseEnvVar,
   getRedisEnvVar,
-} from './databaseSpec';
+} from './databaseSpec.js';
 import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
 
 export { GEO_OPTIONS };
@@ -63,6 +63,15 @@ export const PLANS = [
     badge: null,
   },
 ];
+
+// Additional apps use the Free tier's one-instance resource profile, but are
+// billed at the network's $0.99/month minimum. Keep id="free" so resource and
+// port restrictions remain identical to the actual deployment tier.
+export const ADDITIONAL_APP_PLAN = {
+  ...PLANS.find((plan) => plan.id === 'free'),
+  priceMonthly: 0.99,
+  isAdditionalApp: true,
+};
 
 export const CUSTOM_PLAN_DEFAULTS = { cpu: 1, ram: 2000, hdd: 10, instances: 1, priceMonthly: null };
 

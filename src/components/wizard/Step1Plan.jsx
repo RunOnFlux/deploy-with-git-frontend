@@ -1,5 +1,5 @@
 import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock } from 'lucide-react';
-import { PLANS, normalizeCustomPlan } from '../../services/deployService';
+import { ADDITIONAL_APP_PLAN, PLANS, normalizeCustomPlan } from '../../services/deployService';
 import { useApps } from '../../hooks/useApps';
 
 const PLAN_COLORS = {
@@ -28,26 +28,48 @@ const PLAN_RESOURCES = {
              { icon: Server, label: 'Instances', value: '1 – 3' }],
 };
 
-function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSelect }) {
-  const isSelected = !disabled && selected?.id === plan.id;
+function PlanCardSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-label="Loading plan eligibility"
+      className="flex flex-col gap-4 w-full border-2 border-border bg-surface p-6 animate-pulse"
+    >
+      <div className="h-20 border border-border bg-surface-hover" />
+      <div className="h-6 w-28 mx-auto bg-surface-hover" />
+      <div className="min-h-[5rem] pb-4 border-b border-border flex flex-col items-center justify-center gap-2">
+        <div className="h-5 w-20 bg-surface-hover" />
+        <div className="h-3 w-40 max-w-full bg-surface-hover" />
+      </div>
+      <div className="flex flex-col gap-2.5 flex-1">
+        {PLAN_RESOURCES.free.map((resource) => (
+          <div key={resource.label} className="h-8 bg-surface-hover" />
+        ))}
+      </div>
+      <div className="pt-1">
+        <div className="h-10 bg-surface-hover border border-border" />
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({ plan, selected, onSelect }) {
+  const isSelected = selected?.id === plan.id;
   const isRecommended = plan.badge === 'Popular';
+  const isAdditionalApp = plan.isAdditionalApp === true;
   const resources = PLAN_RESOURCES[plan.id] ?? [];
 
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={() => onSelect(plan)}
-      title={disabled ? disabledReason : undefined}
       className={`relative flex flex-col gap-4 w-full text-left border-2 p-6 ${
-        disabled
-          ? 'border-border bg-surface/70 cursor-not-allowed'
-          : isSelected
+        isSelected
           ? 'border-primary bg-primary/5 shadow-lg shadow-primary/15'
           : isRecommended
           ? 'border-primary/30 bg-surface hover:border-primary/60'
           : 'border-border bg-surface hover:border-border-light'
-      } ${disabled ? '' : ' '}`}
+      }`}
     >
       {/* Most Popular badge */}
       {isRecommended && (
@@ -85,19 +107,19 @@ function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSel
       })()}
 
       {/* First month free / Free forever pill */}
-      <div className={`flex items-center justify-center gap-1.5 px-3 py-1 border border-border text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto ${
-        disabled ? 'text-text-muted bg-surface-hover/60' : 'text-text-secondary'
-      }`}>
-        {disabled ? <Lock className="w-3 h-3 shrink-0" /> : <Gift className="w-3 h-3 shrink-0" />}
-        {disabled ? 'Unavailable' : plan.priceMonthly === 0 ? 'Free forever*' : 'First month free*'}
+      <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto text-text-secondary">
+        <Gift className="w-3 h-3 shrink-0" />
+        {isAdditionalApp
+          ? 'Additional app'
+          : plan.priceMonthly === 0
+          ? 'Free forever*'
+          : 'First month free*'}
       </div>
 
       {/* Plan header */}
       <div className="text-center pb-4 border-b border-border flex flex-col justify-center min-h-[5rem]">
         <h3 className="font-heading text-xl font-semibold text-text mb-1">{plan.label}</h3>
-        <p className={`text-sm ${disabled ? 'text-text-secondary' : 'text-text-muted'}`}>
-          {disabled ? disabledReason : plan.description}
-        </p>
+        <p className="text-sm text-text-muted">{plan.description}</p>
       </div>
 
       {/* Resource rows */}
@@ -121,18 +143,16 @@ function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSel
       {/* CTA */}
       <div className="pt-1">
         <div className={`w-full py-2.5 text-sm font-semibold text-center flex items-center justify-center gap-1.5 ${
-          disabled
-            ? 'bg-surface-hover text-text-muted border border-border'
-            : isSelected
+          isSelected
             ? 'bg-primary/10 text-primary border border-primary/30'
             : isRecommended
             ? 'bg-primary text-white'
             : 'bg-surface-hover text-text border border-border'
         }`}>
-          {disabled ? (
-            <><Lock className="w-4 h-4" /> Choose another plan</>
-          ) : isSelected ? (
+          {isSelected ? (
             <><Check className="w-4 h-4" /> Plan Selected</>
+          ) : isAdditionalApp ? (
+            <><Rocket className="w-4 h-4" /> Deploy for $0.99/mo</>
           ) : plan.priceMonthly === 0 ? (
             <><Rocket className="w-4 h-4" /> Start Deploying</>
           ) : (
@@ -145,9 +165,11 @@ function PlanCard({ plan, selected, disabled = false, disabledReason = '', onSel
 }
 
 export default function Step1Plan({ plan, onChange }) {
-  const { apps } = useApps();
-  const freePlanDisabled = apps.length >= 1;
-  const freePlanDisabledReason = 'The Free plan is available only for your first Orbit app.';
+  const { apps, loading, error } = useApps();
+  const useAdditionalAppPlan = !loading && (apps.length >= 1 || Boolean(error));
+  const displayedPlans = PLANS.map((candidate) =>
+    candidate.id === 'free' && useAdditionalAppPlan ? ADDITIONAL_APP_PLAN : candidate,
+  );
 
   function handleSelect(p) {
     if (p.id === 'custom') {
@@ -168,16 +190,13 @@ export default function Step1Plan({ plan, onChange }) {
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        {PLANS.map((p) => (
-          <PlanCard
-            key={p.id}
-            plan={p}
-            selected={plan}
-            disabled={p.id === 'free' && freePlanDisabled}
-            disabledReason={p.id === 'free' ? freePlanDisabledReason : ''}
-            onSelect={handleSelect}
-          />
-        ))}
+        {displayedPlans.map((p) =>
+          p.id === 'free' && loading ? (
+            <PlanCardSkeleton key={p.id} />
+          ) : (
+            <PlanCard key={p.id} plan={p} selected={plan} onSelect={handleSelect} />
+          ),
+        )}
       </div>
 
       {/* Disclaimer */}

@@ -1,4 +1,4 @@
-import { generatePort } from './deployService';
+import { generatePort } from './deployService.js';
 
 export const DB_TYPES = {
   postgres: {
