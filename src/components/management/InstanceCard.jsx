@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
-  RotateCcw, Play, Square, PauseCircle, PlayCircle, Trash2,
+  RotateCcw, Play, Square, Trash2,
   ChevronDown, ChevronUp, Loader2, AlertCircle, CheckCircle2, Terminal, Wrench, GitCommit,
   RefreshCcw, GitMerge, Zap, ScrollText, Database, Server,
 } from 'lucide-react';
@@ -17,8 +17,6 @@ const ACTION_BUTTONS = [
   { id: 'restart', label: 'Restart', icon: RotateCcw, variant: 'secondary' },
   { id: 'start', label: 'Start', icon: Play, variant: 'secondary' },
   { id: 'stop', label: 'Stop', icon: Square, variant: 'secondary' },
-  { id: 'pause', label: 'Pause', icon: PauseCircle, variant: 'secondary' },
-  { id: 'unpause', label: 'Unpause', icon: PlayCircle, variant: 'secondary' },
   { id: 'remove', label: 'Remove', icon: Trash2, variant: 'danger' },
 ];
 
@@ -56,12 +54,15 @@ function getAddonLogTabs(spec, appName) {
     .filter(Boolean);
 }
 
+// runningstatus is not a FluxOS field. managementService synthesises it as
+// `runningSince ? 'RUNNING' : 'STOPPED'`, so those are the only two values that
+// can arrive; the default covers a node object built somewhere that did not set
+// it at all. Arms for 'installing' and 'paused' were unreachable from the day
+// they were written - nothing has ever produced either string.
 function mapRunningStatus(runningstatus) {
   switch (runningstatus?.toLowerCase()) {
     case 'running': return 'running';
-    case 'installing': return 'installing';
     case 'stopped': return 'stopped';
-    case 'paused': return 'stopped';
     default: return 'unknown';
   }
 }

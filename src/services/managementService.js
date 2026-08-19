@@ -99,8 +99,6 @@ export const NODE_ACTIONS = {
   restart:  (app) => `/apps/apprestart/${encodeURIComponent(app)}`,
   start:    (app) => `/apps/appstart/${encodeURIComponent(app)}`,
   stop:     (app) => `/apps/appstop/${encodeURIComponent(app)}`,
-  pause:    (app) => `/apps/apppause/${encodeURIComponent(app)}`,
-  unpause:  (app) => `/apps/appunpause/${encodeURIComponent(app)}`,
   remove:   (app) => `/apps/appremove/${encodeURIComponent(app)}`,
 };
 
