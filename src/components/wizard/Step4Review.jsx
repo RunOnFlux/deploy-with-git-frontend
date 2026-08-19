@@ -338,24 +338,38 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       )}
 
       {/* Terms of Service */}
-      <div className="mt-5 p-4 border border-border bg-surface/40">
+      <div
+        className="mt-5 p-4 border border-border bg-surface/40 flex items-start gap-3 cursor-pointer"
+        onClick={() => onTermsChange?.(!termsAccepted)}
+      >
         <button
           type="button"
-          onClick={() => onTermsChange?.(!termsAccepted)}
-          className="flex items-start gap-3 w-full text-left"
+          role="checkbox"
+          aria-checked={termsAccepted}
+          aria-label="Accept the Flux Terms of Service"
+          onClick={(event) => {
+            event.stopPropagation();
+            onTermsChange?.(!termsAccepted);
+          }}
+          className="shrink-0 mt-0.5"
         >
           {termsAccepted
-            ? <CheckSquare className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            : <Square className="w-5 h-5 text-text-muted shrink-0 mt-0.5" />}
-          <span className="text-sm text-text">
-            I understand that this deployment will be submitted to the Flux blockchain and cannot be undone.
-            Environment variables are publicly visible. I agree to the{' '}
-            <a href="https://runonflux.io/terms" target="_blank" rel="noopener noreferrer"
-              className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
-              Flux Terms of Service
-            </a>.
-          </span>
+            ? <CheckSquare className="w-5 h-5 text-primary" />
+            : <Square className="w-5 h-5 text-text-muted" />}
         </button>
+        <p className="text-sm text-text">
+          I understand that this deployment will be submitted to the Flux blockchain and cannot be undone.
+          Environment variables are publicly visible. I agree to the{' '}
+          <a
+            href="https://runonflux.io/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+            onClick={(event) => event.stopPropagation()}
+          >
+            Flux Terms of Service
+          </a>.
+        </p>
       </div>
 
       <p className="text-xs text-text-muted mt-3">
