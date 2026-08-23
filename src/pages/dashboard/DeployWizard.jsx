@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
-import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort } from '../../services/deployService';
+import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, computeGeoHardware } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
-import { geolocationFromImport } from '../../services/geolocationSpec';
+import { geolocationFromImport, buildGeoSpec } from '../../services/geolocationSpec';
+import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
 import { databaseNeedsName } from '../../services/databaseSpec';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
@@ -295,8 +296,57 @@ export default function DeployWizard() {
     return true;
   }
 
-  function handleNext() {
-    if (step === 3) ensurePorts();
+  const [capacityPrompt, setCapacityPrompt] = useState(null);
+  const [verifyingCapacity, setVerifyingCapacity] = useState(false);
+  // Keyed by the whole bet, not just the locations: the same selection is a different
+  // one on a bigger plan or more copies, and a warning waved through on one must not
+  // cover the other. A ref, so the answer survives stepping back and forward.
+  const acceptedCapacity = useRef(new Set());
+
+  /**
+   * The last thing between the customer and the review-and-pay screen.
+   *
+   * The counts on the location picker come from a network-wide aggregate that can be
+   * the best part of an hour old. Fine while they are still choosing; not fine here.
+   * Three locations reading "1 free" each can be one that is free and two that were
+   * taken half an hour ago, and nothing on the screen would say so — so the BFF asks
+   * the hosts themselves before this click goes through, and only when the answer
+   * could change (see /api/deploy-capacity).
+   *
+   * It narrows the window rather than closing it. Registration, the on-chain message
+   * and Flux choosing a host are minutes more, and nothing can be reserved in advance.
+   * So it is a warning with a way past it, never a block.
+   */
+  async function handleNext() {
+    if (step !== 3) { next(); return; }
+    ensurePorts();
+    const geolocation = buildGeoSpec(config.geolocation || []);
+    // No locations picked is a legitimate answer: it deploys globally, and the whole
+    // network is the pool. There is nothing to be too narrow about.
+    if (!geolocation.length) { next(); return; }
+
+    setVerifyingCapacity(true);
+    const capacity = await fetchDeployCapacity({
+      geolocation,
+      ...computeGeoHardware(plan, config),
+      enterprise: !!(config.enterprise || repo.isPrivate),
+      instances: plan?.instances ?? 1,
+    });
+    setVerifyingCapacity(false);
+
+    // No answer means no opinion. The BFF says nothing rather than guessing, and so
+    // does this: a warning built on a request that failed is one people learn to
+    // click through, which costs us the ones that are real.
+    if (!capacity?.verdict) { next(); return; }
+    const key = [...geolocation].sort().join('|')
+      + `::${plan?.id}::${plan?.instances}::${capacity.verdict}`;
+    if (acceptedCapacity.current.has(key)) { next(); return; }
+    setCapacityPrompt({ ...capacity, key });
+  }
+
+  function acceptCapacityWarning() {
+    if (capacityPrompt) acceptedCapacity.current.add(capacityPrompt.key);
+    setCapacityPrompt(null);
     next();
   }
 
@@ -400,10 +450,10 @@ export default function DeployWizard() {
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={!canProceed()}
+                disabled={!canProceed() || verifyingCapacity}
                 className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {step === 4 ? 'Deploy →' : 'Next →'}
+                {verifyingCapacity ? 'Checking availability…' : (step === 4 ? 'Deploy →' : 'Next →')}
               </button>
             </div>
           </div>
@@ -417,6 +467,67 @@ export default function DeployWizard() {
           </div>
         )}
       </div>
+
+      {/* The picker's own notice is easy to walk past; this is the same fact where it
+          cannot be. Still not a block — "Continue anyway" is right there. */}
+      {capacityPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md border border-amber-500/40 bg-surface p-6">
+            {capacityPrompt.verdict === 'short' ? (
+              <>
+                <h4 className="text-lg font-semibold text-amber-400 mb-2">
+                  These locations cannot fit your app
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  They cover {capacityPrompt.ipCount} host{capacityPrompt.ipCount === 1 ? '' : 's'} able to
+                  run this plan, and your app runs on {capacityPrompt.instances} copies. Flux never puts two
+                  copies on the same host, so at least {capacityPrompt.instances - capacityPrompt.ipCount}{' '}
+                  {capacityPrompt.instances - capacityPrompt.ipCount === 1 ? 'copy' : 'copies'} will have
+                  nowhere to go for as long as this selection stands, and that does not resolve itself
+                  with time.
+                </p>
+              </>
+            ) : (
+              <>
+                <h4 className="text-lg font-semibold text-amber-400 mb-2">
+                  The hosts in your locations are full right now
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  {capacityPrompt.freeIpCount === 0
+                    ? `None of the ${capacityPrompt.ipCount} hosts matching your locations has room for this plan at the moment.`
+                    : `Only ${capacityPrompt.freeIpCount} of the ${capacityPrompt.ipCount} hosts matching your locations has room for this plan, and your app runs on ${capacityPrompt.instances} copies.`}{' '}
+                  Your app may sit waiting to deploy until one frees up.
+                </p>
+                {capacityPrompt.live && (
+                  <p className="text-xs text-text-muted mt-2">
+                    We asked those hosts directly just now, so this is more current than the counts on
+                    the previous screen.
+                  </p>
+                )}
+              </>
+            )}
+            <p className="text-sm text-text-muted mt-3">
+              Adding another location gives it somewhere to go.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5">
+              <button
+                type="button"
+                onClick={acceptCapacityWarning}
+                className="btn-secondary flex-1"
+              >
+                Continue anyway
+              </button>
+              <button
+                type="button"
+                onClick={() => setCapacityPrompt(null)}
+                className="btn-primary flex-1"
+              >
+                Add another location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

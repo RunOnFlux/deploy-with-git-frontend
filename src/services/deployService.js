@@ -995,3 +995,28 @@ export function pollUpdate(appName, updateHash, callbacks) {
     if (timer) clearTimeout(timer);
   };
 }
+
+/**
+ * Total per-node hardware the app needs = main plan + any enabled add-on components
+ * (they all run on the same node). Plan ram is MB, add-on resources.ram is MB, and
+ * the capacity API wants GB.
+ *
+ * Lives here rather than in the wizard step because two places must ask the identical
+ * question: the picker, which shows what each location has room for, and the wizard's
+ * Next, which confirms the selection before anyone pays for it. Two derivations would
+ * drift and the second would quietly judge a different app.
+ */
+export function computeGeoHardware(plan, config) {
+  let cpu = Number(plan?.cpu) || 0;
+  let ram = (Number(plan?.ram) || 0) / 1000; // MB → GB
+  let hdd = Number(plan?.hdd) || 0; // GB
+  const addComponent = (r) => {
+    if (!r) return;
+    cpu += Number(r.cpu) || 0;
+    ram += (Number(r.ram) || 0) / 1000; // MB → GB
+    hdd += Number(r.hdd) || 0;
+  };
+  if (config?.database?.enabled) addComponent(config.database.resources);
+  if (config?.redis?.enabled) addComponent(config.redis.resources);
+  return { cpu, ram, hdd };
+}

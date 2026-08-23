@@ -17,6 +17,7 @@ import {
 } from '../../services/deployService';
 import { fetchCurrentBlock } from '../../services/appsService';
 import { parseGeoSpec, buildGeoSpec } from '../../services/geolocationSpec';
+import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
 import GeoSelector from '../common/GeoSelector';
 import { encryptSpec } from '../../services/enterpriseCrypto';
 import { redeployAllInstances } from '../../services/managementService';
@@ -522,6 +523,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   }
 
   // ── Save / re-register ───────────────────────────────────────────────
+
   async function handleSave() {
     if (!spec || !zelidauth) return;
     setSaveError(null);
@@ -662,6 +664,62 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     } else {
       startUpdatePolling(result);
     }
+  }
+
+  /**
+   * Same question the deploy wizard asks on its way to payment, for the same reason:
+   * the counts in the picker come from an aggregate that can be the best part of an
+   * hour old, and someone editing locations here is often doing it precisely because
+   * the app did not place. Saving a selection whose hosts are already full leaves them
+   * exactly where they started.
+   *
+   * Confirmed once per verdict: a customer who has read it and chosen to go on is not
+   * asked again for the same selection.
+   */
+  const [capacityPrompt, setCapacityPrompt] = useState(null);
+  const [verifyingCapacity, setVerifyingCapacity] = useState(false);
+  const acceptedCapacity = useRef(new Set());
+
+  // The save is reached through a flag rather than called directly, so both ways in —
+  // the button, and "Save anyway" on the warning — take the identical path.
+  const [saveRequested, setSaveRequested] = useState(false);
+  useEffect(() => {
+    if (!saveRequested) return;
+    setSaveRequested(false);
+    handleSave();
+  // handleSave is a component-scope declaration; re-running on its identity would loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveRequested]);
+
+  async function requestSave() {
+    const geoTokens = buildGeoSpec(geolocation);
+    // No locations set deploys globally: the pool is the whole network, and there is
+    // nothing to be too narrow about.
+    if (!geoTokens.length) { setSaveRequested(true); return; }
+    const instances = isCustomResourceSpec(spec) ? resourceValues.instances : (spec?.instances ?? 1);
+
+    setVerifyingCapacity(true);
+    const capacity = await fetchDeployCapacity({
+      geolocation: geoTokens,
+      cpu: geoHardware?.cpu,
+      ram: geoHardware?.ram,
+      hdd: geoHardware?.hdd,
+      enterprise: geoEnterprise,
+      instances,
+    });
+    setVerifyingCapacity(false);
+
+    // No answer means no opinion, never a warning built on a request that failed.
+    if (!capacity?.verdict) { setSaveRequested(true); return; }
+    const key = `${[...geoTokens].sort().join('|')}::${instances}::${capacity.verdict}`;
+    if (acceptedCapacity.current.has(key)) { setSaveRequested(true); return; }
+    setCapacityPrompt({ ...capacity, key });
+  }
+
+  function acceptCapacityWarning() {
+    if (capacityPrompt) acceptedCapacity.current.add(capacityPrompt.key);
+    setCapacityPrompt(null);
+    setSaveRequested(true);
   }
 
   function startUpdatePolling(updateHash) {
@@ -1062,11 +1120,16 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       )}
 
       <button
-        onClick={handleSave}
-        disabled={isSaving || !isDirty()}
+        onClick={requestSave}
+        disabled={isSaving || verifyingCapacity || !isDirty()}
         className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-border text-text-secondary hover:bg-surface-hover hover:text-text disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
       >
-        {isSaving ? (
+        {verifyingCapacity ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Checking availability…
+          </>
+        ) : isSaving ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
             {phaseLabel[savePhase]}
@@ -1075,6 +1138,56 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
           <><Check className="w-4 h-4" />Apply Changes</>
         )}
       </button>
+
+      {capacityPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md border border-amber-500/40 bg-surface p-6">
+            {capacityPrompt.verdict === 'short' ? (
+              <>
+                <h4 className="text-lg font-semibold text-amber-400 mb-2">
+                  These locations cannot fit your app
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  They cover {capacityPrompt.ipCount} host{capacityPrompt.ipCount === 1 ? '' : 's'} able to
+                  run this app, and it runs on {capacityPrompt.instances} copies. Flux never puts two copies
+                  on the same host, so saving this leaves{' '}
+                  {capacityPrompt.instances - capacityPrompt.ipCount}{' '}
+                  {capacityPrompt.instances - capacityPrompt.ipCount === 1 ? 'copy' : 'copies'} with nowhere
+                  to go, and that does not resolve itself with time.
+                </p>
+              </>
+            ) : (
+              <>
+                <h4 className="text-lg font-semibold text-amber-400 mb-2">
+                  The hosts in these locations are full right now
+                </h4>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  {capacityPrompt.freeIpCount === 0
+                    ? `None of the ${capacityPrompt.ipCount} hosts these locations cover has room for this app at the moment.`
+                    : `Only ${capacityPrompt.freeIpCount} of the ${capacityPrompt.ipCount} hosts these locations cover has room, and this app runs on ${capacityPrompt.instances} copies.`}{' '}
+                  Saving this leaves your app waiting until one frees up.
+                </p>
+                {capacityPrompt.live && (
+                  <p className="text-xs text-text-muted mt-2">
+                    We asked those hosts directly just now, so this is more current than the counts above.
+                  </p>
+                )}
+              </>
+            )}
+            <p className="text-sm text-text-muted mt-3">
+              Adding another location gives it somewhere to go.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5">
+              <button type="button" onClick={acceptCapacityWarning} className="btn-secondary flex-1">
+                Save anyway
+              </button>
+              <button type="button" onClick={() => setCapacityPrompt(null)} className="btn-primary flex-1">
+                Add another location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>{/* end pinned footer */}
     </div>
   );

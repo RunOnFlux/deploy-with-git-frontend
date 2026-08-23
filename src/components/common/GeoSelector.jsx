@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { GEO_OPTIONS, labelForGeoCode } from '../../services/geolocationSpec';
-import { useDeployCapacity } from '../../hooks/useNetworkStats';
+import { useEffect, useMemo, useState } from 'react';
+import { GEO_OPTIONS, labelForGeoCode, buildGeoSpec } from '../../services/geolocationSpec';
+import { useDeployCapacity, fetchDeployCapacity } from '../../hooks/useNetworkStats';
 
 // Countries where a region can be picked. The US on purpose and only the US:
 // it is where distance inside one country actually costs the player latency
@@ -14,11 +14,21 @@ const MIN_REGIONS_TO_OFFER = 2;
 
 /**
  * Capacity-aware geolocation picker. Mirrors the FluxOS / sibling-site location
- * step: only continents/countries that can actually host THIS app are offered —
- * nodes are filtered by the plan's hardware (after the node OS reserve) and, for
- * enterprise apps, by arcaneVersion support. Locations are annotated with both a
- * node count and a unique public-IP count, and only qualify when they hold enough
- * distinct IPs for the instance count (Flux spreads instances across distinct IPs).
+ * step: nodes are filtered by the plan's hardware (after the node OS reserve) and,
+ * for enterprise apps, by arcaneVersion support, and every location that keeps at
+ * least one such node is offered.
+ *
+ * Every location, deliberately. A per-location gate on the instance count asks the
+ * wrong question and used to live here: Flux places into the POOL of allowed
+ * locations, so Portugal's 2 IPs and Spain's 20 are 22 candidates and a 3-instance
+ * app places fine across them. Judging each option alone hid selections that work
+ * and made "prefer Iberia" impossible to express. The rule that replaced it: hide
+ * what can never work (too small for the plan), show what is merely full, and judge
+ * the SELECTION as a whole — the line below the pickers, and again on the way to
+ * committing, where it is confirmed against the nodes themselves.
+ *
+ * Each option carries how many of its host servers have room right NOW, which is the
+ * number that decides anything; the total it is out of says how deep the location is.
  * Falls back to the static continent list if network data isn't available yet. Each
  * added location can be toggled allowed/forbidden (an Orbit-specific feature).
  *
@@ -39,7 +49,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
   const selectedCodes = useMemo(() => new Set(selected.map((g) => g.code)), [selected]);
   const wholeContinentAdded = continent && selectedCodes.has(continent);
 
-  // Continents with enough unique IPs for the instance count, not already added.
+  // Every continent with a node that fits the plan, not already added.
   const continentOptions = useMemo(() => {
     if (!geo) {
       // Fallback: static continents, no capacity info.
@@ -48,19 +58,18 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
         .map((o) => ({ code: o.code, name: o.label, nodeCount: null, ipCount: null }));
     }
     return geo.continents
-      .filter((c) => c.ipCount >= instances && !selectedCodes.has(c.code))
-      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount }));
-  }, [geo, instances, selectedCodes]);
+      .filter((c) => !selectedCodes.has(c.code))
+      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount, freeIpCount: c.freeIpCount }));
+  }, [geo, selectedCodes]);
 
-  // Countries in the chosen continent with enough unique IPs, not already added.
+  // Every country in the chosen continent with a node that fits, not already added.
   const countryOptions = useMemo(() => {
     if (!geo || !continent || wholeContinentAdded) return [];
     return geo.countries
       .filter((c) => c.continentCode === continent
-        && c.ipCount >= instances
         && !selectedCodes.has(`${continent}_${c.code}`))
-      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount }));
-  }, [geo, continent, instances, selectedCodes, wholeContinentAdded]);
+      .map((c) => ({ code: c.code, name: c.name, nodeCount: c.nodeCount, ipCount: c.ipCount, freeIpCount: c.freeIpCount }));
+  }, [geo, continent, selectedCodes, wholeContinentAdded]);
 
   const wholeCountryAdded = Boolean(country) && selectedCodes.has(`${continent}_${country}`);
 
@@ -75,9 +84,39 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
         && r.countryCode === country
         && r.ipCount >= instances + REGION_IP_HEADROOM
         && !selectedCodes.has(`${continent}_${country}_${r.code}`))
-      .map((r) => ({ code: r.code, name: r.name, nodeCount: r.nodeCount, ipCount: r.ipCount }));
+      .map((r) => ({ code: r.code, name: r.name, nodeCount: r.nodeCount, ipCount: r.ipCount, freeIpCount: r.freeIpCount }));
     return opts.length >= MIN_REGIONS_TO_OFFER ? opts : [];
   }, [geo, continent, country, instances, selectedCodes, wholeContinentAdded, wholeCountryAdded]);
+
+  /**
+   * Capacity of the SELECTION, refreshed as it is edited.
+   *
+   * `probe: false`: a round of requests to the nodes on every edit would be absurd,
+   * and the cached aggregate is exactly what that is for. The commit points — the
+   * wizard's Next and the spec editor's Save — ask with probing on, which is where
+   * being half an hour behind would actually cost someone something.
+   */
+  const [selectionCapacity, setSelectionCapacity] = useState(null);
+  const geoTokens = useMemo(() => buildGeoSpec(selected), [selected]);
+  const geoKey = geoTokens.join('|');
+  useEffect(() => {
+    if (!geoTokens.length) { setSelectionCapacity(null); return undefined; }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchDeployCapacity({
+        geolocation: geoTokens,
+        cpu: hardware?.cpu,
+        ram: hardware?.ram,
+        hdd: hardware?.hdd,
+        enterprise,
+        instances,
+        probe: false,
+      }, controller.signal).then((c) => { if (!controller.signal.aborted) setSelectionCapacity(c); });
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  // geoKey stands in for geoTokens, which is a fresh array on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geoKey, hardware?.cpu, hardware?.ram, hardware?.hdd, enterprise, instances]);
 
   function addLocation() {
     if (!continent) return;
@@ -119,7 +158,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           <option value="">Select continent…</option>
           {continentOptions.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.name}{c.ipCount != null ? ` · ${c.nodeCount.toLocaleString()} nodes · ${c.ipCount.toLocaleString()} IPs` : ''}
+              {c.name}{c.ipCount != null ? ` · ${c.freeIpCount.toLocaleString()} of ${c.ipCount.toLocaleString()} hosts free` : ''}
             </option>
           ))}
         </select>
@@ -136,7 +175,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
           </option>
           {countryOptions.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.name} · {c.nodeCount.toLocaleString()} nodes · {c.ipCount.toLocaleString()} IPs
+              {c.name} · {c.freeIpCount.toLocaleString()} of {c.ipCount.toLocaleString()} hosts free
             </option>
           ))}
         </select>
@@ -163,7 +202,7 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
             <option value="">Any region</option>
             {regionOptions.map((r) => (
               <option key={r.code} value={r.code}>
-                {r.name} · {r.nodeCount.toLocaleString()} nodes · {r.ipCount.toLocaleString()} IPs
+                {r.name} · {r.freeIpCount.toLocaleString()} of {r.ipCount.toLocaleString()} hosts free
               </option>
             ))}
           </select>
@@ -178,9 +217,42 @@ export default function GeoSelector({ selected, onChange, disabled = false, inst
       {/* Tip: multiple locations ⇒ more distinct hosts ⇒ a guaranteed, faster deploy */}
       <p className="text-xs text-text-muted leading-relaxed">
         <span className="text-amber-400 font-medium">Tip:</span> add several locations to give your deployment
-        more distinct hosts to land on. Each instance needs its own public IP, so the <span className="font-medium">IP
-        count</span>, rather than the node count, is what guarantees the deployment. More choices also make deployment faster.
+        more distinct hosts to land on. Flux never puts two copies on the same host, so what decides a
+        deployment is how many hosts are <span className="font-medium">free</span> across everything you
+        pick, not how many exist. More choices also make deployment faster.
       </p>
+
+      {/* Capacity of the whole selection — the only level at which the question means
+          anything, since Flux places into the pool of everything picked. */}
+      {selectionCapacity && (
+        selectionCapacity.verdict === 'short' ? (
+          <p className="text-xs text-amber-400 leading-relaxed">
+            These locations cover {selectionCapacity.ipCount} host{selectionCapacity.ipCount === 1 ? '' : 's'} able
+            to run this app, and it runs on {selectionCapacity.instances} copies. At
+            least {selectionCapacity.instances - selectionCapacity.ipCount}{' '}
+            {selectionCapacity.instances - selectionCapacity.ipCount === 1 ? 'copy' : 'copies'} will have
+            nowhere to go for as long as this selection stands, and that does not resolve itself with time.
+          </p>
+        ) : selectionCapacity.verdict === 'full' ? (
+          <p className="text-xs text-amber-400 leading-relaxed">
+            {selectionCapacity.freeIpCount === 0
+              ? `None of the ${selectionCapacity.ipCount} hosts in your locations has room for this app right now.`
+              : `Only ${selectionCapacity.freeIpCount} of the ${selectionCapacity.ipCount} hosts in your locations has room right now, and this app runs on ${selectionCapacity.instances} copies.`}{' '}
+            Add another location so every copy has somewhere to go.
+          </p>
+        ) : selectionCapacity.freeIpCount <= selectionCapacity.instances ? (
+          <p className="text-xs text-amber-400 leading-relaxed">
+            {selectionCapacity.freeIpCount} of the {selectionCapacity.ipCount} hosts in your
+            locations {selectionCapacity.freeIpCount === 1 ? 'has' : 'have'} room, which is exactly what
+            this app needs and nothing spare. If one fills up before you deploy, a copy has nowhere to go.
+          </p>
+        ) : (
+          <p className="text-xs text-text-muted leading-relaxed">
+            {selectionCapacity.freeIpCount} of {selectionCapacity.ipCount} hosts in your locations have
+            room for this app right now.
+          </p>
+        )
+      )}
 
       {/* Selected locations */}
       {selected.length > 0 ? (

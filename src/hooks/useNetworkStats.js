@@ -86,6 +86,44 @@ export function useDeployCapacity({ cpu, ram, hdd, enterprise } = {}) {
   return { geo, loading };
 }
 
+/**
+ * Can THIS selection of locations host THIS app?
+ *
+ * Judged on the selection as a whole, never on a single location in it: Flux places
+ * into the pool of every allowed location, so Portugal's 2 IPs and Spain's 20 are 22
+ * candidates and the app places fine. The BFF does the arithmetic and, unless
+ * `probe` is false, confirms a thin answer against the nodes themselves before
+ * anyone commits to it.
+ *
+ * @param {{ geolocation: string[], cpu?: number, ram?: number, hdd?: number,
+ *           enterprise?: boolean, instances?: number, probe?: boolean }} req
+ * @returns {Promise<null|{nodeCount:number, ipCount:number, freeIpCount:number,
+ *           instances:number, live:boolean, verdict:'short'|'full'|null}>}
+ *          null when the BFF could not answer — callers keep quiet rather than guess.
+ */
+export async function fetchDeployCapacity({ geolocation, cpu, ram, hdd, enterprise, instances, probe = true }, signal) {
+  try {
+    const r = await fetch('/api/deploy-capacity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        geolocation: geolocation || [],
+        cpu: cpu || 0,
+        ram: ram || 0,
+        hdd: hdd || 0,
+        enterprise: !!enterprise,
+        instances: instances || 1,
+        probe,
+      }),
+      signal,
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
 /** Round to the nearest thousand for a clean marketing figure, e.g. 6973 → "7,000+". */
 export function formatNodeCount(stats) {
   if (!stats?.total) return 'thousands of';

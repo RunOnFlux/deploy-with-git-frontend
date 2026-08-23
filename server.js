@@ -299,14 +299,77 @@ app.get('/api/config', (_req, res) => {
  * browser never talks to Flux infra directly).
  */
 // Enterprise apps (encrypted compose) can only run on nodes reporting an
-// arcaneVersion; both enterprise and standard apps need benchmark (hardware) to
-// size nodes. NOTE: `flux` MUST come last — the stats API returns an internal
-// error when `flux` is the first projection field.
-const FLUX_STATS_URL = 'https://stats.runonflux.io/fluxinfo?projection=geolocation,benchmark,flux';
+// arcaneVersion. Nested field projections keep the payload to ~2.3 MB while
+// carrying more than the old `geolocation,benchmark,flux` request did: what each
+// node measures on ITSELF (apps.fluxusage.nodeSpecs — os.cpus(), os.totalmem(),
+// the benchmarked ssd) and what its apps have already reserved (apps.resources,
+// the same payload a node serves from its own /apps/appsresources). That second
+// block is the whole point: the benchmark says how big a node is, never how much
+// of it is still free. NOTE: the `flux` SUBTREE must come last in a projection or
+// the stats API 500s; the nested `flux.ip` form below is exempt.
+const FLUX_STATS_URL = 'https://stats.runonflux.io/fluxinfo?projection='
+  + [
+    'flux.ip',
+    'flux.arcaneVersion',
+    'geolocation.continentCode',
+    'geolocation.countryCode',
+    'geolocation.continent',
+    'geolocation.country',
+    'geolocation.regionName',
+    'geolocation.lat',
+    'geolocation.lon',
+    'apps.resources',
+    'apps.fluxusage.nodeSpecs',
+  ].join(',');
 const NETWORK_STATS_TTL = 30 * 60 * 1000; // 30 min
 // Resources reserved for each node's OS/FluxOS — an app can only use what's left.
+// Mirrors FluxOS's config.lockedSystemResources: cpu 10 (tenths), ram 2000 MB,
+// hdd 60 plus extrahdd 20.
 const OS_RESERVE = { cores: 1, ram: 2, ssd: 80 };
+// FluxOS only ever offers 95% of a node's disk to apps before subtracting the
+// reserve (totalSpaceOnNode * 0.95 - hdd - extrahdd in checkAppHWRequirements).
+// Leaving it out counted roughly 11 GB per 220 GB node that is never handed out.
+const DISK_USABLE_FACTOR = 0.95;
 let rawNodesCache = null; // { nodes, landing, timestamp }
+
+/** What a node can offer apps in total, before anything is placed on it. */
+function totalForApps(n) {
+  return {
+    cpu: n.cores - OS_RESERVE.cores,
+    ram: n.ram - OS_RESERVE.ram,
+    hdd: n.ssd * DISK_USABLE_FACTOR - OS_RESERVE.ssd,
+  };
+}
+
+/** Big enough to host the app at all, ignoring what is already on it. */
+function nodeFitsApp(n, hw, enterprise) {
+  if (!n.cores) return false; // no self-report → cannot be sized
+  if (enterprise && !n.arcane) return false;
+  const t = totalForApps(n);
+  return t.cpu >= hw.cpu && t.ram >= hw.ram && t.hdd >= hw.hdd;
+}
+
+/**
+ * Room for the app ON TOP of what the node already runs, against a reading of its
+ * reserved resources. These three lines are FluxOS's checkAppHWRequirements.
+ *
+ * Deliberately NOT modelled: the CPU burst headroom FluxOS reserves for enterprise
+ * apps. This number is advisory and cpu/ram/disk are what customers can reason
+ * about, but it does mean the count runs optimistic for enterprise apps.
+ */
+function roomFor(n, used, hw) {
+  const t = totalForApps(n);
+  return (t.cpu - used.cpu) >= hw.cpu
+    && (t.ram - used.ram) >= hw.ram
+    && (t.hdd - used.hdd) >= hw.hdd;
+}
+
+/** Room according to the cached aggregate. No reading means no opinion, never "free". */
+function nodeHasRoom(n, hw, enterprise) {
+  if (!nodeFitsApp(n, hw, enterprise)) return false;
+  if (!n.used) return false;
+  return roomFor(n, n.used, hw);
+}
 
 /**
  * Flatten the raw stats list into the minimal per-node shape we need for both the
@@ -317,7 +380,9 @@ let rawNodesCache = null; // { nodes, landing, timestamp }
 function normalizeRawNodes(nodes) {
   return nodes.map((node) => {
     const g = node.geolocation || {};
-    const b = (node.benchmark && node.benchmark.bench) || {};
+    const apps = node.apps || {};
+    const specs = (apps.fluxusage && apps.fluxusage.nodeSpecs) || {};
+    const used = apps.resources;
     const rawIp = (node.flux && node.flux.ip) || g.ip || '';
     return {
       continentCode: g.continentCode || null,
@@ -329,10 +394,24 @@ function normalizeRawNodes(nodes) {
       lat: parseFloat(g.lat),
       lon: parseFloat(g.lon),
       ip: rawIp.split(':')[0] || null,
-      cores: b.cores || 0,
-      ram: b.ram || 0, // GB
-      ssd: b.ssd || 0, // GB
+      // Kept whole as well as split: this is the only place the node's API PORT
+      // appears, and one public IP routinely hosts several nodes on other ports.
+      apiIp: rawIp || null,
+      cores: specs.cpuCores || 0,
+      // nodeSpecs.ram is MB and app specs are MB too — /1000, not /1024, so this
+      // stays in the units the plans are expressed in.
+      ram: specs.ram ? specs.ram / 1000 : 0, // GB
+      ssd: specs.ssdStorage || 0, // GB
       arcane: !!(node.flux && node.flux.arcaneVersion),
+      // What apps on this node have already reserved. Null when the node did not
+      // report — a node with no reading is never counted as free.
+      used: used && typeof used.appsCpusLocked === 'number'
+        ? {
+            cpu: used.appsCpusLocked || 0,
+            ram: (used.appsRamLocked || 0) / 1000, // GB
+            hdd: used.appsHddLocked || 0, // GB
+          }
+        : null,
     };
   });
 }
@@ -375,56 +454,54 @@ function computeLanding(nodes) {
 }
 
 /**
- * Per-continent / per-country capacity for the deploy location picker. Counts both
- * nodes AND unique public IPs (the real placement constraint — Flux spreads an
- * app's instances across distinct IPs). When a hardware/enterprise filter is given,
- * only nodes that can actually host the app (after the OS reserve) are counted.
+ * Per-continent / per-country capacity for the deploy location picker.
+ *
+ * Three numbers per location, and the third is the one that decides anything:
+ * `nodeCount` is how many nodes match, `ipCount` how many DISTINCT public IPs they
+ * sit behind (Flux places one instance per IP, so several nodes on one IP are one
+ * place for a copy to land), and `freeIpCount` how many of those have room for this
+ * app right now rather than merely being big enough for it.
+ *
+ * Sorted by what has room, with depth as the tie-break, so a full location sinks to
+ * the bottom instead of ranking on a count that cannot be used.
  * @param {null | {cpu:number, ram:number, hdd:number, enterprise:boolean}} filter
  */
 function computeGeoBreakdown(nodes, filter) {
   const fits = (n) => {
     if (!n.continentCode || !n.countryCode) return false;
     if (!filter) return true;
-    if (!n.cores) return false; // no benchmark → can't be sized when filtering
-    if (filter.enterprise && !n.arcane) return false;
-    if (n.cores - OS_RESERVE.cores < filter.cpu) return false;
-    if (n.ram - OS_RESERVE.ram < filter.ram) return false;
-    if (n.ssd - OS_RESERVE.ssd < filter.hdd) return false;
-    return true;
+    return nodeFitsApp(n, filter, filter.enterprise);
   };
-  const conts = new Map(); // code -> { code, name, nodeCount, ips:Set }
-  const countries = new Map(); // `${cont}_${cc}` -> { continentCode, code, name, nodeCount, ips:Set }
+  const blank = (rest) => ({ ...rest, nodeCount: 0, ips: new Set(), freeIps: new Set() });
+  const conts = new Map();
+  const countries = new Map();
   // `${cont}_${cc}_${regionName}` — FluxOS's third geolocation level, matched
   // against the node's regionName verbatim, so it is carried through untouched.
   const regions = new Map();
+  const add = (m, key, rest, n, hasRoom) => {
+    if (!m.has(key)) m.set(key, blank(rest));
+    const a = m.get(key);
+    a.nodeCount++;
+    if (!n.ip) return;
+    a.ips.add(n.ip);
+    if (hasRoom) a.freeIps.add(n.ip);
+  };
   for (const n of nodes) {
     if (!fits(n)) continue;
-    if (!conts.has(n.continentCode)) {
-      conts.set(n.continentCode, { code: n.continentCode, name: n.continent, nodeCount: 0, ips: new Set() });
-    }
-    const c = conts.get(n.continentCode);
-    c.nodeCount++; if (n.ip) c.ips.add(n.ip);
+    // Read once per node rather than once per aggregate it belongs to.
+    const hasRoom = filter ? nodeHasRoom(n, filter, filter.enterprise) : false;
+    add(conts, n.continentCode, { code: n.continentCode, name: n.continent }, n, hasRoom);
     const key = `${n.continentCode}_${n.countryCode}`;
-    if (!countries.has(key)) {
-      countries.set(key, { continentCode: n.continentCode, code: n.countryCode, name: n.country, nodeCount: 0, ips: new Set() });
-    }
-    const cc = countries.get(key);
-    cc.nodeCount++; if (n.ip) cc.ips.add(n.ip);
-
+    add(countries, key, { continentCode: n.continentCode, code: n.countryCode, name: n.country }, n, hasRoom);
     if (!n.regionName) continue; // can't be placed by region — country is as deep as it goes
-    const regKey = `${key}_${n.regionName}`;
-    if (!regions.has(regKey)) {
-      regions.set(regKey, {
-        continentCode: n.continentCode, countryCode: n.countryCode,
-        code: n.regionName, name: n.regionName, nodeCount: 0, ips: new Set(),
-      });
-    }
-    const rr = regions.get(regKey);
-    rr.nodeCount++; if (n.ip) rr.ips.add(n.ip);
+    add(regions, `${key}_${n.regionName}`, {
+      continentCode: n.continentCode, countryCode: n.countryCode,
+      code: n.regionName, name: n.regionName,
+    }, n, hasRoom);
   }
   const finalize = (m) => [...m.values()]
-    .map(({ ips, ...rest }) => ({ ...rest, ipCount: ips.size }))
-    .sort((a, b) => b.ipCount - a.ipCount);
+    .map(({ ips, freeIps, ...rest }) => ({ ...rest, ipCount: ips.size, freeIpCount: freeIps.size }))
+    .sort((a, b) => b.freeIpCount - a.freeIpCount || b.ipCount - a.ipCount);
   return { continents: finalize(conts), countries: finalize(countries), regions: finalize(regions) };
 }
 
@@ -440,6 +517,255 @@ async function getRawNodes() {
   rawNodesCache = { nodes, landing: computeLanding(nodes), timestamp: Date.now() };
   return rawNodesCache;
 }
+
+/**
+ * Does a node satisfy one geolocation entry?
+ *
+ * FluxOS encodes allowed locations as `ac<CONT>[_<COUNTRY>[_<REGION>]]` and forbidden
+ * ones as `a!c<CONT>[_...]`. Orbit lets a customer mark either, so both are honoured.
+ */
+function matchesGeoEntry(n, entry) {
+  const negative = entry.startsWith('a!c');
+  const code = entry.replace(/^a!?c/, '');
+  const [cont, country, ...regionParts] = code.split('_');
+  // Region names legitimately contain underscores, so rejoin everything past the country.
+  const region = regionParts.join('_');
+  let hit = n.continentCode === cont;
+  if (hit && country) hit = n.countryCode === country;
+  if (hit && region) hit = n.regionName === region;
+  return { hit, negative };
+}
+
+/** Nodes allowed by a whole `geolocation` array (empty array = anywhere). */
+function nodesInGeolocation(nodes, geolocation) {
+  const entries = (geolocation || []).filter((e) => typeof e === 'string' && e);
+  if (!entries.length) return nodes;
+  const allow = entries.filter((e) => !e.startsWith('a!c'));
+  return nodes.filter((n) => {
+    for (const entry of entries) {
+      const { hit, negative } = matchesGeoEntry(n, entry);
+      if (hit && negative) return false;
+    }
+    if (!allow.length) return true; // only exclusions were set
+    return allow.some((entry) => matchesGeoEntry(n, entry).hit);
+  });
+}
+
+// ── Live confirmation ────────────────────────────────────────────────────────
+//
+// The aggregate above is not live. A stats round over the whole network completes
+// about every 13 minutes, /fluxinfo is cached 10 minutes upstream and this process
+// caches 30 more, so a count can be the best part of an hour old. That is fine
+// while someone is still choosing locations and not fine at the click that takes
+// their money: three locations reading "1 free" each can be one that is free and
+// two that were taken half an hour ago, and nothing on the screen would say so.
+//
+// So the commit points ask the nodes themselves. It is a smaller question than the
+// aggregate answers -- "are there still at least this many", which can stop the
+// moment the answer is yes, rather than "how many are free", which needs every
+// candidate measured. A selection of four host servers and one of four hundred both
+// settle in a handful of requests.
+//
+// Probed here rather than in the browser so one cache serves every visitor, and
+// because the BFF is where this app talks to Flux infrastructure.
+const PROBE_TIMEOUT_MS = 4000;
+const PROBE_BATCH = 8;
+const MAX_LIVE_PROBES = 24;
+const LIVE_BUDGET_MS = 6000;
+const PROBE_CACHE_TTL_MS = 60 * 1000;
+/** How much spare the cached reading must show before a live check is skipped. */
+const LIVE_CHECK_MARGIN = 3;
+const liveUsageCache = new Map(); // apiIp -> { at, used|null }
+
+/** `1.2.3.4:16127` → `https://1-2-3-4-16127.node.api.runonflux.io` */
+function nodeApiBase(ip) {
+  if (!ip) return null;
+  const [host, port = '16127'] = String(ip).split(':');
+  return `https://${host.replace(/\./g, '-')}-${port}.node.api.runonflux.io`;
+}
+
+/**
+ * Ask one node what its apps have reserved, right now. `/apps/appsresources` is
+ * public and cached node-side for 30s.
+ *
+ * Returns null for unknown, and unknown must never read as "full": a warning built
+ * on a request that failed is a guess, and a guess is what teaches people to click
+ * through the ones that are real.
+ */
+async function probeNodeUsage(node) {
+  const key = node.apiIp || node.ip;
+  const base = nodeApiBase(key);
+  if (!base) return null;
+  const hit = liveUsageCache.get(key);
+  if (hit && Date.now() - hit.at < PROBE_CACHE_TTL_MS) return hit.used;
+
+  let used = null;
+  try {
+    const r = await fetch(`${base}/apps/appsresources`, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+    const body = await r.json();
+    const d = body && body.data;
+    if (body && body.status === 'success' && d && typeof d.appsCpusLocked === 'number') {
+      used = {
+        cpu: d.appsCpusLocked,
+        ram: (Number(d.appsRamLocked) || 0) / 1000, // the node reports MB, like the aggregate
+        hdd: Number(d.appsHddLocked) || 0,
+      };
+    }
+  } catch { /* unreachable, timed out or malformed — stays unknown */ }
+  // Failures are cached too: a node that just spent four seconds timing out is not
+  // worth the same four on the next customer's click.
+  liveUsageCache.set(key, { at: Date.now(), used });
+  return used;
+}
+
+/**
+ * One node per unique IP, best bet first.
+ *
+ * Flux places one copy per IP, so an IP is settled by a single node with room and
+ * there is nothing to learn from asking its neighbours. The node worth asking is the
+ * one the cached reading rates highest: for an IP that reads free, a node with room;
+ * for one that reads full, whichever came closest, since that is the likeliest to
+ * have been freed since. Free-looking IPs first because they are what a confirmation
+ * needs, each group shuffled so every request does not question the same node.
+ */
+function probeTargets(candidates, hw, enterprise) {
+  const best = new Map();
+  for (const n of candidates) {
+    if (!n.ip) continue;
+    const room = nodeHasRoom(n, hw, enterprise);
+    // RAM decides most of these, so it is the tie-break.
+    const spare = n.used ? totalForApps(n).ram - n.used.ram : -Infinity;
+    const cur = best.get(n.ip);
+    if (!cur || (room && !cur.room) || (room === cur.room && spare > cur.spare)) {
+      best.set(n.ip, { node: n, room, spare });
+    }
+  }
+  const shuffle = (arr) => {
+    for (let i = arr.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  const entries = [...best.values()];
+  return [...shuffle(entries.filter((e) => e.room)), ...shuffle(entries.filter((e) => !e.room))];
+}
+
+/**
+ * Confirm against the nodes themselves that a selection still has room for `need`
+ * copies.
+ *
+ * @returns {Promise<null|{freeIpCount:number, complete:boolean}>} null when we could
+ *   not tell and the cached verdict must stand: the budget ran out before enough was
+ *   confirmed, or a node never answered while the ones that did were not enough on
+ *   their own. Both are unknown, not full. `complete` is true only when every
+ *   candidate IP answered, the only case where `freeIpCount` is an exact count
+ *   rather than a floor, and so the only case worth putting on a screen.
+ */
+async function confirmFreeIpCount(candidates, hw, enterprise, need) {
+  if (!(need > 0)) return { freeIpCount: 0, complete: true };
+  const targets = probeTargets(candidates, hw, enterprise);
+  if (!targets.length) return { freeIpCount: 0, complete: true };
+
+  const deadline = Date.now() + LIVE_BUDGET_MS;
+  let confirmed = 0;
+  let asked = 0;
+  let failed = 0;
+  while (confirmed < need && asked < targets.length
+    && asked < MAX_LIVE_PROBES && Date.now() < deadline) {
+    const batch = targets.slice(asked, asked + PROBE_BATCH);
+    asked += batch.length;
+    const readings = await Promise.all(batch.map((t) => probeNodeUsage(t.node)));
+    readings.forEach((used, i) => {
+      if (!used) { failed += 1; return; }
+      if (roomFor(batch[i].node, used, hw)) confirmed += 1;
+    });
+  }
+  if (confirmed >= need) return { freeIpCount: confirmed, complete: asked === targets.length && !failed };
+  // Short of the target with questions left unasked, or with a node that never
+  // answered among the ones we did ask: either could hide the copy that decides it.
+  if (asked < targets.length || failed) return null;
+  return { freeIpCount: confirmed, complete: true };
+}
+
+/**
+ * POST /api/deploy-capacity
+ * Whether ONE selection of locations can host ONE app, judged as a whole.
+ *
+ * Capacity is a property of the selection, never of a single location in it: Flux
+ * places into the pool of every allowed location, so Portugal's 2 IPs and Spain's 20
+ * are 22 candidates and the app places fine. Any per-location gate asks the wrong
+ * question -- which is why the picker offers everything with a node that fits, and
+ * the judgement happens here, once, on the way to committing.
+ *
+ * Body: { geolocation: string[] (Flux `ac…` / `a!c…` tokens), cpu, ram, hdd,
+ *         enterprise, instances, probe = true }
+ * Returns { nodeCount, ipCount, freeIpCount, instances, live, verdict } where verdict
+ * is 'short' (the selection can never hold the copies, permanent), 'full' (the host
+ * servers exist and are occupied, about right now) or null.
+ */
+app.post('/api/deploy-capacity', express.json(), async (req, res) => {
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+  const body = req.body || {};
+  const hw = { cpu: num(body.cpu), ram: num(body.ram), hdd: num(body.hdd) };
+  const enterprise = body.enterprise === true || body.enterprise === '1' || body.enterprise === 'true';
+  const instances = Math.max(1, Math.round(num(body.instances)) || 1);
+  const geolocation = Array.isArray(body.geolocation) ? body.geolocation : [];
+
+  let nodes;
+  try {
+    ({ nodes } = await getRawNodes());
+  } catch (err) {
+    console.error('deploy-capacity error:', err.message);
+    if (!rawNodesCache) return res.status(502).json({ status: 'error', message: 'Could not load network stats' });
+    nodes = rawNodesCache.nodes;
+  }
+
+  const candidates = nodesInGeolocation(nodes, geolocation)
+    .filter((n) => n.continentCode && n.countryCode && nodeFitsApp(n, hw, enterprise) && n.ip);
+  const ips = new Set(candidates.map((n) => n.ip));
+  const freeIps = new Set(candidates.filter((n) => nodeHasRoom(n, hw, enterprise)).map((n) => n.ip));
+  let freeIpCount = freeIps.size;
+  let live = false;
+
+  // Only when the answer could change. A selection with room to spare is not worth
+  // the wait -- every one of those host servers would have to fill inside the same
+  // half hour -- and 'short' is arithmetic over unique IPs no live reading can move.
+  // `probe: false` is the location picker asking as the customer edits, where a
+  // round of requests per keystroke would be absurd and the cached figure is what
+  // the aggregate is for. The commit points leave it on.
+  const worthChecking = body.probe !== false
+    && ips.size >= instances
+    && freeIpCount - instances <= LIVE_CHECK_MARGIN;
+  if (worthChecking) {
+    const confirmed = await confirmFreeIpCount(candidates, hw, enterprise, instances);
+    if (confirmed && confirmed.complete) {
+      // Every candidate answered: an exact count, measured, and it replaces the cache.
+      freeIpCount = confirmed.freeIpCount;
+      live = true;
+    } else if (confirmed) {
+      // Stopped early because enough was already confirmed: a floor, not a count. It
+      // cannot correct the cached figure, but the cached figure must not contradict
+      // it either -- a stale 'full' does not stand against copies proven to have
+      // somewhere to go. `live` stays false: this number was not the one measured.
+      freeIpCount = Math.max(freeIpCount, confirmed.freeIpCount);
+    }
+    // confirmed === null: could not tell, so the cached verdict stands untouched.
+  }
+
+  let verdict = null;
+  if (ips.size < instances) verdict = 'short';
+  else if (freeIpCount < instances) verdict = 'full';
+
+  res.json({
+    nodeCount: candidates.length,
+    ipCount: ips.size,
+    freeIpCount,
+    instances,
+    live,
+    verdict,
+  });
+});
 
 app.get('/api/network-stats', async (req, res) => {
   // Optional capacity filter (deploy wizard / spec editor): only count nodes that
