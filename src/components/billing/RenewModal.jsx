@@ -22,6 +22,7 @@ import {
   usesStripeSubscription,
 } from '../../services/deployService';
 import { getRuntimeConfig } from '../../config/runtimeConfig.js';
+import { fetchPendingAppUpdate } from '../../services/managementService';
 
 function buildRenewalSpec(rawSpec, expireBlocks) {
   // Keep only valid Flux app spec fields, replacing expire
@@ -214,6 +215,16 @@ function SigningStep({ rawSpec, period, onDone, onError }) {
     ran.current = true;
 
     async function run() {
+      // Refuse while another update for this app is still confirming. The renewal is
+      // built from the CONFIRMED spec, so a settings change already in flight would land
+      // afterwards carrying the pre-renewal expiry and wipe the time just bought. The
+      // check belongs here rather than at modal open: the customer may have spent minutes
+      // choosing a period, and it is the moment of signing that decides the collision.
+      if (await fetchPendingAppUpdate(rawSpec.name)) {
+        onError('This app has a change still being confirmed on-chain. Please wait about two minutes and renew again — renewing now could be overwritten.');
+        return;
+      }
+
       const spec = buildRenewalSpec(rawSpec, period.expireBlocks);
 
       // 1. Verify
@@ -556,9 +567,12 @@ export default function RenewModal({ app, currentBlock, onClose }) {
   const [txid, setTxid] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // The spec fetched below wins over the app-list copy, which comes from a query with a
+  // five-minute staleTime: two renewals in quick succession would otherwise compute the
+  // second from the height and expire that preceded the first, and buy the same time twice.
   const blocksRemaining = useMemo(
-    () => getBlocksRemaining(app.height, app.expire, currentBlock),
-    [app.height, app.expire, currentBlock],
+    () => getBlocksRemaining(rawSpec?.height ?? app.height, rawSpec?.expire ?? app.expire, currentBlock),
+    [rawSpec, app.height, app.expire, currentBlock],
   );
 
   const renewalOptions = useMemo(

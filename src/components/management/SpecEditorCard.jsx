@@ -20,7 +20,7 @@ import { parseGeoSpec, buildGeoSpec } from '../../services/geolocationSpec';
 import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
 import GeoSelector from '../common/GeoSelector';
 import { encryptSpec } from '../../services/enterpriseCrypto';
-import { redeployAllInstances } from '../../services/managementService';
+import { redeployAllInstances, fetchLatestAppSpec } from '../../services/managementService';
 import Step6Payment from '../wizard/Step6Payment';
 import ResourceSlider from '../wizard/ResourceSlider';
 import { DB_MIN_INSTANCES, REDIS_ADDON, isDatabaseCompose } from '../../services/databaseSpec';
@@ -530,16 +530,41 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     setUpdateContext(null);
     cancelPollRef.current?.();
 
+    // Re-read the spec NOW rather than trusting the copy this page loaded when it
+    // mounted. An appupdate re-registers the whole spec and `expire` below is computed
+    // from it, so a copy taken before a renewal writes that copy's expiry back on chain
+    // and silently reverts the month the customer just bought. AppDetail does not poll
+    // the spec and renewals happen over on Billing, so an app page left open can carry a
+    // pre-renewal copy indefinitely. fetchLatestAppSpec also refuses outright while a
+    // renewal is still confirming, which re-reading alone cannot catch: the confirmed
+    // spec does not show an in-flight message.
+    setSavePhase('reading');
+    let latest;
+    try {
+      latest = await fetchLatestAppSpec(spec.name, zelidauth);
+    } catch (err) {
+      setSaveError(err.message);
+      setSavePhase(null);
+      return;
+    }
+    // An enterprise spec that would not decrypt comes back with an empty compose, and
+    // saving that would re-register the app with no components at all.
+    if (latest._decryptFailed || !latest.compose?.length) {
+      setSaveError('Could not read the current app components. Please refresh and try again.');
+      setSavePhase(null);
+      return;
+    }
+
     // Rebuild env params: hidden first, then orbit settings, then user vars
     const orbitRows = Object.entries(orbitSettings)
       .filter(([k]) => k.trim())
       .map(([k, v]) => ({ key: k, value: v }));
     const validUser = userEnvRows.filter((r) => r.key.trim());
     const allRows = [...hiddenEnvRows, ...orbitRows, ...validUser];
-    const resourcesEditable = isCustomResourceSpec(spec);
-    const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
+    const resourcesEditable = isCustomResourceSpec(latest);
+    const minInstances = hasAddonComponents(latest) ? DB_MIN_INSTANCES : 1;
     const resources = normalizeAppResources(appResources, minInstances);
-    const addonEntries = getAddonComponents(spec);
+    const addonEntries = getAddonComponents(latest);
     const addonIndexes = new Set(addonEntries.map(({ index }) => index));
 
     // Maintenance updates must NOT extend the subscription. `expire` is relative to the
@@ -549,18 +574,19 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     // won't cover, so the update is never funded and never confirms. Time extensions are
     // handled separately in the renewal flow (RenewModal).
     const currentBlock = await fetchCurrentBlock();
-    const remainingBlocks = getBlocksRemaining(spec.height, spec.expire, currentBlock);
+    const remainingBlocks = getBlocksRemaining(latest.height, latest.expire, currentBlock);
     if (remainingBlocks == null || remainingBlocks <= 0) {
       setSaveError('Could not read the current block height to preserve your subscription. Please try again.');
+      setSavePhase(null);
       return;
     }
 
     const updatedSpec = {
-      ...spec,
+      ...latest,
       expire: remainingBlocks,
       ...(resourcesEditable ? { instances: resources.instances } : {}),
       geolocation: buildGeoSpec(geolocation),
-      compose: spec.compose.map((c, i) => {
+      compose: latest.compose.map((c, i) => {
         if (i === 0) {
           return (() => {
               const domainCount = Math.max(c.domains?.length ?? 0, c.ports?.length ?? 0, 1);
@@ -593,7 +619,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     let specToVerify = updatedSpec;
     // Enterprise apps: re-encrypt before submitting so the blockchain stores
     // compose/contacts inside the encrypted enterprise blob (not in plain text).
-    if (spec.isEnterprise || spec._wasEnterprise) {
+    if (latest.isEnterprise || latest._wasEnterprise || spec.isEnterprise || spec._wasEnterprise) {
       try {
         specToVerify = await encryptSpec(updatedSpec, zelidauth);
       } catch (err) {
@@ -747,6 +773,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
   const isSaving = savePhase !== null;
   const phaseLabel = {
+    reading: 'Reading current spec…',
     verifying: 'Verifying…',
     signing: 'Waiting for signature…',
     registering: 'Registering update…',

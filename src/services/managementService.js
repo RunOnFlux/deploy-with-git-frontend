@@ -1,4 +1,6 @@
 import axiosInstance from './axiosInstance';
+import { fetchCurrentBlock } from './appsService';
+import { decryptEnterpriseSpec } from './enterpriseCrypto';
 
 /**
  * Standard Flux daemon API port. All Flux nodes expose their API on this port.
@@ -39,6 +41,106 @@ export async function fetchAppSpec(appName) {
     throw new Error(resp.data?.data?.message || resp.data?.data || 'Failed to fetch spec');
   }
   return resp.data.data;
+}
+
+/** Shown when a renewal for this app is still confirming. Exported so callers can match on it. */
+export const PENDING_UPDATE_ERROR = 'This app has a renewal still being confirmed on-chain. Please wait a couple of minutes and try again — saving now would wipe out the time you just bought.';
+
+/** The network holds a temporary message for a full hour; nothing this old is still live. */
+const MAX_PENDING_AGE_MS = 15 * 60 * 1000;
+
+/**
+ * An update message for this app that is broadcast but NOT yet confirmed on-chain,
+ * and still young enough that it plausibly will be.
+ *
+ * `/apps/appspecifications` reports confirmed state only, so for the minute or two a
+ * renewal spends waiting for its payment to confirm, the extension it bought is invisible
+ * there — even a cache-busted read returns the pre-renewal expiry. This is the only
+ * endpoint that shows the in-flight message.
+ *
+ * The age cut-off matters: a paid update confirms in about a minute and a free one in
+ * about five, so anything older has almost certainly been abandoned — a cancelled
+ * checkout, say — and treating it as live would lock the customer out of their own app
+ * for the rest of the hour.
+ */
+export async function fetchPendingAppUpdate(appName) {
+  try {
+    const resp = await axiosInstance.get('/flux/apps/temporarymessages', {
+      headers: { 'x-apicache-bypass': true },
+    });
+    const list = resp.data?.data;
+    if (resp.data?.status !== 'success' || !Array.isArray(list)) return null;
+    const match = list.find((m) => {
+      const spec = m.appSpecifications || m.zelAppSpecifications;
+      return spec && spec.name === appName;
+    });
+    if (!match) return null;
+    const receivedAt = new Date(match.receivedAt).getTime();
+    // Unparseable timestamp → treat as live. Erring towards blocking costs a retry;
+    // erring the other way is what loses a paid month.
+    if (Number.isNaN(receivedAt)) return match;
+    return (Date.now() - receivedAt) < MAX_PENDING_AGE_MS ? match : null;
+  } catch {
+    // Deliberately non-fatal. Losing this check costs the in-flight guard, but the caller
+    // still writes against a freshly fetched spec — blocking every save on a transient
+    // failure of this endpoint would be the worse trade.
+    return null;
+  }
+}
+
+/**
+ * The app's spec read immediately before an appupdate is built from it, decrypted when
+ * enterprise, and refused outright while a renewal is still confirming.
+ *
+ * MUST be used by every path that writes a spec. An appupdate re-registers the WHOLE
+ * spec, and `expire` is recomputed from whatever copy the caller holds — so building on
+ * the copy AppDetail loaded when the page mounted writes that copy's expiry back on
+ * chain, silently reverting any extension bought since. AppDetail does not poll the
+ * spec, and renewals happen on a different page, so a tab left open on an app can carry
+ * a pre-renewal copy for as long as it stays open.
+ *
+ * Freshness needs both halves, and neither is sufficient alone:
+ *  - the confirmed spec re-read now rather than at mount, which closes the stale-tab case;
+ *  - a check for an update still awaiting confirmation, because the confirmed spec cannot
+ *    show one, which closes the in-flight case.
+ *
+ * Only a pending update that EXTENDS past the confirmed expiry blocks the save. A pending
+ * settings change carries the same expiry, so superseding it costs the customer nothing —
+ * that is the ordinary last-write-wins of saving twice, and refusing it would mean a typo
+ * could not be corrected for minutes.
+ *
+ * @param {string} appName
+ * @param {object} [zelidauth] required to decrypt an enterprise spec
+ * @returns {Promise<object>} the spec, with compose/contacts decrypted for enterprise apps
+ * @throws {Error} if a renewal is in flight, or the spec cannot be read
+ */
+export async function fetchLatestAppSpec(appName, zelidauth) {
+  // Read BEFORE the spec, so a message that confirms between the two calls is picked up by
+  // the spec read rather than missed by both.
+  const pending = await fetchPendingAppUpdate(appName);
+
+  let spec = await fetchAppSpec(appName);
+  if (!spec?.name) throw new Error('Could not load the current app spec. Please try again in a moment.');
+
+  if (pending) {
+    const pendingSpec = pending.appSpecifications || pending.zelAppSpecifications || {};
+    const currentBlock = await fetchCurrentBlock().catch(() => null);
+    const confirmedExpiryBlock = (Number(spec.height) || 0) + (Number(spec.expire) || 0);
+    // A pending message has no height yet — it re-registers wherever it lands, which is
+    // within a few blocks of now. The tolerance mirrors the 11 blocks FluxOS itself allows
+    // a free update to drift, so ordinary rounding never reads as an extension.
+    const pendingExpiryBlock = (Number(currentBlock) || 0) + (Number(pendingSpec.expire) || 0);
+    if (currentBlock && confirmedExpiryBlock && pendingExpiryBlock > confirmedExpiryBlock + 11) {
+      throw new Error(PENDING_UPDATE_ERROR);
+    }
+  }
+
+  // Enterprise apps come back with compose: [] — decrypt to restore compose/contacts, the
+  // same step AppDetail does on load, so the caller gets the shape it already works with.
+  if (spec.enterprise && zelidauth) {
+    spec = await decryptEnterpriseSpec(spec, zelidauth);
+  }
+  return spec;
 }
 
 /**
