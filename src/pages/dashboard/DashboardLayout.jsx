@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket, KeyRound } from 'lucide-react';
+import { LayoutDashboard, CreditCard, HelpCircle, LogOut, Menu, X, MoreHorizontal, BookOpen, Github, ExternalLink, Sun, Moon, Rocket, KeyRound, Bot } from 'lucide-react';
 import OrbitSpinner from '../../components/common/OrbitSpinner';
 import CookieSettingsDialog from '../../components/common/CookieSettingsDialog';
 import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/dashboard/deployments', label: 'Deployments', icon: Rocket },
   { to: '/dashboard/billing', label: 'Billing', icon: CreditCard },
+  { to: '/dashboard/agents', label: 'Connect an agent', icon: Bot },
   { to: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];
 

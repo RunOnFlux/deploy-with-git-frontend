@@ -42,6 +42,7 @@ const Deployments = lazyPage(() => import('./pages/dashboard/Deployments'));
 const DeployWizard = lazyPage(() => import('./pages/dashboard/DeployWizard'));
 const AppDetail = lazyPage(() => import('./pages/dashboard/AppDetail'));
 const Billing = lazyPage(() => import('./pages/dashboard/Billing'));
+const AgentConnect = lazyPage(() => import('./pages/dashboard/AgentConnect'));
 const Support = lazyPage(() => import('./pages/dashboard/Support'));
 const NotFound = lazyPage(() => import('./pages/NotFound'));
 const DeployGateway = lazyPage(() => import('./pages/DeployGateway'));
@@ -169,6 +170,7 @@ export function AppRoutes() {
               <Route path="deployments/:appName" element={<AppDetail />} />
               <Route path="deploy" element={<DeployWizard />} />
               <Route path="billing" element={<Billing />} />
+              <Route path="agents" element={<AgentConnect />} />
               <Route path="support" element={<Support />} />
             </Route>
 

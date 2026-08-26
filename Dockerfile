@@ -50,7 +50,8 @@ RUN mkdir -p /data && chown node:node /opt/orbit-ui /data
 
 USER node
 
-# The Express BFF (server.js) imports only express, cors and puppeteer-core at
+# Install the Express BFF and MCP runtime dependencies. Keep this list in sync
+# with server.js and server/** imports.
 # runtime. Every other production dependency is client-only and already compiled
 # into dist/, so we don't ship it here — this keeps the image small and the pull
 # fast. Keep this list in sync with server.js's imports + package.json ranges.
@@ -59,10 +60,15 @@ RUN npm install --omit=dev --no-package-lock --no-audit --no-fund \
       express@^5.2.1 \
       cors@^2.8.6 \
       puppeteer-core@^24.42.0 \
+      @modelcontextprotocol/server@^2.0.0 \
+      @modelcontextprotocol/node@^2.0.0 \
+      jose@^6.2.10 \
+      zod@^4.4.3 \
   && npm pkg set type=module \
   && npm cache clean --force
 
-COPY --chown=node:node server.js docker-entrypoint.sh ./
+COPY --chown=node:node server.js docker-entrypoint.sh package.json ./
+COPY --chown=node:node server ./server
 COPY --chown=node:node config ./config
 COPY --chown=node:node --from=builder /app/dist ./dist
 # server.js reads the marketing route list from this module so the served routes
@@ -70,6 +76,12 @@ COPY --chown=node:node --from=builder /app/dist ./dist
 # src/, and it has no imports of its own — the rest of src/ deliberately stays
 # out of the runtime image.
 COPY --chown=node:node src/content/pagesContent.js ./src/content/pagesContent.js
+COPY --chown=node:node src/services/deployService.js ./src/services/deployService.js
+COPY --chown=node:node src/services/databaseSpec.js ./src/services/databaseSpec.js
+COPY --chown=node:node src/services/geolocationSpec.js ./src/services/geolocationSpec.js
+COPY --chown=node:node src/services/appSpecParser.js ./src/services/appSpecParser.js
+COPY --chown=node:node src/services/repoIntelligenceService.js ./src/services/repoIntelligenceService.js
+COPY --chown=node:node src/services/repoConfigImportService.js ./src/services/repoConfigImportService.js
 
 RUN chmod +x docker-entrypoint.sh
 

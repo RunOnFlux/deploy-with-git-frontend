@@ -48,6 +48,7 @@ Deploy any Git repository to the **Flux Decentralized Cloud** in minutes. Orbit 
 - 🛡️ **Error boundary** — graceful fallback UI for unhandled errors
 - ⚡ **Vite + React** — HMR in development, optimised code-split bundles in production
 - 🔀 **BFF proxy** — Express server handles Flux API proxying, screenshot capture, webhook signing
+- 🤖 **MCP agent access** — authenticated agents can inspect, deploy, operate, update, and renew apps through a stateless Streamable HTTP endpoint
 
 ---
 
@@ -242,6 +243,26 @@ Browser  →  Vite dev proxy (dev)  →  BFF :3001
 | `POST` | `/api/flux/apps/registerapplication` | Register app on Flux |
 | `GET` | `/api/screenshot?url=` | Capture site screenshot via headless Chromium |
 | `POST` | `/api/orbit-deploy` | HMAC-signed redeploy webhook trigger |
+| `POST` | `/mcp` | Stateless, Firebase-authenticated MCP Streamable HTTP transport |
+
+### MCP agent connection
+
+Sign in with Google or email and open **Dashboard → Connect an agent**. Orbit generates a client configuration for `https://<your-orbit-host>/mcp` using a freshly issued Firebase ID token. Paste that configuration into an MCP client that supports Streamable HTTP and custom authorization headers.
+
+The Firebase token is short-lived. Reconnect from the dashboard after it expires. The configuration is a bearer credential: do not commit it, paste it into chat, or share it with another user. Wallet-only SSP and ZelCore sessions cannot connect to MCP because agent-side signing currently uses Firebase SSO.
+
+The server exposes these tools:
+
+- Read: `list_plans`, `analyze_repository`, `list_apps`, `get_app`, `get_instances`, `get_deployment_status`, `get_network_capacity`, and bounded `get_logs`.
+- Deploy and payment: `validate_deployment`, `deploy_app`, and `create_stripe_checkout`. Pass checkout operation `registration`, `update`, or `renewal`; update/renewal retries derive their price and renewal period from the owned Flux transaction history rather than caller input.
+- Operations: `trigger_build` and allowlisted `control_instance` actions.
+- Maintenance: constrained `update_app` and `renew_app`, with optional renewal Stripe checkout.
+
+Agent requests are stateless. Each request verifies the Firebase bearer token and derives a request-scoped Flux identity through FluxCore. Firebase, FluxCore, the Flux blockchain, and the Stripe payment bridge remain the systems of record; Orbit does not add an MCP user or deployment database. App ownership is checked before reads and mutations, and repository credentials, management secrets, and Enterprise plaintext are redacted from tool results.
+
+Private GitHub, GitLab, and Bitbucket repository analysis accepts credentials only as secret tool inputs. Those credentials may be embedded in the encrypted Flux application specification when required for deployment, but are never returned. Mutating calls can register blockchain transactions or control live instances, so configure the MCP client to require confirmation before tool execution.
+
+MCP uses the existing Firebase environment variables. `VITE_FIREBASE_PROJECT_ID` determines the required token audience and issuer; `VITE_APP_URL` determines Stripe return URLs. No database or additional long-lived MCP signing secret is required.
 
 ---
 

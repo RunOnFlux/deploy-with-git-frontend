@@ -11,6 +11,7 @@ import cors from 'cors';
 import { createServer as createHttpServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join, sep } from 'path';
+import { readFileSync } from 'fs';
 import crypto from 'crypto';
 import puppeteer from 'puppeteer-core';
 import {
@@ -22,9 +23,13 @@ import {
 // Same module scripts/prerender.mjs walks to decide what to prerender, so the
 // served routes and the built shells cannot drift apart.
 import { MARKETING_PAGES } from './src/content/pagesContent.js';
+import { FirebaseTokenVerifier } from './server/auth/firebaseTokenVerifier.js';
+import { createOrbitMcpRouter } from './server/mcp/router.js';
+import { OrbitServices } from './server/orbit/services.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const APP_VERSION = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8')).version;
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -122,8 +127,20 @@ if (process.env.NODE_ENV === 'production') {
  * Health check
  */
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'orbit-bff' });
+  res.json({ status: 'ok', service: 'orbit-bff', version: APP_VERSION, mcp: { endpoint: '/mcp', transport: 'streamable-http', stateless: true } });
 });
+
+const firebaseProjectId = process.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE.projectId;
+const publicAppOrigin = new URL(process.env.VITE_APP_URL || DEFAULT_APP_URL).origin;
+app.use('/mcp', createOrbitMcpRouter({
+  tokenVerifier: new FirebaseTokenVerifier({ projectId: firebaseProjectId }),
+  services: new OrbitServices({
+    paymentBridgeUrl: process.env.VITE_PAYMENT_BRIDGE_URL || DEFAULT_PAYMENT_BRIDGE_URL,
+    appUrl: process.env.VITE_APP_URL || DEFAULT_APP_URL,
+  }),
+  version: APP_VERSION,
+  allowedOrigins: [publicAppOrigin],
+}));
 
 /**
  * Proxy: GET /api/flux/*  → https://api.runonflux.io/*

@@ -3,13 +3,13 @@
  * Reads flux.json / flux.yaml / vercel.json from a Git repo and returns
  * a wizard-compatible prefill payload.
  */
-import { fetchRawFile } from './repoIntelligenceService';
-import { PLANS, normalizeCustomPlan } from './deployService';
+import { fetchRawFile } from './repoIntelligenceService.js';
+import { PLANS, normalizeCustomPlan } from './deployService.js';
 import {
   DB_MIN_INSTANCES,
   databaseConfigFromFluxSchema,
   redisConfigFromFluxSchema,
-} from './databaseSpec';
+} from './databaseSpec.js';
 
 const ORBIT_POLLING_INTERVAL_ALIASES = {
   disabled: 'disabled',

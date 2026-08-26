@@ -56,6 +56,31 @@ export function buildAuthHeaders(parsed, username, token) {
   return {};
 }
 
+function bitbucketApiUrl(next, parsed, collection) {
+  try {
+    const url = new URL(next);
+    if (
+      url.origin !== 'https://api.bitbucket.org' ||
+      url.username ||
+      url.password ||
+      url.hash
+    ) return null;
+
+    const repositoryPath = `/2.0/repositories/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}`;
+    if (collection === 'branches') {
+      const expected = `${repositoryPath}/refs/branches`;
+      if (url.pathname !== expected && url.pathname !== `${expected}/`) return null;
+    } else if (collection === 'source') {
+      if (!url.pathname.startsWith(`${repositoryPath}/src/`)) return null;
+    } else {
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Repo Access Check ────────────────────────────────────────────────────────
 
 /**
@@ -112,12 +137,18 @@ export async function fetchBranches(parsed, authHeaders = {}) {
         const d = await repoResp.json();
         defaultBranch = d.default_branch || 'main';
       }
-      const bResp = await fetch(
-        `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/branches?per_page=100`,
-        { headers, signal: AbortSignal.timeout(8000) },
-      );
-      if (!bResp.ok) return [];
-      const branches = await bResp.json();
+      const branches = [];
+      for (let page = 1; page <= 10; page++) {
+        const bResp = await fetch(
+          `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/branches?per_page=100&page=${page}`,
+          { headers, signal: AbortSignal.timeout(8000) },
+        );
+        if (!bResp.ok) return [];
+        const values = await bResp.json();
+        if (!Array.isArray(values)) return [];
+        branches.push(...values);
+        if (values.length < 100) break;
+      }
       return sortBranches(branches.map((b) => ({ name: b.name, isDefault: b.name === defaultBranch })));
     }
 
@@ -129,24 +160,35 @@ export async function fetchBranches(parsed, authHeaders = {}) {
         const d = await projResp.json();
         defaultBranch = d.default_branch || 'main';
       }
-      const bResp = await fetch(
-        `https://gitlab.com/api/v4/projects/${enc}/repository/branches?per_page=100`,
-        { headers, signal: AbortSignal.timeout(8000) },
-      );
-      if (!bResp.ok) return [];
-      const branches = await bResp.json();
+      const branches = [];
+      for (let page = 1; page <= 10; page++) {
+        const bResp = await fetch(
+          `https://gitlab.com/api/v4/projects/${enc}/repository/branches?per_page=100&page=${page}`,
+          { headers, signal: AbortSignal.timeout(8000) },
+        );
+        if (!bResp.ok) return [];
+        const values = await bResp.json();
+        if (!Array.isArray(values)) return [];
+        branches.push(...values);
+        if (values.length < 100) break;
+      }
       return sortBranches(branches.map((b) => ({ name: b.name, isDefault: b.name === defaultBranch })));
     }
 
     if (parsed.provider === 'bitbucket.org') {
-      const bResp = await fetch(
-        `https://api.bitbucket.org/2.0/repositories/${parsed.owner}/${parsed.repo}/refs/branches?pagelen=100`,
-        { headers, signal: AbortSignal.timeout(8000) },
-      );
-      if (!bResp.ok) return [];
-      const d = await bResp.json();
+      const values = [];
+      let next = `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/refs/branches?pagelen=100`;
+      for (let page = 0; next && page < 10; page++) {
+        const nextUrl = bitbucketApiUrl(next, parsed, 'branches');
+        if (!nextUrl) return [];
+        const bResp = await fetch(nextUrl, { headers, signal: AbortSignal.timeout(8000) });
+        if (!bResp.ok) return [];
+        const data = await bResp.json();
+        values.push(...(data.values || []));
+        next = data.next || null;
+      }
       return sortBranches(
-        (d.values || []).map((b) => ({
+        values.map((b) => ({
           name: b.name,
           isDefault: b.name === 'main' || b.name === 'master',
         })),
@@ -199,9 +241,14 @@ async function fetchRawFile(parsed, branch, filePath, authHeaders = {}, signal) 
   }
 }
 
-async function headCheckFile(parsed, branch, filePath, authHeaders = {}) {
+async function headCheckFile(parsed, branch, filePath, authHeaders = {}, signal) {
   let url;
-  const opts = { method: 'HEAD', headers: { ...authHeaders } };
+  const timeoutSignal = AbortSignal.timeout(8000);
+  const opts = {
+    method: 'HEAD',
+    headers: { ...authHeaders },
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
+  };
 
   if (parsed.provider === 'github.com') {
     if (authHeaders.Authorization) {
@@ -475,11 +522,13 @@ async function listFilesAtPath(parsed, branch, projectPath, authHeaders = {}, si
       const pathSeg = path
         ? `${encodeURIComponent(branch)}/${path}`
         : encodeURIComponent(branch);
-      let url = `https://api.bitbucket.org/2.0/repositories/${parsed.owner}/${parsed.repo}/src/${pathSeg}/?pagelen=100`;
+      let url = `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/src/${pathSeg}/?pagelen=100`;
       const files = [];
 
       for (let page = 0; url && page < 100; page++) {
-        const resp = await fetch(url, { headers, signal: requestSignal });
+        const nextUrl = bitbucketApiUrl(url, parsed, 'source');
+        if (!nextUrl) return null;
+        const resp = await fetch(nextUrl, { headers, signal: requestSignal });
         if (!resp.ok) return null;
         const data = await resp.json();
         files.push(...(data.values || [])
@@ -523,7 +572,7 @@ export async function checkCompatibility(parsed, branch, projectPath, authHeader
 
   for (const file of markerFiles) {
     if (signal?.aborted) return { status: 'idle', message: '', framework: null };
-    const found = await headCheckFile(parsed, branch, file, authHeaders);
+    const found = await headCheckFile(parsed, branch, file, authHeaders, signal);
     if (found) {
       const basename = file.replace(basePath, '');
       const framework = FRAMEWORK_BY_MARKER[basename] ?? null;
@@ -650,16 +699,21 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
     if (parsed.provider === 'gitlab.com') {
       const enc = encodeURIComponent(`${parsed.owner}/${parsed.repo}`);
       const pathParam = path ? `&path=${encodeURIComponent(path)}` : '';
-      const url = `https://gitlab.com/api/v4/projects/${enc}/repository/tree?ref=${encodeURIComponent(branch)}${pathParam}`;
-      const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) {
-        console.warn(`[listDirectories] GitLab API returned ${resp.status}`);
-        return [];
-      }
-      const items = await resp.json();
-      if (!Array.isArray(items)) {
-        console.warn('[listDirectories] GitLab API did not return an array');
-        return [];
+      const items = [];
+      for (let page = 1; page <= 10; page++) {
+        const url = `https://gitlab.com/api/v4/projects/${enc}/repository/tree?ref=${encodeURIComponent(branch)}${pathParam}&per_page=100&page=${page}`;
+        const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) {
+          console.warn(`[listDirectories] GitLab API returned ${resp.status}`);
+          return [];
+        }
+        const values = await resp.json();
+        if (!Array.isArray(values)) {
+          console.warn('[listDirectories] GitLab API did not return an array');
+          return [];
+        }
+        items.push(...values);
+        if (values.length < 100) break;
       }
       
       const dirs = items
@@ -677,14 +731,21 @@ export async function listDirectories(parsed, branch, path = '', authHeaders = {
       const pathSeg = path
         ? `${encodeURIComponent(branch)}/${path}`
         : encodeURIComponent(branch);
-      const url = `https://api.bitbucket.org/2.0/repositories/${parsed.owner}/${parsed.repo}/src/${pathSeg}/?pagelen=100`;
-      const resp = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) {
-        console.warn(`[listDirectories] Bitbucket API returned ${resp.status}`);
-        return [];
+      let next = `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/src/${pathSeg}/?pagelen=100`;
+      const values = [];
+      for (let page = 0; next && page < 10; page++) {
+        const nextUrl = bitbucketApiUrl(next, parsed, 'source');
+        if (!nextUrl) return [];
+        const resp = await fetch(nextUrl, { headers, signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) {
+          console.warn(`[listDirectories] Bitbucket API returned ${resp.status}`);
+          return [];
+        }
+        const data = await resp.json();
+        values.push(...(data.values || []));
+        next = data.next || null;
       }
-      const data = await resp.json();
-      const dirs = (data.values || [])
+      const dirs = values
         .filter((i) => i.type === 'commit_directory')
         .map((i) => {
           const parts = i.path.split('/');

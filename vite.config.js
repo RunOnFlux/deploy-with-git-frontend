@@ -105,6 +105,10 @@ export default defineConfig(({ mode, isSsrBuild }) => {
       port: 5173,
       open: true,
       proxy: {
+        '/mcp': {
+          target: `http://localhost:${env.SERVER_PORT || 4000}`,
+          changeOrigin: true,
+        },
         '/api': {
           target: `http://localhost:${env.SERVER_PORT || 4000}`,
           changeOrigin: true,
