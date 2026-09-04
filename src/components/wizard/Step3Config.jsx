@@ -6,6 +6,7 @@ import {
   checkAppNameAvailable,
   isValidPort,
   supportsAdditionalAppPort,
+  supportsCustomDomain,
   computeGeoHardware,
 } from '../../services/deployService';
 import { parseEnvText } from '../../utils/envParser';
@@ -13,6 +14,7 @@ import DatabaseAddon from './DatabaseAddon';
 import CustomPlanResources, { PlanResourceSummary } from './CustomPlanResources';
 import GeoSelector from '../common/GeoSelector';
 import BuildSettingsCard from './BuildSettingsCard';
+import PersistentFolders from './PersistentFolders';
 
 const POLLING_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
@@ -292,6 +294,7 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
   const debounceRef = useRef(null);
   const addonEnterpriseRequired = plan?.id === 'custom' && (config.database?.enabled || config.redis?.enabled);
   const additionalPortSupported = supportsAdditionalAppPort(plan);
+  const customDomainSupported = supportsCustomDomain(plan);
   const primaryPortNumber = Number(port);
   const additionalPortNumber = Number(additionalPort);
   const additionalPortOpen = additionalPortSupported && (additionalPortTouched || Boolean(additionalPort));
@@ -302,6 +305,14 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
       additionalPortNumber !== primaryPortNumber &&
       additionalPortNumber !== 9001
     );
+
+  // A domain entered on another plan must not survive a switch to the genuinely
+  // free plan. The paid $0.99 additional-app plan retains domain support.
+  useEffect(() => {
+    if (!customDomainSupported && customDomain) update('customDomain', '');
+    // `update` is intentionally derived from the latest config on each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customDomainSupported, customDomain]);
 
   // Debounced name availability check
   useEffect(() => {
@@ -449,21 +460,28 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
           <p className="text-xs text-text-muted mt-1">Used for deployment notifications.</p>
         </div>
 
-        <div className="mb-5">
-          <label className="block text-sm font-medium text-text mb-1">
-            Custom domain <span className="text-text-muted font-normal">(optional)</span>
-          </label>
-          <input
-            type="text"
-            placeholder="myapp.example.com"
-            value={customDomain}
-            onChange={(e) => update('customDomain', e.target.value)}
-            className="input-base w-full"
-          />
-          <p className="text-xs text-text-muted mt-1">
-            Default URL: <code className="font-mono">{appName ? `${appName}.app.runonflux.io` : '{appName}.app.runonflux.io'}</code>
-          </p>
-        </div>
+        {customDomainSupported ? (
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-text mb-1">
+              Custom domain <span className="text-text-muted font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="myapp.example.com"
+              value={customDomain}
+              onChange={(e) => update('customDomain', e.target.value)}
+              className="input-base w-full"
+            />
+            <p className="text-xs text-text-muted mt-1">
+              Default URL: <code className="font-mono">{appName ? `${appName}.app.runonflux.io` : '{appName}.app.runonflux.io'}</code>
+            </p>
+          </div>
+        ) : (
+          <div className="mb-5 p-3 bg-surface-hover border border-border text-xs text-text-muted">
+            Free apps use <code className="font-mono">{appName ? `${appName}.app.runonflux.io` : '{appName}.app.runonflux.io'}</code>.
+            Custom domains are available on paid plans.
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-text mb-1">
@@ -548,6 +566,11 @@ export default function Step3Config({ plan, config, onChange, onPlanChange, port
         <PlanResourceSummary plan={plan} />
         <CustomPlanResources plan={plan} config={config} onPlanChange={onPlanChange} />
         <BuildSettingsCard config={config} onChange={onChange} />
+        <PersistentFolders
+          folders={config.persistentFolders}
+          instances={plan?.instances}
+          onChange={(persistentFolders) => update('persistentFolders', persistentFolders)}
+        />
         <DatabaseAddon
           plan={plan}
           config={config}

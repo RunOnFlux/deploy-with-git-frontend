@@ -78,6 +78,7 @@ export function buildServerSpec({ input, owner, ports, hasExistingApp = false })
     billingPeriod: normalizeBillingPeriod(input.billingPeriod),
     geolocation: input.geolocation || [],
     extraEnvVars: input.environment || [],
+    persistentFolders: input.persistentFolders || [],
     pollingInterval: input.pollingInterval ?? '86400',
     runtime: input.runtime || '',
     runtimeVersion: input.runtimeVersion || '',

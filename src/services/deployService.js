@@ -13,6 +13,7 @@ import {
   getRedisEnvVar,
 } from './databaseSpec.js';
 import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
+import { buildOrbitContainerData } from './persistentVolumeService.js';
 
 export { GEO_OPTIONS };
 
@@ -72,6 +73,11 @@ export const ADDITIONAL_APP_PLAN = {
   priceMonthly: 0.99,
   isAdditionalApp: true,
 };
+
+/** Custom domains are excluded only from the genuinely free first app. */
+export function supportsCustomDomain(plan) {
+  return Boolean(plan) && (plan.id !== 'free' || plan.isAdditionalApp === true);
+}
 
 export const CUSTOM_PLAN_DEFAULTS = { cpu: 1, ram: 2000, hdd: 10, instances: 1, priceMonthly: null };
 
@@ -333,6 +339,12 @@ export function redactSpecCredentials(spec) {
  */
 export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
   const plan = normalizeCustomPlan(rawPlan);
+  if (config.customDomain?.trim() && !supportsCustomDomain(plan)) {
+    throw new Error('Custom domains are not available on the Free plan');
+  }
+  if (config.persistentFolders?.length && Number(plan.instances) < 2) {
+    throw new Error('Replicated persistent folders require at least 2 app instances');
+  }
   const [extPort] = ports;
   const {
     appName, port, additionalPort, customDomain, billingPeriod, geolocation = [], extraEnvVars = [],
@@ -465,7 +477,7 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
         environmentParameters: envParams,
         commands: [],
         containerPorts: orbitContainerPorts,
-        containerData: '/app',
+        containerData: buildOrbitContainerData(config.persistentFolders),
         cpu: plan.cpu,
         ram: plan.ram,   // already in MB
         hdd: plan.hdd,

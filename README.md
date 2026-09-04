@@ -21,6 +21,7 @@ Deploy any Git repository to the **Flux Decentralized Cloud** in minutes. Orbit 
 - 🧠 **Repo intelligence** — auto-detects 100+ frameworks and runtimes, including Erlang, Elixir, and Dart, plus ports and build/run commands
 - 📦 **Plan selection** — Free, Developer, Pro, Custom with live price calculation
 - 🌍 **Geo-targeting** — choose continent or specific country for node placement
+- 💾 **Replicated persistent folders** — mount validated application-data paths with Flux primary–standby replication
 - 💳 **Stripe Checkout** — fiat payments via Flux payment bridge
 - 🔄 **ZelCore / SSP Wallet** — native crypto FLUX payments
 - ✅ **Live test install** — streaming NDJSON build log during registration

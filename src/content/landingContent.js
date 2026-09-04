@@ -67,7 +67,7 @@ export const FAQS = [
   },
   {
     q: 'Can I use a custom domain?',
-    a: 'Yes. Custom domains are available on all plans. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
+    a: 'Yes. Custom domains are available on paid plans, including the $0.99 additional-app option. Create a CNAME record pointing to your Flux deployment domain and SSL is handled automatically through the Flux reverse proxy network.',
   },
   {
     q: 'Is Orbit really decentralized, and where does my app actually run?',

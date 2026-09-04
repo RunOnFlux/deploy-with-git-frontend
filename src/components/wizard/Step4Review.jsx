@@ -278,6 +278,16 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         </section>
       )}
 
+      {config.persistentFolders?.length > 0 && (
+        <section className="card p-4 mb-4">
+          <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Persistent folders</h3>
+          {config.persistentFolders.map((folder) => (
+            <Row key={folder.name} label={folder.name} value={folder.path} mono />
+          ))}
+          <p className="text-xs text-text-muted mt-3">Primary–standby replicated across app instances.</p>
+        </section>
+      )}
+
       {/* App config */}
       <section className="card p-4 mb-4">
         <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Configuration</h3>

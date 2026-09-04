@@ -50,11 +50,42 @@ test('buildServerSpec creates the same Orbit spec shape with injected ports', ()
   assert.ok(spec.compose[0].environmentParameters.includes('GIT_BRANCH=main'));
 });
 
+test('buildServerSpec maps MCP persistent folders through the shared volume validation', () => {
+  const spec = buildServerSpec({
+    input: {
+      ...baseInput,
+      plan: 'standard',
+      persistentFolders: [
+        { name: 'uploads', path: '/uploads' },
+        { name: 'assets', path: '/data/assets' },
+      ],
+    },
+    owner: 't1Owner',
+    ports: [31000, 32000],
+  });
+  assert.equal(spec.compose[0].containerData, 'g:/app|m:uploads:/uploads|m:assets:/data/assets');
+});
+
 test('buildServerSpec rejects invalid additional ports on the free profile', () => {
   assert.throws(
     () => buildServerSpec({ input: { ...baseInput, additionalPort: 8081 }, owner: 't1Owner', ports: [31000, 32000, 33000] }),
     /does not support a second/,
   );
+});
+
+test('MCP custom domains distinguish free apps from paid $0.99 additional apps', () => {
+  const input = { ...baseInput, customDomain: 'app.example.com' };
+  assert.throws(
+    () => buildServerSpec({ input, owner: 't1Owner', ports: [31000, 32000] }),
+    /not available on the Free plan/,
+  );
+  const paidSpec = buildServerSpec({
+    input,
+    owner: 't1Owner',
+    ports: [31000, 32000],
+    hasExistingApp: true,
+  });
+  assert.equal(paidSpec.compose[0].domains[0], 'app.example.com');
 });
 
 test('redaction removes structured and embedded credentials without altering public fields', () => {

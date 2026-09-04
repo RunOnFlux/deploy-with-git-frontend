@@ -3,11 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
-import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, computeGeoHardware } from '../../services/deployService';
+import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, supportsCustomDomain, computeGeoHardware } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
 import { geolocationFromImport, buildGeoSpec } from '../../services/geolocationSpec';
 import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
 import { databaseNeedsName } from '../../services/databaseSpec';
+import { validatePersistentFolders } from '../../services/persistentVolumeService';
 import Step1Plan from '../../components/wizard/Step1Plan';
 import Step2Repo from '../../components/wizard/Step2Repo';
 import Step3Config from '../../components/wizard/Step3Config';
@@ -281,6 +282,9 @@ export default function DeployWizard() {
         plan?.instances >= 3
       );
       const uniqueAddonNames = !(db?.enabled && redis?.enabled) || db.componentName !== redis.componentName;
+      const persistentFoldersValid = validatePersistentFolders(config.persistentFolders).valid;
+      const replicationValid = !config.persistentFolders?.length || Number(plan?.instances) >= 2;
+      const customDomainValid = supportsCustomDomain(plan) || !config.customDomain?.trim();
       return (
         config.appName?.length >= 3 &&
         /^[a-z][a-z0-9-]*[a-z0-9]$/.test(config.appName) &&
@@ -289,7 +293,10 @@ export default function DeployWizard() {
         Boolean(config.contactEmail?.trim()) &&
         dbValid &&
         redisValid &&
-        uniqueAddonNames
+        uniqueAddonNames &&
+        persistentFoldersValid &&
+        replicationValid &&
+        customDomainValid
       );
     }
     if (step === 4) return termsAccepted;

@@ -44,6 +44,7 @@ const INITIAL_STATE = {
     billingPeriod: { months: 1, label: '1 month', discount: 0 },
     geolocation: [],
     extraEnvVars: [], // [{ key, value }]
+    persistentFolders: [], // [{ name, path }] replicated across app instances
     // New fields
     contactEmail: '',
     customDomain: '',

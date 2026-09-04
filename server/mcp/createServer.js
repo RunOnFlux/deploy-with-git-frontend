@@ -32,6 +32,10 @@ const deploymentSchema = z.object({
   customDomain: z.string().optional(),
   geolocation: z.array(z.object({ code: z.string(), type: z.enum(['allowed', 'forbidden']) })).optional(),
   environment: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+  persistentFolders: z.array(z.object({
+    name: z.string().min(1).max(64),
+    path: z.string().min(2).max(160),
+  }).strict()).max(8).optional(),
   pollingInterval: z.string().optional(),
   runtime: z.string().optional(),
   runtimeVersion: z.string().optional(),
