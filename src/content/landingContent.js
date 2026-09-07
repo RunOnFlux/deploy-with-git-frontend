@@ -28,14 +28,14 @@ export const SITE_FACTS = {
  * footer (scripts/buildSeoContent.mjs) so the two never drift.
  */
 export const FLUX_HOSTING_LINKS = [
-  { href: 'https://minecraft.runonflux.com', label: 'Minecraft Server Hosting' },
-  { href: 'https://palworld.runonflux.com', label: 'Palworld Server Hosting' },
-  { href: 'https://enshrouded.runonflux.com', label: 'Enshrouded Server Hosting' },
-  { href: 'https://rust.runonflux.com', label: 'Rust Server Hosting' },
-  { href: 'https://windrose.runonflux.com', label: 'Windrose Server Hosting' },
-  { href: 'https://projectzomboid.runonflux.com', label: 'Project Zomboid Server Hosting' },
-  { href: 'https://valheim.runonflux.com', label: 'Valheim Server Hosting' },
-  { href: 'https://fivem.runonflux.com', label: 'FiveM Server Hosting' },
+  { href: 'https://runonflux.com/games/minecraft', label: 'Minecraft Server Hosting' },
+  { href: 'https://runonflux.com/games/palworld', label: 'Palworld Server Hosting' },
+  { href: 'https://runonflux.com/games/enshrouded', label: 'Enshrouded Server Hosting' },
+  { href: 'https://runonflux.com/games/rust', label: 'Rust Server Hosting' },
+  { href: 'https://runonflux.com/games/windrose', label: 'Windrose Server Hosting' },
+  { href: 'https://runonflux.com/games/zomboid', label: 'Project Zomboid Server Hosting' },
+  { href: 'https://runonflux.com/games/valheim', label: 'Valheim Server Hosting' },
+  { href: 'https://runonflux.com/games/fivem', label: 'FiveM Server Hosting' },
   { href: 'https://wordpress.runonflux.com', label: 'Web3 WordPress Hosting' },
   { href: 'https://n8n.runonflux.com', label: 'n8n Hosting' },
   { href: 'https://openclaw.runonflux.com', label: 'OpenClaw AI Assistant Hosting' },
