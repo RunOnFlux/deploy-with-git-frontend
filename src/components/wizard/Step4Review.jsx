@@ -11,6 +11,7 @@ import { formatGeoRows } from '../../services/geolocationSpec';
 import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb, databaseNeedsName } from '../../services/databaseSpec';
 import { useAuth } from '../../context/AuthContext';
 import { FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
+import { isFreeTierPlan } from '../../services/deployService';
 
 function Row({ label, value, mono }) {
   return (
@@ -70,9 +71,9 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   const [showAddonEnv, setShowAddonEnv] = useState({});
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
   const [eligible, setEligible] = useState(false);
-  // The free PLAN is free on its own terms and is never a trial; the choice below is only
-  // ever about a paid plan.
-  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
+  // The free TIER is free on its own terms and is never a trial; the choice below is only
+  // ever about a paid plan (the additional-app plan included, which is paid).
+  const isFreePlan = isFreeTierPlan(plan);
   const canChoose = eligible && !isFreePlan;
   const onTrial = canChoose && billingChoice === 'trial';
   const [eligibilityUnknown, setEligibilityUnknown] = useState(false);
@@ -171,7 +172,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking deployment eligibility…
         </div>
       )}
-      {dupCheckStatus === 'done' && eligibilityUnknown && (
+      {dupCheckStatus === 'done' && eligibilityUnknown && !isFreePlan && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -182,7 +183,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           </div>
         </div>
       )}
-      {dupCheckStatus === 'done' && !eligible && !eligibilityUnknown && (
+      {dupCheckStatus === 'done' && !eligible && !eligibilityUnknown && !isFreePlan && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -252,10 +253,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         <Row
           label="Price"
           value={
-            plan?.priceMonthly === 0
-              ? eligible
-                ? 'Free'
-                : 'Calculated at checkout'
+            isFreePlan
+              ? 'Free'
               : plan?.priceMonthly
               ? `$${plan.priceMonthly}/mo${onTrial ? ` (first ${FREE_TRIAL_DAYS} days free)` : ''}`
               : 'Calculated at checkout'

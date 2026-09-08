@@ -75,9 +75,25 @@ export const ADDITIONAL_APP_PLAN = {
   isAdditionalApp: true,
 };
 
+/**
+ * Is this the genuinely free tier — the one app we host for nothing?
+ *
+ * ADDITIONAL_APP_PLAN carries the same id and the same resources, so that port and domain
+ * rules stay identical, but it is billed at the network minimum and must never be mistaken
+ * for the free tier.
+ *
+ * Whether a customer gets the free tier is decided in Step1Plan from their live Orbit apps,
+ * which is the same rule appsmonitor applies before paying for it: free for as long as it is
+ * your only one. It has nothing to do with the free-trial eligibility check, which asks a
+ * different question (is this your first app on Flux at all).
+ */
+export function isFreeTierPlan(plan) {
+  return Boolean(plan) && (plan.id === 'free' || plan.priceMonthly === 0) && plan.isAdditionalApp !== true;
+}
+
 /** Custom domains are excluded only from the genuinely free first app. */
 export function supportsCustomDomain(plan) {
-  return Boolean(plan) && (plan.id !== 'free' || plan.isAdditionalApp === true);
+  return Boolean(plan) && !isFreeTierPlan(plan);
 }
 
 export const CUSTOM_PLAN_DEFAULTS = { cpu: 1, ram: 2000, hdd: 10, instances: 1, priceMonthly: null };

@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
-import { PLANS, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, supportsCustomDomain, computeGeoHardware } from '../../services/deployService';
+import { PLANS, isFreeTierPlan, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, supportsCustomDomain, computeGeoHardware } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
 import { geolocationFromImport, buildGeoSpec } from '../../services/geolocationSpec';
 import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
@@ -42,12 +42,11 @@ const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
  * Is THIS deployment the free trial?
  *
  * Only a PAID plan can be, and only when the customer is eligible and chose the trial over
- * paying. The free plan is deliberately excluded: it is free on its own terms and registers a
+ * paying. The free TIER is deliberately excluded: it is free on its own terms and registers a
  * normal month that appsmonitor renews for as long as it stays the owner's only Orbit app.
  */
 function isFreeTrialDeploy(plan, state) {
-  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
-  return !isFreePlan && state.eligibleForFree && state.billingChoice === 'trial';
+  return !isFreeTierPlan(plan) && state.eligibleForFree && state.billingChoice === 'trial';
 }
 
 
@@ -446,7 +445,6 @@ export default function DeployWizard() {
               plan={plan}
               registration={state.registration}
               billingPeriod={config.billingPeriod}
-              eligibleForFree={state.eligibleForFree}
               freeTrial={isFreeTrialDeploy(plan, state)}
             />
           )}

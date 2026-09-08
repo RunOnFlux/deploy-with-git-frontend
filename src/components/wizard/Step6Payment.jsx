@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { calculatePrice, getPaymentAddress, validatePaidPrice } from '../../services/deployService';
+import { calculatePrice, getPaymentAddress, isFreeTierPlan, validatePaidPrice } from '../../services/deployService';
 import DeploymentTracker from './DeploymentTracker';
 import { CreditCard, Loader2, XCircle, ArrowRight, ExternalLink } from 'lucide-react';
 import { getRuntimeConfig } from '../../config/runtimeConfig.js';
 
-export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, eligibleForFree = true, freeTrial = false, subtitle, onBack }) {
+export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, freeTrial = false, subtitle, onBack }) {
   const { zelidauth } = useAuth();
   const [priceUsd, setPriceUsd] = useState(null);
   const [priceFlux, setPriceFlux] = useState(null);
@@ -22,14 +22,19 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
   const wsRef = useRef(null);
 
   // Nothing to pay now in two unrelated cases, and they must not be confused:
-  //   - the free PLAN, which is free on its own terms (appsMonitor renews it for as long as
-  //     it stays the owner's only Orbit app), and
+  //   - the free TIER, which is free on its own terms: it is the owner's only Orbit app, and
+  //     appsMonitor renews it for as long as it stays that way. Step1Plan has already made
+  //     that call from the owner's live apps and offers ADDITIONAL_APP_PLAN when they have
+  //     one, so by here the plan itself is the answer. It is deliberately NOT gated on the
+  //     free-trial eligibility check: that asks whether this is the customer's first app on
+  //     Flux at all, and gating on it asked anyone with another Flux app to pay for an app
+  //     appsmonitor then settled for free.
   //   - the free TRIAL on a paid plan, which the customer chose over paying and which
   //     registers only its own length.
   // An eligible customer who chose to pay is NOT free, at any billing period: that is the
-  // whole point of offering the choice.
-  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
-  const isFree = (isFreePlan && eligibleForFree) || freeTrial;
+  // whole point of offering the choice. Neither is an update (plan is null there), which the
+  // caller reaches only when the change costs money.
+  const isFree = isFreeTierPlan(plan) || freeTrial;
   const appName = registration?.appName || verifiedSpec?.name;
   const txid = registration?.txid;
 
