@@ -34,7 +34,7 @@ const PHASE_LABELS = {
   error: 'Failed',
 };
 
-export default function Step5Register({ plan, repo, config, ports, onSuccess, onError: onWizardError }) {
+export default function Step5Register({ plan, repo, config, ports, freeTrial = false, onSuccess, onError: onWizardError }) {
   const { zelidauth, loginType, user } = useAuth();
   const [phase, setPhase] = useState('idle');
   const [error, setError] = useState('');
@@ -94,7 +94,7 @@ export default function Step5Register({ plan, repo, config, ports, onSuccess, on
 
       // 2. Build local spec
       setPhase('verify');
-      const localSpec = buildSpec({ zelid, contactsRef, plan, repo: repoForSpec, config, ports });
+      const localSpec = buildSpec({ zelid, contactsRef, plan, repo: repoForSpec, config, ports, freeTrial });
 
       // 3. Verify spec with Flux backend → get normalized spec to sign
       // Falls back to local spec if verify times out or fails (like minecraft)

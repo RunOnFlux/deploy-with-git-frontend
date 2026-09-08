@@ -202,10 +202,10 @@ export default function PricingSection() {
                     </div>
                   </div>
 
-                  {/* First month free / Free forever pill */}
+                  {/* First week free / Free forever pill */}
                   <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
                     <Gift className="w-3 h-3 shrink-0" />
-                    {plan.price === 0 ? 'Free forever*' : 'First month free*'}
+                    {plan.price === 0 ? 'Free forever*' : 'First week free*'}
                   </div>
 
                   {/* Plan header */}
@@ -270,10 +270,11 @@ export default function PricingSection() {
               charged $0.99/month each.
             </p>
             <p className="text-sm text-text-secondary leading-relaxed">
-              <span className="text-text font-semibold">*</span> The first month is free for customers new
-              to Flux Cloud. Each account receives one free month, not one per app or repository. If you've deployed any
-              app on Flux before, standard pricing applies. Our 30-day money-back guarantee covers your first
-              paid month only and does not apply when the first month was free.
+              <span className="text-text font-semibold">*</span> Paid plans start with a free 7-day trial for
+              customers new to Flux Cloud. Each account receives one free trial, not one per app or repository, and it
+              takes no card: the app expires after 7 days unless you choose to keep it. If you've deployed any app on
+              Flux before, standard pricing applies. Our 30-day money-back guarantee covers your first paid month,
+              whether or not you took the free trial first.
             </p>
             <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />

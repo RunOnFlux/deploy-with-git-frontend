@@ -107,8 +107,13 @@ const INITIAL_STATE = {
   },
 
   // Free tier eligibility (set in Step4 after checking permanent messages)
-  // Fail closed until the on-chain eligibility check confirms a free first month.
+  // Fail closed until the on-chain eligibility check confirms the free trial.
   eligibleForFree: false,
+
+  // What an eligible customer chose to do with the offer on a PAID plan: take the free trial,
+  // or skip it and pay from day one at the billing period they picked. Never consulted for the
+  // free plan, which is free on its own terms.
+  billingChoice: 'trial', // 'trial' | 'pay'
 
   // Per-step errors
   errors: {},
@@ -172,6 +177,9 @@ function reducer(state, action) {
     case 'SET_ELIGIBLE_FOR_FREE':
       return { ...state, eligibleForFree: action.payload };
 
+    case 'SET_BILLING_CHOICE':
+      return { ...state, billingChoice: action.payload };
+
     case 'SET_TERMS':
       return { ...state, termsAccepted: action.payload };
 
@@ -203,6 +211,7 @@ export function useDeployWizard() {
   const setError = useCallback((step, message) => dispatch({ type: 'SET_ERROR', step, message }), []);
   const clearError = useCallback((step) => dispatch({ type: 'CLEAR_ERROR', step }), []);
   const setEligibleForFree = useCallback((v) => dispatch({ type: 'SET_ELIGIBLE_FOR_FREE', payload: v }), []);
+  const setBillingChoice = useCallback((v) => dispatch({ type: 'SET_BILLING_CHOICE', payload: v }), []);
   const setTerms = useCallback((v) => dispatch({ type: 'SET_TERMS', payload: v }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
 
@@ -265,6 +274,7 @@ export function useDeployWizard() {
     setError,
     clearError,
     setEligibleForFree,
+    setBillingChoice,
     setTerms,
     reset,
     ensurePorts,

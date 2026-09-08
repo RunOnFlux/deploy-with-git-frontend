@@ -576,7 +576,7 @@ export const MARKETING_PAGES = {
             ['Pro', '$3.99/mo', 'Active development and production apps'],
             ['Custom', 'From $0.99/mo', 'Resources tailored to your app'],
           ] },
-          { type: 'p', html: 'Every paid plan includes the first month free, dedicated resources, and the same no-egress-fees, no-lock-in model as the free tier — you pay for the compute your app uses, nothing else.' },
+          { type: 'p', html: 'Every paid plan starts with a free 7-day trial, dedicated resources, and the same no-egress-fees, no-lock-in model as the free tier — you pay for the compute your app uses, nothing else.' },
         ],
       },
       {
@@ -593,11 +593,11 @@ export const MARKETING_PAGES = {
       },
     ],
     faqs: [
-      { q: 'Is Orbit web app hosting really free?', a: 'Yes. Orbit has a genuinely free-forever tier with no credit card required and no trial countdown. Your app runs as a real deployment on the decentralized Flux cloud. Paid plans with dedicated resources start at $0.99/mo, with the first month free.' },
+      { q: 'Is Orbit web app hosting really free?', a: 'Yes. Orbit has a genuinely free-forever tier with no credit card required and no trial countdown. Your app runs as a real deployment on the decentralized Flux cloud. Paid plans with dedicated resources start at $0.99/mo, and begin with a free 7-day trial.' },
       { q: 'What can I host on the free tier?', a: 'Static sites (React, Vue, Svelte, Vite, Astro, plain HTML) and full-stack or backend apps (Node, Python, Go, Ruby, Erlang, Elixir, Dart and more) running as real containers. Orbit uses Nixpacks to detect your framework and build from GitHub, GitLab or Bitbucket with no Dockerfile.' },
       { q: 'Do I need a credit card for free hosting?', a: 'No. The free tier requires no credit card to sign up or deploy. You only add a payment method if you choose to upgrade to a paid plan for dedicated resources.' },
       { q: 'How is Orbit able to offer free hosting?', a: 'Orbit runs on the Flux network — thousands of independent nodes worldwide — instead of centralized data centers. There are no egress or bandwidth fees and no single company footing a data-center bill, which is what makes a genuinely free forever tier sustainable.' },
-      { q: 'How much do paid plans cost?', a: 'Paid plans start at $0.99/mo (Custom), with Standard at $2.49/mo and Pro at $3.99/mo, each including the first month free and dedicated CPU and RAM. There are no egress fees and no vendor lock-in.' },
+      { q: 'How much do paid plans cost?', a: 'Paid plans start at $0.99/mo (Custom), with Standard at $2.49/mo and Pro at $3.99/mo, each starting with a free 7-day trial and dedicated CPU and RAM. There are no egress fees and no vendor lock-in.' },
     ],
   },
 };

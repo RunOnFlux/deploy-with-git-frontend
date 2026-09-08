@@ -10,6 +10,7 @@ import {
 import { formatGeoRows } from '../../services/geolocationSpec';
 import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb, databaseNeedsName } from '../../services/databaseSpec';
 import { useAuth } from '../../context/AuthContext';
+import { FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
 
 function Row({ label, value, mono }) {
   return (
@@ -60,7 +61,7 @@ const POLLING_LABELS = {
   '86400': '24 hours',
 };
 
-export default function Step4Review({ plan, repo, config, ports, termsAccepted, onTermsChange, onEligibilityChecked }) {
+export default function Step4Review({ plan, repo, config, ports, termsAccepted, onTermsChange, onEligibilityChecked, billingChoice = 'trial', onBillingChoiceChange }) {
   const { zelidauth } = useAuth();
   const zelid = zelidauth?.zelid;
 
@@ -69,6 +70,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   const [showAddonEnv, setShowAddonEnv] = useState({});
   const [dupCheckStatus, setDupCheckStatus] = useState('idle'); // idle|checking|done
   const [eligible, setEligible] = useState(false);
+  // The free PLAN is free on its own terms and is never a trial; the choice below is only
+  // ever about a paid plan.
+  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
+  const canChoose = eligible && !isFreePlan;
+  const onTrial = canChoose && billingChoice === 'trial';
   const [eligibilityUnknown, setEligibilityUnknown] = useState(false);
 
   const clusterAddonEnabled = !!(config.database?.enabled || config.redis?.enabled);
@@ -100,11 +106,11 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
     setShowAddonEnv((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
-  // Determine free-first-month eligibility. Reads the owner's on-chain history from
+  // Determine free-trial eligibility. Reads the owner's on-chain history from
   // /apps/permanentmessages (the same source the appsMonitor backend uses), so the UI
   // and the backend agree on who gets charged. Per-customer rule: any app the owner has
-  // ever registered on Flux disqualifies them — the free month is one per Flux Cloud
-  // account, not per app or repo.
+  // ever registered on Flux disqualifies them — the trial is one per Flux Cloud account,
+  // not per app or repo.
   useEffect(() => {
     if (!zelid) {
       setEligible(false);
@@ -136,7 +142,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         const registerMessages = json.data.filter((m) => m.type === 'fluxappregister');
 
         // Per-customer rule: any app the owner has ever registered on Flux disqualifies the
-        // free first month — one free month per Flux Cloud account, not per app or repo.
+        // free trial — one per Flux Cloud account, not per app or repo.
         const priorApp = registerMessages[0];
         setEligibilityUnknown(false);
         setEligible(!priorApp);
@@ -180,14 +186,58 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium">Free first month not applicable</p>
+            <p className="font-medium">Free trial not applicable</p>
             <p className="text-xs text-amber-300/80 mt-1">
-              You already have an app on Flux, so the free first month — which is for customers new to
-              Flux Cloud — doesn&apos;t apply. You will be charged for this month, covered by our 30-day
-              money-back guarantee.
+              You already have an app on Flux, so the free {FREE_TRIAL_DAYS}-day trial, which is for
+              customers new to Flux Cloud, doesn&apos;t apply. You will be charged for this
+              deployment, covered by our {MONEY_BACK_DAYS}-day money-back guarantee.
             </p>
           </div>
         </div>
+      )}
+
+      {dupCheckStatus === 'done' && canChoose && (
+        <section className="card p-4 mb-4">
+          <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">How you are starting</h3>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => onBillingChoiceChange?.('trial')}
+              className={`w-full text-left px-3 py-2.5 border ${
+                billingChoice === 'trial'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-surface hover:bg-surface-hover'
+              }`}
+            >
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-text">Free {FREE_TRIAL_DAYS}-day trial</span>
+                <span className="text-sm font-semibold text-primary">$0.00</span>
+              </span>
+              <span className="block text-xs text-text-secondary mt-0.5">
+                No card and no payment details. Your app runs for {FREE_TRIAL_DAYS} days, and you can
+                keep it any time from Billing.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onBillingChoiceChange?.('pay')}
+              className={`w-full text-left px-3 py-2.5 border ${
+                billingChoice === 'pay'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-surface hover:bg-surface-hover'
+              }`}
+            >
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-text">Skip the trial and pay now</span>
+                <span className="text-sm font-semibold text-primary">{billingLabel}</span>
+              </span>
+              <span className="block text-xs text-text-secondary mt-0.5">
+                Card or crypto at the billing period you picked, with our {MONEY_BACK_DAYS}-day
+                money-back guarantee.
+              </span>
+            </button>
+          </div>
+        </section>
       )}
 
       {/* Plan */}
@@ -198,7 +248,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         <Row label="RAM" value={`${displayPlan?.ram ? displayPlan.ram / 1000 : '—'} GB`} />
         <Row label="Storage" value={`${displayPlan?.hdd} GB`} />
         <Row label="Instances" value={displayInstances} />
-        <Row label="Billing" value={billingLabel} />
+        <Row label="Billing" value={onTrial ? `${FREE_TRIAL_DAYS}-day free trial` : billingLabel} />
         <Row
           label="Price"
           value={
@@ -207,7 +257,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
                 ? 'Free'
                 : 'Calculated at checkout'
               : plan?.priceMonthly
-              ? `$${plan.priceMonthly}/mo${eligible ? ' (first month free)' : ''}`
+              ? `$${plan.priceMonthly}/mo${onTrial ? ` (first ${FREE_TRIAL_DAYS} days free)` : ''}`
               : 'Calculated at checkout'
           }
         />

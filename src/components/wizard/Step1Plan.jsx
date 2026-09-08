@@ -106,14 +106,14 @@ function PlanCard({ plan, selected, onSelect }) {
         );
       })()}
 
-      {/* First month free / Free forever pill */}
+      {/* First week free / Free forever pill */}
       <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto text-text-secondary">
         <Gift className="w-3 h-3 shrink-0" />
         {isAdditionalApp
           ? 'Additional app'
           : plan.priceMonthly === 0
           ? 'Free forever*'
-          : 'First month free*'}
+          : 'First week free*'}
       </div>
 
       {/* Plan header */}

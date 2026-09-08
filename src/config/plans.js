@@ -20,7 +20,7 @@ export const ORBIT_PLANS = [
   {
     id: 'standard',
     name: 'Standard',
-    tagline: 'First month free*',
+    tagline: 'First week free*',
     description: 'For growing projects and small apps',
     price: 2.49,
     priceLabel: '$2.49/mo',
@@ -33,7 +33,7 @@ export const ORBIT_PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    tagline: 'First month free*',
+    tagline: 'First week free*',
     description: 'For active development and production apps',
     price: 3.99,
     priceLabel: '$3.99/mo',
@@ -46,7 +46,7 @@ export const ORBIT_PLANS = [
   {
     id: 'custom',
     name: 'Custom',
-    tagline: 'First month free*',
+    tagline: 'First week free*',
     description: 'Configure your own resources and pricing',
     price: null,
     priceLabel: 'Starting at $0.99/mo',

@@ -14,6 +14,7 @@ import {
 } from './databaseSpec.js';
 import { buildGeoSpec, GEO_OPTIONS } from './geolocationSpec.js';
 import { buildOrbitContainerData } from './persistentVolumeService.js';
+import { FREE_TRIAL_BLOCKS } from '../config/offer.js';
 
 export { GEO_OPTIONS };
 
@@ -337,7 +338,7 @@ export function redactSpecCredentials(spec) {
  * @param {object} params.config - { appName, port, additionalPort, customDomain, billingPeriod, geolocation, extraEnvVars, contactEmail, pollingInterval, runtime, runtimeVersion }
  * @param {[number, number, number?]} params.ports - [extPort, additionalExtPort?, mgmtPort]
  */
-export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports }) {
+export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, ports, freeTrial = false }) {
   const plan = normalizeCustomPlan(rawPlan);
   if (config.customDomain?.trim() && !supportsCustomDomain(plan)) {
     throw new Error('Custom domains are not available on the Free plan');
@@ -457,7 +458,10 @@ export function buildSpec({ zelid, contactsRef, plan: rawPlan, repo, config, por
   // Geolocation: Flux format acEU / a!cNA
   const geoArray = buildGeoSpec(geolocation);
 
-  const expireBlocks = calcExpire(billingPeriod?.months ?? 1);
+  // The free trial registers exactly its own length. The free PLAN does not come through
+  // here as a trial: it registers a normal month and is renewed for as long as it stays
+  // the owner's only Orbit app.
+  const expireBlocks = freeTrial ? FREE_TRIAL_BLOCKS : calcExpire(billingPeriod?.months ?? 1);
 
   // contacts must be a Flux Storage reference (F_S_CONTACTS=<url>)
   const contacts = contactsRef ? [contactsRef] : [];

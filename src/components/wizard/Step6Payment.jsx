@@ -5,7 +5,7 @@ import DeploymentTracker from './DeploymentTracker';
 import { CreditCard, Loader2, XCircle, ArrowRight, ExternalLink } from 'lucide-react';
 import { getRuntimeConfig } from '../../config/runtimeConfig.js';
 
-export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, eligibleForFree = true, subtitle, onBack }) {
+export default function Step6Payment({ verifiedSpec, plan, registration, billingPeriod, eligibleForFree = true, freeTrial = false, subtitle, onBack }) {
   const { zelidauth } = useAuth();
   const [priceUsd, setPriceUsd] = useState(null);
   const [priceFlux, setPriceFlux] = useState(null);
@@ -21,13 +21,15 @@ export default function Step6Payment({ verifiedSpec, plan, registration, billing
   const popupRef = useRef(null);
   const wsRef = useRef(null);
 
-  // Free (no payment now) when the customer is eligible for the free first month AND
-  // either the free-tier plan is selected or this is a single-month deploy — the free
-  // month covers the whole registration, so payment is skipped and appsMonitor settles
-  // the on-chain cost. Multi-month deploys still pay: a partial first-month discount
-  // isn't supported in a single on-chain payment.
-  const isFree = eligibleForFree
-    && (plan?.priceMonthly === 0 || plan?.id === 'free' || (billingPeriod?.months ?? 1) === 1);
+  // Nothing to pay now in two unrelated cases, and they must not be confused:
+  //   - the free PLAN, which is free on its own terms (appsMonitor renews it for as long as
+  //     it stays the owner's only Orbit app), and
+  //   - the free TRIAL on a paid plan, which the customer chose over paying and which
+  //     registers only its own length.
+  // An eligible customer who chose to pay is NOT free, at any billing period: that is the
+  // whole point of offering the choice.
+  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
+  const isFree = (isFreePlan && eligibleForFree) || freeTrial;
   const appName = registration?.appName || verifiedSpec?.name;
   const txid = registration?.txid;
 

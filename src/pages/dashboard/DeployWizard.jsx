@@ -38,6 +38,19 @@ const RUNTIME_ALIASES = {
 };
 const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
 
+/**
+ * Is THIS deployment the free trial?
+ *
+ * Only a PAID plan can be, and only when the customer is eligible and chose the trial over
+ * paying. The free plan is deliberately excluded: it is free on its own terms and registers a
+ * normal month that appsmonitor renews for as long as it stays the owner's only Orbit app.
+ */
+function isFreeTrialDeploy(plan, state) {
+  const isFreePlan = plan?.priceMonthly === 0 || plan?.id === 'free';
+  return !isFreePlan && state.eligibleForFree && state.billingChoice === 'trial';
+}
+
+
 const STEPS = [
   { label: 'Plan' },
   { label: 'Repository' },
@@ -94,7 +107,7 @@ function WizardProgress({ current }) {
 
 export default function DeployWizard() {
   const wizard = useDeployWizard();
-  const { state, next, back, setPlan, setRepo, setConfig, setTerms, ensurePorts, setRegistration, setVerifiedSpec, setEligibleForFree } = wizard;
+  const { state, next, back, setPlan, setRepo, setConfig, setTerms, ensurePorts, setRegistration, setVerifiedSpec, setEligibleForFree, setBillingChoice } = wizard;
   const { step, plan, repo, config, termsAccepted } = state;
   const [searchParams] = useSearchParams();
 
@@ -409,6 +422,8 @@ export default function DeployWizard() {
               termsAccepted={termsAccepted}
               onTermsChange={setTerms}
               onEligibilityChecked={setEligibleForFree}
+              billingChoice={state.billingChoice}
+              onBillingChoiceChange={setBillingChoice}
             />
           )}
           {step === 5 && (
@@ -417,6 +432,7 @@ export default function DeployWizard() {
               repo={repo}
               config={config}
               ports={state.ports}
+              freeTrial={isFreeTrialDeploy(plan, state)}
               onSuccess={({ txid, appName, verifiedSpec }) => {
                 setRegistration({ txid, appName });
                 setVerifiedSpec(verifiedSpec);
@@ -431,6 +447,7 @@ export default function DeployWizard() {
               registration={state.registration}
               billingPeriod={config.billingPeriod}
               eligibleForFree={state.eligibleForFree}
+              freeTrial={isFreeTrialDeploy(plan, state)}
             />
           )}
         </div>
