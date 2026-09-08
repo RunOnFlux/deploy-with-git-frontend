@@ -3,7 +3,8 @@ import {
   Infinity as InfinityIcon, Server, Layers, Zap, GitBranch, Globe,
   MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield,
 } from 'lucide-react';
-import BokehBackground, { BOKEH_FEATURES } from './BokehBackground';
+import BokehBackground from './BokehBackground';
+import { BOKEH_FEATURES } from './bokehPalettes';
 import { FEATURES } from '../../content/landingContent';
 
 // Icons live with the component (they're React nodes, not serialisable content);

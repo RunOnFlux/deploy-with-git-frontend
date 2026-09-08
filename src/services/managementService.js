@@ -183,7 +183,9 @@ function extractJsonObjects(buffer) {
     else if (buffer[i] === '}') {
       depth--;
       if (depth === 0 && objStart !== -1) {
-        try { messages.push(JSON.parse(buffer.slice(objStart, i + 1))); } catch {}
+        // A brace that closed something that is not JSON — a log line with a `}` in it,
+        // say. Skipped rather than aborting the parse: the objects around it are still good.
+        try { messages.push(JSON.parse(buffer.slice(objStart, i + 1))); } catch { /* not an object */ }
         lastEnd = i + 1;
         objStart = -1;
       }

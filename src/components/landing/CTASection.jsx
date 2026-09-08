@@ -2,9 +2,10 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import BokehBackground, { BOKEH_CTA } from './BokehBackground';
+import BokehBackground from './BokehBackground';
+import { BOKEH_CTA } from './bokehPalettes';
 
-export default function CTASection({ onLoginSuccess }) {
+export default function CTASection() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 

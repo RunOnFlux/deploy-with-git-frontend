@@ -12,7 +12,7 @@ const NAV_LINKS = [
 
 const NAV_OFFSET = 72; // Navbar height plus a little breathing room, in pixels.
 
-export default function Navbar({ onLoginSuccess }) {
+export default function Navbar() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);

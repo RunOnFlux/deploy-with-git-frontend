@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import BokehBackground, { BOKEH_FAQ } from './BokehBackground';
+import BokehBackground from './BokehBackground';
+import { BOKEH_FAQ } from './bokehPalettes';
 import { FAQS as faqs } from '../../content/landingContent';
 
 function FAQItem({ q, a }) {
