@@ -1,0 +1,10 @@
+# Text is normalised to LF IN THE REPOSITORY whatever a contributor's machine writes
+# locally. Without this the repo depends on every contributor having core.autocrlf set
+# the way it happens to need — which is how minecraft-server-website ended up with 36 of
+# its 118 files in CRLF from its root commit onwards, and how a one-line edit there can
+# produce a diff of the whole file.
+* text=auto
+
+# Never touched: line endings inside these are content, not formatting.
+*.png binary
+*.webp binary
