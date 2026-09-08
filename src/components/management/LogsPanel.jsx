@@ -4,6 +4,20 @@ import { fetchAppLogPolling, nodeBaseUrl, containerName, fetchNodeOrbitStatus, f
 
 const POLL_INTERVAL_MS = 60_000;
 
+// SAID, NEVER SKIPPED OVER. A pane that is not showing everything the container wrote must not
+// look like one that is, and the two reasons differ: rolled over means the node discarded the
+// file holding the line we had read up to and those lines are gone for everyone; skipped means
+// they still exist and the node declined to walk back that far, because reaching them costs a
+// read of the whole retained log on every poll.
+const ROLLED_OVER_NOTICE = '\u2014 earlier logs rolled over on this node and are no longer available \u2014';
+const SKIPPED_NOTICE = '\u2014 the app logged faster than this panel could follow, and some lines were not delivered \u2014';
+
+// WHAT THE PANE HOLDS. Every poll used to replace the view, so 200 lines was the bound by
+// accident; now it appends, and a positioned poll is answered with everything written since the
+// last one. The head is dropped rather than the tail: a log is read from the bottom.
+const MAX_PANE_LINES = 5000;
+const capPane = (lines) => (lines.length > MAX_PANE_LINES ? lines.slice(-MAX_PANE_LINES) : lines);
+
 // Strip ANSI/VT100 escape codes (e.g. [0;32m, [0m)
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
@@ -260,6 +274,19 @@ function OrbitAppLogsPanel({ appName, mgmtPort, nodeIp, apiKey }) {
 
 // ── Container-logs sub-panel (Flux node API) ─────────────────────────────────
 
+/**
+ * The container's own log, off the Flux node.
+ *
+ * IT USED TO LOSE LINES. Every sixty seconds it asked for the last 200 and REPLACED the view
+ * with them, so anything the app wrote beyond 200 in that minute was never shown to anyone and
+ * could not be fetched afterwards — with nothing on screen to say it had happened. A build or a
+ * crash loop writes far more than that in a minute, which is exactly when somebody is reading.
+ *
+ * The node is now asked for everything since the position it last handed back, and the pane
+ * appends. Against a node that predates positions it returns no cursor and this behaves exactly
+ * as it did before — no version check anywhere, because the network runs several FluxOS
+ * versions at once and always will.
+ */
 function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth, container, downloadName }) {
   const [lines, setLines] = useState([]);
   const [error, setError] = useState(null);
@@ -268,6 +295,10 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth, container, downloa
   const [refreshKey, setRefreshKey] = useState(0);
   const isMountedRef = useRef(true);
   const bottomRef = useRef(null);
+  // Where this pane has read up to, as the node described it. A POSITION BELONGS TO ONE NODE'S
+  // CONTAINER — the same app elsewhere has its own log with its own timestamps — so it is reset
+  // by the effect below, whose dependencies are exactly the node and container it names.
+  const cursorRef = useRef(null);
 
   const base = nodeBaseUrl(nodeIp, nodePort);
   const logContainer = container ?? containerName(appName);
@@ -279,13 +310,29 @@ function AppLogsPanel({ nodeIp, nodePort, appName, zelidauth, container, downloa
     setLoading(true);
     setLines([]);
     setError(null);
+    cursorRef.current = null;
 
     async function poll() {
       try {
-        const data = await fetchAppLogPolling(base, logContainer, zelidauth, 200, 0);
+        const hadPosition = cursorRef.current !== null;
+        const data = await fetchAppLogPolling(base, logContainer, zelidauth, 200, 0, cursorRef.current);
         if (ctrl.signal.aborted) return;
         if (data?.status === 'success') {
-          setLines(Array.isArray(data.logs) ? data.logs.filter(Boolean).map(stripAnsi) : []);
+          const fresh = Array.isArray(data.logs) ? data.logs.filter(Boolean).map(stripAnsi) : [];
+
+          // A node that answers positions returns one. A node that predates them returns the
+          // most recent lines and nothing else, which is what this pane has always shown — so
+          // against that node it keeps showing exactly that.
+          const positioned = typeof data.cursor === 'string';
+          if (positioned) cursorRef.current = data.cursor;
+
+          setLines(prev => {
+            if (!positioned || !hadPosition) return capPane(fresh);
+            const marker = [];
+            if (data.rolledOver && prev.length) marker.push(ROLLED_OVER_NOTICE);
+            if (data.skipped && prev.length) marker.push(SKIPPED_NOTICE);
+            return capPane([...prev, ...marker, ...fresh]);
+          });
           setError(null);
           setLastUpdated(new Date());
         } else {
