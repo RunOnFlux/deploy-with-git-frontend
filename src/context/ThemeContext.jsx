@@ -34,6 +34,9 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// Same as AuthContext: the hook lives with its provider, which is the standard shape. Split
+// both together or neither.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   return useContext(ThemeContext);
 }

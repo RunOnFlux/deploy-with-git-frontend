@@ -144,6 +144,11 @@ export default function AppCard({ app, compact = false, onRetry }) {
       {/* Git info */}
       {repo && (
         <div className="flex items-center gap-2 text-xs text-text-secondary mb-3">
+          {/* eslint-disable-next-line react-hooks/static-components -- `getRepoIcon` SELECTS
+              from the module-level REPO_ICONS map, or falls back to Globe; it never constructs
+              a component. The identity it returns is stable for a given host, so nothing can
+              lose state across a render. The rule reads any capitalised binding assigned from
+              a call during render as a component being created. */}
           <RepoIcon className="w-3.5 h-3.5 shrink-0 text-text-muted" />
           <a
             href={app.gitRepo}

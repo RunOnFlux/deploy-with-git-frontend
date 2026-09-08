@@ -60,6 +60,12 @@ const ROUTE_PAGES = {
 };
 
 /** Load the chunk for `pathname` (falling back to NotFound) before render/hydrate. */
+// `preloadRoute` has to live with `ROUTE_PAGES`, which is built here from the lazy page
+// imports — and both entry points already take more than components from this module:
+// entry-server.jsx imports AppProviders, AppRoutes and this, main.jsx imports the default and
+// this. Splitting it would move the routing table out of App.jsx and rewrite the contract both
+// entries are written against, to satisfy a rule about how finely Vite hot-reloads in dev.
+// eslint-disable-next-line react-refresh/only-export-components
 export const preloadRoute = (pathname) => {
   const clean = pathname.replace(/\/+$/, '') || '/';
   const Page = ROUTE_PAGES[clean] || NotFound;

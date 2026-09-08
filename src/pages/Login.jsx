@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) navigate(redirectTo, { replace: true });
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate, redirectTo]);
 
   // Login page is always dark regardless of dashboard theme preference.
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function LoginPage() {
       if (result.verified) { clearInterval(id); navigate(redirectTo); }
     }, 5000);
     return () => clearInterval(id);
-  }, [verifying, navigate]);
+  }, [verifying, navigate, redirectTo]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;

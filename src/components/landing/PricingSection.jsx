@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Info, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
-import BokehBackground, { BOKEH_PRICING } from './BokehBackground';
+import BokehBackground from './BokehBackground';
+import { BOKEH_PRICING } from './bokehPalettes';
 
 const PLAN_COLORS = {
   free:     { bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   text: 'text-slate-400',   glow: 'hover:shadow-slate-500/20',  btnGrad: 'from-slate-500 to-slate-400',   btnShadow: 'hover:shadow-slate-500/40'  },
@@ -47,7 +48,7 @@ const cardVariants = {
   show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
-export default function PricingSection({ onLoginSuccess }) {
+export default function PricingSection() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState('annual');

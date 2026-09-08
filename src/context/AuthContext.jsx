@@ -110,6 +110,11 @@ export function AuthProvider({ children }) {
   );
 }
 
+// The hook beside its provider is the standard shape for a React context, and NINETEEN files
+// import it from here. Moving it to a module of its own would rewrite all nineteen to buy fast
+// refresh on one file in development. Worth revisiting for the whole codebase at once, if at
+// all — not for this one context.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

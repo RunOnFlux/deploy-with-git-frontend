@@ -30,7 +30,6 @@ export default function DeploymentTracker({
   const [paymentAddress, setPaymentAddress] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(true);
   const [deployPhase, setDeployPhase] = useState(0);
-  const [deployMessage, setDeployMessage] = useState('');
   const [deployError, setDeployError] = useState('');
   const [copied, setCopied] = useState(false);
   const [logsOpen, setLogsOpen] = useState(true);
@@ -66,6 +65,13 @@ export default function DeploymentTracker({
     });
 
     return () => stopPollRef.current?.();
+  // ONCE PER MOUNT, deliberately. This starts a deployment poll and fetches a payment address
+  // for one specific transaction: `appName` and `txid` identify the deployment this tracker was
+  // mounted for and cannot change while it is on screen (Step6Payment renders a new one per
+  // deployment), and `zelidauth` is the session it was opened under. Declaring them would
+  // restart the poll — and re-fetch the address — on any identity change, which for `navigate`
+  // is not guaranteed stable, leaving two pollers on one deployment.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function copyAddress() {

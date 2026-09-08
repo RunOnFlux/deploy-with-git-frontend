@@ -183,7 +183,9 @@ function extractJsonObjects(buffer) {
     else if (buffer[i] === '}') {
       depth--;
       if (depth === 0 && objStart !== -1) {
-        try { messages.push(JSON.parse(buffer.slice(objStart, i + 1))); } catch {}
+        // A brace that closed something that is not JSON — a log line with a `}` in it,
+        // say. Skipped rather than aborting the parse: the objects around it are still good.
+        try { messages.push(JSON.parse(buffer.slice(objStart, i + 1))); } catch { /* not an object */ }
         lastEnd = i + 1;
         objStart = -1;
       }
@@ -252,13 +254,24 @@ export async function performNodeAction(nodeBase, action, appName, zelidauth, on
 }
 
 /**
- * Fetch app logs via applogpolling (correct endpoint; returns { logs: string[], sinceTimestamp, status }).
+ * Fetch app logs via applogpolling (returns { logs: string[], sinceTimestamp, cursor, status }).
  * Container name for composite apps: <componentName>_<appName> e.g. cloudgit_myapp
+ *
+ * `cursor` is A POSITION THE NODE HANDED BACK, given straight back to be answered with only
+ * what came after it. Opaque on purpose: nodes and this site upgrade independently, so reading
+ * it here would make its shape a contract. Omit it and the node answers with the most recent
+ * `lines`, which is what every reader written before positions existed asks for and still gets.
+ *
+ * A QUERY PARAMETER, not a fourth path segment. The route takes exactly three optional segments
+ * — appname, lines, since — and a fourth would not match, so a node that predates positions
+ * would answer 404 instead of logs. `nodeRequest` forwards the path verbatim through
+ * /api/node-proxy, so nothing on the server side needs to know about this.
  */
-export async function fetchAppLogPolling(nodeBase, container, zelidauth, lines = 100, since = 0) {
+export async function fetchAppLogPolling(nodeBase, container, zelidauth, lines = 100, since = 0, cursor = null) {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
   return nodeRequest(
     nodeBase,
-    `/apps/applogpolling/${encodeURIComponent(container)}/${lines}/${since}`,
+    `/apps/applogpolling/${encodeURIComponent(container)}/${lines}/${since}${query}`,
     'GET',
     zelidauth,
   );

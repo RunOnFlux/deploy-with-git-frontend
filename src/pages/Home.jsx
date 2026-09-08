@@ -41,9 +41,10 @@ export default function Home() {
     };
   }, []);
 
-  function handleLoginSuccess() {
-    navigate('/dashboard');
-  }
+  // No `handleLoginSuccess` any more. It was handed to Navbar, PricingSection, CTASection and
+  // MobileStickyCTA, and not one of them called it — they navigate to /login themselves, which
+  // is where the redirect after signing in is decided. A callback four components take and none
+  // uses is worse than none: it reads as a wired-up flow.
 
   return (
     <>
@@ -62,7 +63,7 @@ export default function Home() {
 
       <MotionConfig reducedMotion="user">
         <div className="bg-background text-text pb-20 sm:pb-0">
-          <Navbar onLoginSuccess={handleLoginSuccess} />
+          <Navbar />
           <HeroSection />
           <FrameworkLogosSection />
           <HowItWorksSection />
@@ -70,7 +71,7 @@ export default function Home() {
           <FeaturesSection />
           <ComparisonSection />
           <GlobalNetworkSection />
-          <PricingSection onLoginSuccess={handleLoginSuccess} />
+          <PricingSection />
           <div className="px-6 -mt-8 lg:-mt-12 mb-4">
             <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-2xl bg-surface border border-primary/30 shadow-lg shadow-primary/10">
               <div className="text-center sm:text-left">
@@ -88,8 +89,8 @@ export default function Home() {
           </div>
           <FAQSection />
           <RelatedLinksSection />
-          <CTASection onLoginSuccess={handleLoginSuccess} />
-          <MobileStickyCTA onLoginSuccess={handleLoginSuccess} />
+          <CTASection />
+          <MobileStickyCTA />
           <Footer />
         </div>
       </MotionConfig>

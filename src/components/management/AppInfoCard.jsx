@@ -146,7 +146,6 @@ function formatBlocksRemaining(blocks) {
 
 export default function AppInfoCard({ spec, nodeStatuses, appName }) {
   const [orbitStatus, setOrbitStatus] = useState(null);
-  const [orbitStatusLoading, setOrbitStatusLoading] = useState(false);
   const [currentBlock, setCurrentBlock] = useState(null);
 
   useEffect(() => {
@@ -158,11 +157,10 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
     const nodeIp = nodeStatuses?.[0]?.ip;
     if (!port || !nodeIp) return;
     const apiKey = getSpecEnvValue(spec, 'API_KEY') || undefined;
-    setOrbitStatusLoading(true);
     fetchNodeOrbitStatus(nodeIp, port, apiKey)
       .then(setOrbitStatus)
       .catch(() => {})
-      .finally(() => setOrbitStatusLoading(false));
+      ;
   }, [spec, nodeStatuses]);
 
     if (!spec) {
@@ -219,7 +217,6 @@ export default function AppInfoCard({ spec, nodeStatuses, appName }) {
   // Commit from orbit status
   const commit = orbitStatus?.last_deployment?.commit;
   const commitFull = orbitStatus?.last_deployment?.commit_full;
-  const buildStatus = orbitStatus?.last_deployment?.build_status;
   const commitMessage = (() => {
     if (!commitFull || !orbitStatus?.releases) return null;
     const rel = orbitStatus.releases.find((r) => r.commit === commitFull || r.commit?.startsWith(commitFull));

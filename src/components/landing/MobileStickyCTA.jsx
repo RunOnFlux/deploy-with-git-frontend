@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export default function MobileStickyCTA({ onLoginSuccess }) {
+export default function MobileStickyCTA() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
