@@ -86,6 +86,8 @@ COPY --chown=node:node src/services/repoConfigImportService.js ./src/services/re
 # "Add replicated persistent folders" without a line here, which is what stopped the image
 # booting from v1.4.21 onwards.
 COPY --chown=node:node src/services/persistentVolumeService.js ./src/services/persistentVolumeService.js
+# deployService imports this for the free trial's on-chain grant, which it puts in the spec.
+COPY --chown=node:node src/config/offer.js ./src/config/offer.js
 
 # THE LIST ABOVE IS A LANDMINE, so the build steps on it deliberately.
 #
