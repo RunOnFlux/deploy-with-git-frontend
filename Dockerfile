@@ -82,6 +82,25 @@ COPY --chown=node:node src/services/geolocationSpec.js ./src/services/geolocatio
 COPY --chown=node:node src/services/appSpecParser.js ./src/services/appSpecParser.js
 COPY --chown=node:node src/services/repoIntelligenceService.js ./src/services/repoIntelligenceService.js
 COPY --chown=node:node src/services/repoConfigImportService.js ./src/services/repoConfigImportService.js
+# deployService imports this for the replicated-folder container data. Added to the tree in
+# "Add replicated persistent folders" without a line here, which is what stopped the image
+# booting from v1.4.21 onwards.
+COPY --chown=node:node src/services/persistentVolumeService.js ./src/services/persistentVolumeService.js
+
+# THE LIST ABOVE IS A LANDMINE, so the build steps on it deliberately.
+#
+# Every runtime file is named one by one, on purpose — the rest of src/ is client code already
+# compiled into dist/ and has no business in this image. The cost is that adding an import to a
+# file already on the list silently leaves the image without it, and NOTHING notices: the build
+# succeeds, the push succeeds, the release succeeds, and the container exits on its first line
+# of work. That is exactly what happened between v1.4.21 and v1.5.0.
+#
+# This resolves the whole graph server.js reaches. A module missing from the list now fails the
+# BUILD, where it costs minutes, instead of the deploy, where it costs the site. It imports
+# rather than executes: the module body runs (which is the point — that is what resolves the
+# imports), the listen it starts is thrown away with the container, and the timeout means a
+# module that blocks on something cannot hang the build forever.
+RUN timeout 60 node -e "import('./server.js').then(() => { console.log('runtime module graph resolves'); process.exit(0); }, (e) => { console.error('MISSING FROM IMAGE:', e.message); process.exit(1); })"
 
 RUN chmod +x docker-entrypoint.sh
 
