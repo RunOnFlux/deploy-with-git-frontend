@@ -16,7 +16,7 @@ Orbit supports 100+ frameworks and runtimes, auto-detected from the repository, 
 
 ## Pricing
 
-All plans include unlimited builds and the full feature set. First month free on paid plans.
+All plans include unlimited builds and the full feature set. Paid plans start with a free 7-day trial.
 
 - **Free ($0/month)**: 0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance. Free forever, no credit card required.
 - **Standard ($2.49/month)**: 1.5 vCPU, 4 GB RAM, 15 GB storage, 2 instances.
