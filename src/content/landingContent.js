@@ -101,6 +101,14 @@ export const FAQS = [
     q: 'Can I deploy from a monorepo?',
     a: 'Yes. Set the PROJECT_PATH variable to the subfolder you want to deploy and Orbit builds just that package from your monorepo, so you can host multiple apps or services from a single repository.',
   },
+  {
+    q: 'Can an AI agent deploy and manage my Orbit apps?',
+    a: 'Yes. Orbit includes an MCP server that lets compatible AI agents inspect repositories, validate deployments, deploy apps, read bounded logs, check status, trigger builds, control instances, update settings, and renew subscriptions. You choose which tool calls to approve in your agent client.',
+  },
+  {
+    q: 'How do I connect an AI agent to Orbit?',
+    a: 'Sign in to Orbit with Google or email, open Connect an agent in the dashboard, and generate a connection configuration. Paste it into an MCP client that supports Streamable HTTP and authorization headers. The included Firebase credential is short lived, so generate a new configuration when it expires.',
+  },
 ];
 
 /**
@@ -121,4 +129,5 @@ export const FEATURES = [
   { key: 'monorepo', title: 'Monorepo Support', description: 'Deploy specific folders from a monorepo using the PROJECT_PATH variable.' },
   { key: 'health-monitoring', title: 'Health Monitoring', description: 'Built-in health checks and process supervision keep your app always available.' },
   { key: 'enhanced-security', title: 'Enhanced Security', description: 'Non-root execution, automatic log rotation, and encrypted app specs.' },
+  { key: 'mcp-agents', title: 'AI Agent Operations', description: 'Connect an MCP-compatible agent to inspect, deploy, monitor, and manage the Orbit apps you own.' },
 ];

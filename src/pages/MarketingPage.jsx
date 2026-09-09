@@ -78,6 +78,13 @@ function Block({ block }) {
       </div>
     );
   }
+  if (block.type === 'code') {
+    return (
+      <pre className="overflow-x-auto rounded-2xl border border-border bg-surface p-5 my-6 text-sm text-text-secondary">
+        <code className="font-mono whitespace-pre">{block.text}</code>
+      </pre>
+    );
+  }
   return null;
 }
 

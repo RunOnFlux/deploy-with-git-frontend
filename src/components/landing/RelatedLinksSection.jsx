@@ -3,6 +3,12 @@ import { ArrowUpRight } from 'lucide-react';
 
 const LINKS = [
   {
+    href: '/mcp-server',
+    title: 'Orbit MCP server guide',
+    desc: 'Connect an AI agent to inspect, deploy, monitor, and manage your Orbit apps safely.',
+    external: false,
+  },
+  {
     href: '/deploy-to-flux',
     title: 'Deploy to Flux button',
     desc: 'Let anyone deploy your repository from its README with one click.',
@@ -11,7 +17,7 @@ const LINKS = [
   {
     href: '/free-web-app-hosting',
     title: 'Free web app & static site hosting',
-    desc: 'Host apps and static sites free forever — no card, no egress fees. Paid plans from $0.99/mo.',
+    desc: 'Host apps and static sites free forever with no card or egress fees. Paid plans start at $0.99/mo.',
     external: false,
   },
   {
@@ -83,9 +89,9 @@ export default function RelatedLinksSection() {
           </h2>
           <p className="text-text-secondary/80 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mt-5">
             If you are weighing decentralized hosting against the platform you use today, these
-            guides explain one-click repository deployments, what web3 hosting actually is, how the
-            node network keeps your app online, and how Orbit compares head-to-head with Vercel,
-            Netlify, Heroku, Railway and Render.
+            guides explain AI agent operations, one-click repository deployments, what web3 hosting
+            actually is, how the node network keeps your app online, and how Orbit compares with
+            Vercel, Netlify, Heroku, Railway and Render.
           </p>
         </motion.div>
 

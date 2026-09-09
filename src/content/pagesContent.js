@@ -14,7 +14,7 @@
  */
 
 /** Ordered list of marketing routes, reused by the sitemap and the prerender. */
-export const MARKETING_ROUTES = ['/deploy-to-flux', '/free-web-app-hosting', '/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
+export const MARKETING_ROUTES = ['/deploy-to-flux', '/mcp-server', '/free-web-app-hosting', '/decentralized-hosting', '/vs/vercel', '/vercel-netlify-alternative', '/heroku-alternative', '/railway-alternative', '/render-alternative'];
 
 export const MARKETING_PAGES = {
   '/deploy-to-flux': {
@@ -26,6 +26,155 @@ export const MARKETING_PAGES = {
     intro: 'Generate a one-click Orbit deployment link for your repository README.',
     sections: [],
     faqs: [],
+  },
+  '/mcp-server': {
+    slug: 'mcp-server',
+    title: 'Orbit MCP Server Guide | Deploy Apps with AI Agents',
+    description: 'Connect an MCP-compatible AI agent to Orbit to inspect repositories, deploy apps, read logs, control instances, update settings, and renew subscriptions.',
+    breadcrumb: 'MCP Server Guide',
+    h1: 'Deploy and Manage Orbit Apps with an AI Agent',
+    intro: 'Orbit includes a Model Context Protocol server for authenticated app deployment and operations. Connect a compatible AI agent, ask it to inspect or manage your apps, and approve the actions you want it to perform. This guide explains the connection flow, available tools, security model, and recommended workflow.',
+    sections: [
+      {
+        heading: 'What the Orbit MCP server does',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Model Context Protocol, commonly called MCP, gives AI clients a standard way to discover and call tools. The Orbit MCP server exposes the same deployment and management capabilities used by the Orbit interface through a stateless HTTP endpoint at <strong>https://orbit.runonflux.com/mcp</strong>.',
+          },
+          {
+            type: 'ul',
+            items: [
+              '<strong>Inspect:</strong> list plans and owned apps, analyze repositories, inspect sanitized app specifications, check instances and deployment status, measure network capacity, and read bounded logs.',
+              '<strong>Deploy:</strong> validate an app specification, register a deployment, test the installation, and create an authoritative Stripe checkout when payment is required.',
+              '<strong>Operate:</strong> trigger builds and perform approved start, stop, restart, pause, unpause, redeploy, or remove actions on assigned instances.',
+              '<strong>Maintain:</strong> update supported app settings, preserve the remaining subscription period, and renew an app for an approved duration.',
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'Connect your agent',
+        blocks: [
+          {
+            type: 'p',
+            html: 'You need an Orbit account signed in with Google or email and an MCP client that supports Streamable HTTP plus custom authorization headers. Wallet-only ZelCore and SSP sessions cannot create an agent connection at this time.',
+          },
+          {
+            type: 'ul',
+            items: [
+              'Sign in to Orbit with Google or email.',
+              'Open <a href="/dashboard/agents">Dashboard, then Connect an agent</a>.',
+              'Select <strong>Generate connection config</strong>.',
+              'Copy the generated JSON into your MCP client configuration.',
+              'Reconnect with a newly generated configuration after the credential expires.',
+            ],
+          },
+          {
+            type: 'code',
+            language: 'json',
+            text: '{\n  "mcpServers": {\n    "orbit": {\n      "type": "http",\n      "url": "https://orbit.runonflux.com/mcp",\n      "headers": {\n        "Authorization": "Bearer YOUR_FIREBASE_ID_TOKEN"\n      }\n    }\n  }\n}',
+          },
+          {
+            type: 'p',
+            html: 'Treat the generated configuration like a password. Do not commit it, include it in support messages, paste it into prompts, or share it with another person. Generate the configuration directly in your own dashboard.',
+          },
+        ],
+      },
+      {
+        heading: 'Available agent tools',
+        blocks: [
+          {
+            type: 'table',
+            headers: ['Capability', 'Tools', 'What they do'],
+            rows: [
+              ['Discovery', 'list_plans, analyze_repository', 'Compare plans and inspect a repository with Orbit compatibility rules.'],
+              ['App inspection', 'list_apps, get_app, get_instances', 'Read owned Orbit apps, sanitized specifications, and assigned nodes.'],
+              ['Status and capacity', 'get_deployment_status, get_network_capacity', 'Check registration state, live locations, and suitable Flux capacity.'],
+              ['Deployment', 'validate_deployment, deploy_app', 'Preview an authoritative specification, then register and test an approved app.'],
+              ['Payments', 'create_stripe_checkout', 'Create Stripe checkout from an owned Flux transaction and server-calculated price.'],
+              ['Logs and builds', 'get_logs, trigger_build', 'Read a bounded log tail or request a new Orbit build.'],
+              ['Instance control', 'control_instance', 'Perform an allowlisted action on a node assigned to an owned app.'],
+              ['Maintenance', 'update_app, renew_app', 'Apply constrained changes or extend an app subscription.'],
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'A safe deployment workflow',
+        blocks: [
+          {
+            type: 'ul',
+            items: [
+              '<strong>Start with analysis.</strong> Ask the agent to analyze the repository and explain the detected runtime, port, branch, and project directory.',
+              '<strong>Validate before deployment.</strong> Use validate_deployment to review the generated specification, required resources, and authoritative network price without registering anything.',
+              '<strong>Review mutating calls.</strong> Require confirmation in your MCP client for deploy_app, trigger_build, control_instance, update_app, and renew_app.',
+              '<strong>Keep the transaction handle.</strong> Save the transaction ID returned by a deployment, update, or renewal. It identifies the submitted Flux operation and can be used for status and checkout.',
+              '<strong>Check the result.</strong> Ask for deployment status and instances after registration. Read a bounded log tail if the application is not healthy.',
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'Authentication, ownership, and data storage',
+        blocks: [
+          {
+            type: 'p',
+            html: 'Each request verifies the Firebase bearer credential, derives the user\'s Flux identity through FluxCore, and creates a request-scoped session. The MCP transport is stateless. Orbit does not create a separate MCP user database or store a long-lived agent session.',
+          },
+          {
+            type: 'p',
+            html: 'Firebase, FluxCore, the Flux blockchain, and the Stripe payment bridge remain the systems of record. Orbit checks app ownership before returning app details or contacting an assigned node. Repository credentials, management secrets, Enterprise plaintext, and credential-bearing URLs are redacted from tool results.',
+          },
+          {
+            type: 'p',
+            html: 'A Firebase ID token is short lived. The current connection flow does not include refresh credentials, so the agent cannot silently extend access. Generate a fresh configuration from the dashboard when the token expires.',
+          },
+        ],
+      },
+      {
+        heading: 'Troubleshooting',
+        blocks: [
+          {
+            type: 'ul',
+            items: [
+              '<strong>Unauthorized:</strong> generate a new configuration, confirm the entire Authorization header was copied, and make sure the account uses Google or email sign-in.',
+              '<strong>Tool not found:</strong> reconnect the MCP client so it performs tool discovery against the current server version.',
+              '<strong>App not listed:</strong> confirm the app belongs to the Flux identity linked to the signed-in Firebase account and that it is an Orbit deployment.',
+              '<strong>Repository cannot be analyzed:</strong> verify the repository URL, branch, subdirectory, and private repository credential.',
+              '<strong>Payment required:</strong> use the transaction ID returned by the mutating call to create an authoritative Stripe checkout.',
+              '<strong>Timeout:</strong> retry a read-only call once. Do not repeat a mutating call unless you first check its returned transaction ID or deployment status.',
+            ],
+          },
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: 'Which AI clients work with the Orbit MCP server?',
+        a: 'Any MCP client that supports Streamable HTTP connections and custom Authorization headers can connect. Add the generated JSON using the configuration method documented by your client.',
+      },
+      {
+        q: 'Does Orbit store a separate agent account or agent database?',
+        a: 'No. The MCP endpoint is stateless and uses your existing Firebase account, Flux identity, blockchain records, and Stripe payment flow. Orbit does not add a separate database for agent users or deployments.',
+      },
+      {
+        q: 'Can an agent deploy without my approval?',
+        a: 'That depends on the approval policy in your MCP client. Orbit marks mutating tools as destructive or non-read-only where appropriate. Configure your client to ask before deployments, builds, instance controls, updates, renewals, and payments.',
+      },
+      {
+        q: 'Can I use ZelCore or SSP to connect an agent?',
+        a: 'Not currently. The MCP connection requires a Firebase session created through Google or email sign-in because agent-side request signing depends on Firebase SSO.',
+      },
+      {
+        q: 'How long does an agent connection last?',
+        a: 'The generated connection uses a short-lived Firebase ID token. Its expiration is shown on the Connect an agent page. Generate a new configuration after it expires.',
+      },
+      {
+        q: 'Can the agent see my repository tokens or app secrets?',
+        a: 'Orbit accepts private repository credentials as secret inputs when needed, but it does not return them. Tool responses redact repository credentials, management secrets, Enterprise plaintext, and known secret environment variables.',
+      },
+    ],
   },
   '/decentralized-hosting': {
     slug: 'decentralized-hosting',

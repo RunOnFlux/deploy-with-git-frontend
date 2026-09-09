@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import {
   Infinity as InfinityIcon, Server, Layers, Zap, GitBranch, Globe,
-  MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield,
+  MapPin, Eye, RotateCcw, FolderGit2, Activity, Shield, Bot,
 } from 'lucide-react';
 import BokehBackground from './BokehBackground';
 import { BOKEH_FEATURES } from './bokehPalettes';
@@ -22,6 +22,7 @@ const FEATURE_ICONS = {
   'monorepo': FolderGit2,
   'health-monitoring': Activity,
   'enhanced-security': Shield,
+  'mcp-agents': Bot,
 };
 
 const features = FEATURES.map((f) => ({ ...f, icon: FEATURE_ICONS[f.key] }));
@@ -58,11 +59,10 @@ export default function FeaturesSection() {
             Zero Docker headaches. Orbit handles the full build, deploy, and operations pipeline so you can focus on code.
           </p>
           <p className="text-text-secondary/70 text-base max-w-3xl mx-auto leading-relaxed mt-5">
-            Everything below ships on every plan, free tier included: framework auto-detection,
-            container builds, automatic redeploys on push, streaming build logs, instant rollback to
-            the last healthy release, custom domains with managed TLS, environment variables and
-            secrets, and a dashboard for logs, status and node-level actions on the apps you are
-            already running.
+            Core capabilities include framework auto-detection, container builds, automatic
+            redeploys on push, streaming build logs, rollback to the last healthy release,
+            environment variables, secrets, and agent access through MCP. Paid plans also include
+            custom domains with managed TLS.
           </p>
         </motion.div>
 
