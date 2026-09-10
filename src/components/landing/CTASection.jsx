@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import BokehBackground from './BokehBackground';
 import { BOKEH_CTA } from './bokehPalettes';
+import { MONEY_BACK_DAYS, OFFERS_PAUSED } from '../../config/offer';
 
 export default function CTASection() {
   const { isAuthenticated } = useAuth();
@@ -37,13 +38,15 @@ export default function CTASection() {
                 Start Deploying <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">in Minutes</span>
               </h2>
               <p className="text-text-secondary text-lg max-w-xl mx-auto mb-8">
-                Free tier forever. No credit card required. Your first paid month is on us.
+                {OFFERS_PAUSED
+                  ? `Paid plans from $0.99/month, with a ${MONEY_BACK_DAYS}-day money-back guarantee on your first paid period.`
+                  : 'Free tier forever. No credit card required. Your first paid month is on us.'}
               </p>
               <button
                 onClick={handleCTA}
                 className="btn-cta text-base px-8 py-3.5"
               >
-                Get started free
+                {OFFERS_PAUSED ? 'Get started' : 'Get started free'}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

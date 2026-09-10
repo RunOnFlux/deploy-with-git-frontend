@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from 'lucide-react';
 import { useDeployWizard } from '../../hooks/useDeployWizard';
 import { PLANS, isFreeTierPlan, isValidPort, normalizeCustomPlan, supportsAdditionalAppPort, supportsCustomDomain, computeGeoHardware } from '../../services/deployService';
 import { resolvePlanFromImport } from '../../services/repoConfigImportService';
+import { FREE_PLAN_AVAILABLE, FREE_TRIAL_AVAILABLE } from '../../config/offer';
 import { geolocationFromImport, buildGeoSpec } from '../../services/geolocationSpec';
 import { fetchDeployCapacity } from '../../hooks/useNetworkStats';
 import { databaseNeedsName } from '../../services/databaseSpec';
@@ -46,6 +47,9 @@ const HERO_PREFILL_KEY = 'orbitHeroDeployPrefill';
  * normal month that appsmonitor renews for as long as it stays the owner's only Orbit app.
  */
 function isFreeTrialDeploy(plan, state) {
+  // The last gate before the expire that goes on-chain: while the offer is paused no
+  // registration may ask for FREE_TRIAL_BLOCKS, because appsmonitor no longer settles it.
+  if (!FREE_TRIAL_AVAILABLE) return false;
   return !isFreeTierPlan(plan) && state.eligibleForFree && state.billingChoice === 'trial';
 }
 
@@ -144,7 +148,9 @@ export default function DeployWizard() {
 
     if (planId) {
       const p = PLANS.find((pl) => pl.id === planId);
-      if (p) {
+      // A ?plan=free link (an old bookmark, or the pricing page before this build) must not
+      // preselect a plan that can no longer be deployed: leave the customer on step 1.
+      if (p && !(isFreeTierPlan(p) && !FREE_PLAN_AVAILABLE)) {
         setPlan(p.id === 'custom' ? normalizeCustomPlan(p) : p);
         // Auto-advance past step 1 — plan is already chosen
         next();
@@ -242,7 +248,8 @@ export default function DeployWizard() {
     if (Object.keys(updates).length) setConfig(updates);
 
     const importedPlan = resolvePlanFromImport(payload);
-    if (importedPlan) setPlan(importedPlan);
+    // A repo config asking for the free plan is ignored while that plan is closed.
+    if (importedPlan && !(isFreeTierPlan(importedPlan) && !FREE_PLAN_AVAILABLE)) setPlan(importedPlan);
   }
 
   // ── Validation guards ───────────────────────────────────────────────────────

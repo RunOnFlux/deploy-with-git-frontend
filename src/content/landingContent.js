@@ -11,6 +11,7 @@
  * Pricing/plan data already lives in src/config/plans.js (ORBIT_PLANS); the SEO
  * generators read it directly, so plans are not duplicated here.
  */
+import { FREE_PLAN_AVAILABLE } from '../config/offer.js';
 
 /** Headline facts reused across copy. Keep these vague-but-true. */
 export const SITE_FACTS = {
@@ -59,7 +60,9 @@ export const FAQS = [
   },
   {
     q: 'Is the free tier really free forever?',
-    a: 'Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances.',
+    a: FREE_PLAN_AVAILABLE
+      ? 'Yes. The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is free forever with no credit card required. Paid plans add more resources and instances.'
+      : 'The Free plan (0.5 vCPU, 1 GB RAM, 5 GB storage, 1 instance) is currently unavailable for new deployments, so new apps start on a paid plan from $0.99/month. Apps already running on the Free plan keep renewing as before.',
   },
   {
     q: 'How is Orbit different from Vercel or Netlify?',
@@ -87,7 +90,9 @@ export const FAQS = [
   },
   {
     q: 'Do I need crypto to use Orbit, or can I pay with a card?',
-    a: 'Both work. You can pay with a normal debit or credit card via Stripe, or with FLUX cryptocurrency through the ZelCore or SSP wallets. You do not need to own any crypto to deploy because the free tier requires no payment method at all.',
+    a: FREE_PLAN_AVAILABLE
+      ? 'Both work. You can pay with a normal debit or credit card via Stripe, or with FLUX cryptocurrency through the ZelCore or SSP wallets. You do not need to own any crypto to deploy because the free tier requires no payment method at all.'
+      : 'Both work. You can pay with a normal debit or credit card via Stripe, or with FLUX cryptocurrency through the ZelCore or SSP wallets. You never need to own any crypto: a card works for every plan.',
   },
   {
     q: 'What happens if a build fails?',

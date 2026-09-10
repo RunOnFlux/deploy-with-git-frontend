@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, Copy, Check, ExternalLink, Terminal, Clock } from 'lucide-react';
 import { getPaymentAddress, pollDeployment } from '../../services/deployService';
+import { FREE_TRIAL_AVAILABLE } from '../../config/offer';
 
 const DEPLOY_PHASES = [
   { label: 'Waiting for blockchain confirmation' },
@@ -112,7 +113,10 @@ export default function DeploymentTracker({
         ) : paymentAddress ? (
           <div className="space-y-2">
             <p className="text-xs text-text-muted mb-2">
-              Send FLUX to this address to fund your deployment. The first month is <span className="text-green-400 font-medium">free for new apps</span>.
+              Send FLUX to this address to fund your deployment.
+              {FREE_TRIAL_AVAILABLE && (
+                <> The first month is <span className="text-green-400 font-medium">free for new apps</span>.</>
+              )}
             </p>
             {(priceFlux != null || priceUsd != null) && (
               <div className="flex items-center gap-3 px-2.5 py-2 bg-primary/10 border border-primary/20 text-sm mb-1">

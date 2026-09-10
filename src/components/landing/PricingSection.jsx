@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Info, Lock } from 'lucide-react';
+import { Cpu, MemoryStick, HardDrive, Server, Gift, Rocket, Info, Lock, Ban } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ORBIT_PLANS } from '../../config/plans';
+import { FREE_PLAN_AVAILABLE, FREE_TRIAL_AVAILABLE, FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
+import OfferPausedNotice from '../common/OfferPausedNotice';
 import BokehBackground from './BokehBackground';
 import { BOKEH_PRICING } from './bokehPalettes';
 
@@ -92,13 +94,26 @@ export default function PricingSection() {
               Choose your plan based on your resource needs.
             </p>
             <p className="text-text-secondary/80 text-sm leading-relaxed max-w-2xl mx-auto mt-4">
-              Start free and scale as you grow. Every plan, including the free-forever tier,
-              includes unlimited builds, automatic deploys on every push, rollbacks, and the full
-              Orbit feature set; paid plans add dedicated CPU, RAM and storage, and the first month
-              is free. There is no contract and no egress billing: you pay for the resources your
-              app reserves, and you can change or cancel a plan at any time.
+              {FREE_PLAN_AVAILABLE && FREE_TRIAL_AVAILABLE ? (
+                <>
+                  Start free and scale as you grow. Every plan, including the free-forever tier,
+                  includes unlimited builds, automatic deploys on every push, rollbacks, and the full
+                  Orbit feature set; paid plans add dedicated CPU, RAM and storage, and the first month
+                  is free. There is no contract and no egress billing: you pay for the resources your
+                  app reserves, and you can change or cancel a plan at any time.
+                </>
+              ) : (
+                <>
+                  Every plan includes unlimited builds, automatic deploys on every push, rollbacks,
+                  and the full Orbit feature set; paid plans add dedicated CPU, RAM and storage.
+                  There is no contract and no egress billing: you pay for the resources your app
+                  reserves, and you can change or cancel a plan at any time.
+                </>
+              )}
             </p>
           </motion.div>
+
+          <OfferPausedNotice className="max-w-2xl mx-auto mt-6" rounded />
 
           {/* Billing period toggle */}
           <motion.div
@@ -146,6 +161,7 @@ export default function PricingSection() {
           >
             {ORBIT_PLANS.map((plan) => {
               const displayPrice = getDisplayPrice(plan);
+              const unavailable = plan.price === 0 && !FREE_PLAN_AVAILABLE;
               const isRecommended = plan.highlight;
               const resources = PLAN_RESOURCES[plan.id] ?? [];
               const c = PLAN_COLORS[plan.id];
@@ -164,7 +180,7 @@ export default function PricingSection() {
                 <motion.div
                   variants={cardVariants}
                   className={`relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 overflow-hidden flex-1
-                    shadow-lg ${c.glow}
+                    shadow-lg ${c.glow} ${unavailable ? 'opacity-60' : ''}
                     ${isRecommended
                       ? 'border-primary/40 bg-surface shadow-primary/10'
                       : 'border-border bg-surface hover:border-opacity-60'
@@ -202,11 +218,18 @@ export default function PricingSection() {
                     </div>
                   </div>
 
-                  {/* First week free / Free forever pill */}
-                  <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
-                    <Gift className="w-3 h-3 shrink-0" />
-                    {plan.price === 0 ? 'Free forever*' : 'First week free*'}
-                  </div>
+                  {/* Offer pill: hidden on paid plans while the trial is paused */}
+                  {unavailable ? (
+                    <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-amber-400/30 bg-amber-400/5 rounded-full text-xs font-semibold text-amber-200 uppercase tracking-wide w-fit mx-auto">
+                      <Ban className="w-3 h-3 shrink-0" />
+                      Currently unavailable
+                    </div>
+                  ) : (plan.price === 0 || FREE_TRIAL_AVAILABLE) && (
+                    <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs font-semibold text-text-secondary uppercase tracking-wide w-fit mx-auto">
+                      <Gift className="w-3 h-3 shrink-0" />
+                      {plan.price === 0 ? 'Free forever*' : 'First week free*'}
+                    </div>
+                  )}
 
                   {/* Plan header */}
                   <div className="text-center pb-4 border-b border-border flex flex-col justify-center min-h-[5rem]">
@@ -237,6 +260,12 @@ export default function PricingSection() {
                   </div>
 
                   {/* CTA */}
+                  {unavailable ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5
+                      bg-surface-hover text-text-muted border border-border cursor-not-allowed">
+                      <Ban className="w-4 h-4" /> Currently unavailable
+                    </div>
+                  ) : (
                   <button
                     onClick={() => handlePlanCTA(plan.id)}
                     className={`group relative w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5
@@ -249,10 +278,13 @@ export default function PricingSection() {
                       transition-transform duration-500 ease-in-out" />
                     {plan.price === 0 ? (
                       <><Rocket className="w-4 h-4" /> Start Deploying</>
-                    ) : (
+                    ) : FREE_TRIAL_AVAILABLE ? (
                       <><Gift className="w-4 h-4" /> Start Free Trial</>
+                    ) : (
+                      <><Rocket className="w-4 h-4" /> Choose {plan.name}</>
                     )}
                   </button>
+                  )}
                 </motion.div>
                 </div>
               );
@@ -265,16 +297,28 @@ export default function PricingSection() {
               <span className="text-text font-semibold">*</span> Restrictions may apply to prevent abuse.
             </p>
             <p className="text-sm text-text-secondary leading-relaxed">
-              <span className="text-text font-semibold">*</span> The Free plan is automatically
-              renewed as long as you have only one Git app running on the network. Additional Git apps are
-              charged $0.99/month each.
+              <span className="text-text font-semibold">*</span>{' '}
+              {FREE_PLAN_AVAILABLE
+                ? 'The Free plan is automatically renewed as long as you have only one Git app running on the network. Additional Git apps are charged $0.99/month each.'
+                : 'The Free plan is currently unavailable for new deployments. Apps already on it are not affected: they keep renewing automatically for as long as they are your only Git app on the network. Additional Git apps are charged $0.99/month each.'}
             </p>
             <p className="text-sm text-text-secondary leading-relaxed">
-              <span className="text-text font-semibold">*</span> Paid plans start with a free 7-day trial for
-              customers new to Flux Cloud. Each account receives one free trial, not one per app or repository, and it
-              takes no card: the app expires after 7 days unless you choose to keep it. If you've deployed any app on
-              Flux before, standard pricing applies. Our 30-day money-back guarantee covers your first paid month,
-              whether or not you took the free trial first.
+              <span className="text-text font-semibold">*</span>{' '}
+              {FREE_TRIAL_AVAILABLE ? (
+                <>
+                  Paid plans start with a free {FREE_TRIAL_DAYS}-day trial for
+                  customers new to Flux Cloud. Each account receives one free trial, not one per app or repository, and it
+                  takes no card: the app expires after {FREE_TRIAL_DAYS} days unless you choose to keep it. If you&apos;ve deployed any app on
+                  Flux before, standard pricing applies. Our {MONEY_BACK_DAYS}-day money-back guarantee covers your first paid month,
+                  whether or not you took the free trial first.
+                </>
+              ) : (
+                <>
+                  The free {FREE_TRIAL_DAYS}-day trial for customers new to Flux Cloud is currently
+                  unavailable, so every new deployment starts on a paid billing period. Our {MONEY_BACK_DAYS}-day
+                  money-back guarantee still covers your first paid month.
+                </>
+              )}
             </p>
             <p className="text-sm text-text-secondary leading-relaxed flex items-start gap-1.5">
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-text-muted" />

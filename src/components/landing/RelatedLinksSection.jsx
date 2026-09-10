@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
+import { FREE_PLAN_AVAILABLE } from '../../config/offer';
 
 const LINKS = [
   {
@@ -17,7 +18,9 @@ const LINKS = [
   {
     href: '/free-web-app-hosting',
     title: 'Free web app & static site hosting',
-    desc: 'Host apps and static sites free forever with no card or egress fees. Paid plans start at $0.99/mo.',
+    desc: FREE_PLAN_AVAILABLE
+      ? 'Host apps and static sites free forever with no card or egress fees. Paid plans start at $0.99/mo.'
+      : 'Host apps and static sites on the decentralized Flux cloud with no egress fees. Paid plans start at $0.99/mo.',
     external: false,
   },
   {
@@ -41,7 +44,9 @@ const LINKS = [
   {
     href: '/heroku-alternative',
     title: 'Heroku alternative',
-    desc: 'Git push-to-deploy on a decentralized cloud with a free tier that stays free. Paid plans start at $0.99/mo.',
+    desc: FREE_PLAN_AVAILABLE
+      ? 'Git push-to-deploy on a decentralized cloud with a free tier that stays free. Paid plans start at $0.99/mo.'
+      : 'Git push-to-deploy on a decentralized cloud with dedicated resources. Paid plans start at $0.99/mo.',
     external: false,
   },
   {

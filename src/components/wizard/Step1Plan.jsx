@@ -1,5 +1,7 @@
-import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock } from 'lucide-react';
-import { ADDITIONAL_APP_PLAN, PLANS, normalizeCustomPlan } from '../../services/deployService';
+import { Check, Gift, Cpu, MemoryStick, HardDrive, Server, Rocket, LayoutGrid, AlertTriangle, Info, Lock, Ban } from 'lucide-react';
+import { ADDITIONAL_APP_PLAN, PLANS, isFreeTierPlan, normalizeCustomPlan } from '../../services/deployService';
+import { FREE_PLAN_AVAILABLE, FREE_TRIAL_AVAILABLE } from '../../config/offer';
+import OfferPausedNotice from '../common/OfferPausedNotice';
 import { useApps } from '../../hooks/useApps';
 
 const PLAN_COLORS = {
@@ -58,13 +60,20 @@ function PlanCard({ plan, selected, onSelect }) {
   const isRecommended = plan.badge === 'Popular';
   const isAdditionalApp = plan.isAdditionalApp === true;
   const resources = PLAN_RESOURCES[plan.id] ?? [];
+  // The $0 plan is closed to new deployments while the offer is paused. ADDITIONAL_APP_PLAN
+  // shares its id and resources but is paid, so it stays selectable.
+  const unavailable = isFreeTierPlan(plan) && !FREE_PLAN_AVAILABLE;
 
   return (
     <button
       type="button"
-      onClick={() => onSelect(plan)}
+      disabled={unavailable}
+      aria-disabled={unavailable}
+      onClick={() => { if (!unavailable) onSelect(plan); }}
       className={`relative flex flex-col gap-4 w-full text-left border-2 p-6 ${
-        isSelected
+        unavailable
+          ? 'border-border bg-surface opacity-60 cursor-not-allowed'
+          : isSelected
           ? 'border-primary bg-primary/5 shadow-lg shadow-primary/15'
           : isRecommended
           ? 'border-primary/30 bg-surface hover:border-primary/60'
@@ -106,15 +115,31 @@ function PlanCard({ plan, selected, onSelect }) {
         );
       })()}
 
-      {/* First week free / Free forever pill */}
-      <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto text-text-secondary">
-        <Gift className="w-3 h-3 shrink-0" />
-        {isAdditionalApp
+      {/* Offer pill: hidden entirely on a paid plan while the trial is paused */}
+      {(() => {
+        if (unavailable) {
+          return (
+            <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-amber-400/30 bg-amber-400/5 text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto text-amber-200">
+              <Ban className="w-3 h-3 shrink-0" />
+              Currently unavailable
+            </div>
+          );
+        }
+        const label = isAdditionalApp
           ? 'Additional app'
           : plan.priceMonthly === 0
           ? 'Free forever*'
-          : 'First week free*'}
-      </div>
+          : FREE_TRIAL_AVAILABLE
+          ? 'First week free*'
+          : null;
+        if (!label) return null;
+        return (
+          <div className="flex items-center justify-center gap-1.5 px-3 py-1 border border-border text-[11px] font-semibold uppercase tracking-wide w-fit mx-auto text-text-secondary">
+            <Gift className="w-3 h-3 shrink-0" />
+            {label}
+          </div>
+        );
+      })()}
 
       {/* Plan header */}
       <div className="text-center pb-4 border-b border-border flex flex-col justify-center min-h-[5rem]">
@@ -143,20 +168,26 @@ function PlanCard({ plan, selected, onSelect }) {
       {/* CTA */}
       <div className="pt-1">
         <div className={`w-full py-2.5 text-sm font-semibold text-center flex items-center justify-center gap-1.5 ${
-          isSelected
+          unavailable
+            ? 'bg-surface-hover text-text-muted border border-border'
+            : isSelected
             ? 'bg-primary/10 text-primary border border-primary/30'
             : isRecommended
             ? 'bg-primary text-white'
             : 'bg-surface-hover text-text border border-border'
         }`}>
-          {isSelected ? (
+          {unavailable ? (
+            <><Ban className="w-4 h-4" /> Currently unavailable</>
+          ) : isSelected ? (
             <><Check className="w-4 h-4" /> Plan Selected</>
           ) : isAdditionalApp ? (
             <><Rocket className="w-4 h-4" /> Deploy for $0.99/mo</>
           ) : plan.priceMonthly === 0 ? (
             <><Rocket className="w-4 h-4" /> Start Deploying</>
-          ) : (
+          ) : FREE_TRIAL_AVAILABLE ? (
             <><Gift className="w-4 h-4" /> Start Free Trial</>
+          ) : (
+            <><Rocket className="w-4 h-4" /> Select Plan</>
           )}
         </div>
       </div>
@@ -189,6 +220,8 @@ export default function Step1Plan({ plan, onChange }) {
         Choose your plan based on your resource needs.
       </p>
 
+      <OfferPausedNotice className="mb-6" />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {displayedPlans.map((p) =>
           p.id === 'free' && loading ? (
@@ -207,8 +240,9 @@ export default function Step1Plan({ plan, onChange }) {
         </p>
         <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />
-          The Free plan is automatically renewed
-          as long as you have only one Git app running. Additional Git apps are charged $0.99/month each.
+          {FREE_PLAN_AVAILABLE
+            ? 'The Free plan is automatically renewed as long as you have only one Git app running. Additional Git apps are charged $0.99/month each.'
+            : 'The Free plan is not available for new deployments right now. Apps already on it keep renewing automatically for as long as they are your only Git app. Additional Git apps are charged $0.99/month each.'}
         </p>
         <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1.5">
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-text-secondary" />

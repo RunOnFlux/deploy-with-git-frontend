@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { OFFERS_PAUSED } from '../../config/offer';
 
 export default function MobileStickyCTA() {
   const { isAuthenticated } = useAuth();
@@ -22,7 +23,7 @@ export default function MobileStickyCTA() {
             onClick={handleCTA}
             className="btn-cta w-full justify-center text-sm py-3"
           >
-            {isAuthenticated ? 'Open Dashboard' : 'Start Deploying Free'}
+            {isAuthenticated ? 'Open Dashboard' : OFFERS_PAUSED ? 'Start Deploying' : 'Start Deploying Free'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

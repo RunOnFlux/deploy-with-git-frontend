@@ -5,6 +5,7 @@ import {
   isValidPort,
   supportsAdditionalAppPort,
 } from '../services/deployService';
+import { FREE_TRIAL_AVAILABLE } from '../config/offer';
 
 const INITIAL_STATE = {
   step: 1,
@@ -112,8 +113,9 @@ const INITIAL_STATE = {
 
   // What an eligible customer chose to do with the offer on a PAID plan: take the free trial,
   // or skip it and pay from day one at the billing period they picked. Never consulted for the
-  // free plan, which is free on its own terms.
-  billingChoice: 'trial', // 'trial' | 'pay'
+  // free plan, which is free on its own terms. While the trial is paused the choice is never
+  // shown and the default has to be 'pay', or a stale state would still register a trial.
+  billingChoice: FREE_TRIAL_AVAILABLE ? 'trial' : 'pay', // 'trial' | 'pay'
 
   // Per-step errors
   errors: {},

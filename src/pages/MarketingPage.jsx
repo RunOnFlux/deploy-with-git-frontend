@@ -4,6 +4,8 @@ import { MotionConfig } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '../components/landing/Navbar';
 import Footer from '../components/landing/Footer';
+import OfferPausedNotice from '../components/common/OfferPausedNotice';
+import { OFFERS_PAUSED } from '../config/offer';
 import { MARKETING_PAGES } from '../content/pagesContent';
 import { DEFAULT_APP_URL } from '../../config/defaults';
 
@@ -162,7 +164,12 @@ export default function MarketingPage({ route }) {
             <h1 className="font-heading text-4xl sm:text-5xl font-bold text-text leading-tight mb-6">
               {page.h1}
             </h1>
-            <p className="text-lg text-text-secondary leading-relaxed mb-10">{page.intro}</p>
+            <p className={`text-lg text-text-secondary leading-relaxed ${OFFERS_PAUSED ? 'mb-6' : 'mb-10'}`}>
+              {page.intro}
+            </p>
+
+            {/* These pages sell the free tier hard; say up front when it is not on offer. */}
+            <OfferPausedNotice className="mb-10" rounded />
 
             {page.sections.map((section, si) => (
               <section key={si} className="mb-8">

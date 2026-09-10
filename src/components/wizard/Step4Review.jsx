@@ -10,8 +10,9 @@ import {
 import { formatGeoRows } from '../../services/geolocationSpec';
 import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, getRedisConnectionString, redactConnectionPassword, formatRamMb, databaseNeedsName } from '../../services/databaseSpec';
 import { useAuth } from '../../context/AuthContext';
-import { FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
+import { FREE_TRIAL_AVAILABLE, FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
 import { isFreeTierPlan } from '../../services/deployService';
+import OfferPausedNotice from '../common/OfferPausedNotice';
 
 function Row({ label, value, mono }) {
   return (
@@ -74,7 +75,8 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   // The free TIER is free on its own terms and is never a trial; the choice below is only
   // ever about a paid plan (the additional-app plan included, which is paid).
   const isFreePlan = isFreeTierPlan(plan);
-  const canChoose = eligible && !isFreePlan;
+  // While the trial is paused nobody is offered it, whatever their on-chain history says.
+  const canChoose = FREE_TRIAL_AVAILABLE && eligible && !isFreePlan;
   const onTrial = canChoose && billingChoice === 'trial';
   const [eligibilityUnknown, setEligibilityUnknown] = useState(false);
 
@@ -113,6 +115,15 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
   // ever registered on Flux disqualifies them — the trial is one per Flux Cloud account,
   // not per app or repo.
   useEffect(() => {
+    if (!FREE_TRIAL_AVAILABLE) {
+      // Offer paused: there is nothing to be eligible for, so don't ask the chain and don't
+      // warn about a trial that is not on the table. Everyone pays.
+      setEligible(false);
+      setEligibilityUnknown(false);
+      onEligibilityChecked?.(false);
+      setDupCheckStatus('done');
+      return;
+    }
     if (!zelid) {
       setEligible(false);
       setEligibilityUnknown(true);
@@ -166,13 +177,15 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
         Confirm your deployment settings before signing.
       </p>
 
+      {!isFreePlan && <OfferPausedNotice className="mb-4" />}
+
       {/* Duplicate repo warning */}
       {dupCheckStatus === 'checking' && (
         <div className="flex items-center gap-2 text-xs text-text-muted mb-4">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking deployment eligibility…
         </div>
       )}
-      {dupCheckStatus === 'done' && eligibilityUnknown && !isFreePlan && (
+      {FREE_TRIAL_AVAILABLE && dupCheckStatus === 'done' && eligibilityUnknown && !isFreePlan && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
@@ -183,7 +196,7 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
           </div>
         </div>
       )}
-      {dupCheckStatus === 'done' && !eligible && !eligibilityUnknown && !isFreePlan && (
+      {FREE_TRIAL_AVAILABLE && dupCheckStatus === 'done' && !eligible && !eligibilityUnknown && !isFreePlan && (
         <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-400/5 border border-amber-400/20 px-4 py-3 mb-4">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>

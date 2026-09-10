@@ -6,6 +6,7 @@ import Navbar from '../components/landing/Navbar';
 import Footer from '../components/landing/Footer';
 import deployToFluxImage from '../assets/deploytoflux.png';
 import { DEFAULT_APP_URL } from '../../config/defaults';
+import { FREE_PLAN_AVAILABLE } from '../config/offer';
 
 const BUTTON_IMAGE_URL = `${DEFAULT_APP_URL}/deploytoflux.png`;
 const SAMPLE_REPO = 'https://github.com/RunOnFlux/deploy-with-git-samples';
@@ -44,7 +45,7 @@ export default function DeployToFluxPage() {
   const [repo, setRepo] = useState(SAMPLE_REPO);
   const [branch, setBranch] = useState('master');
   const [projectPath, setProjectPath] = useState('express');
-  const [plan, setPlan] = useState('free');
+  const [plan, setPlan] = useState(FREE_PLAN_AVAILABLE ? 'free' : 'standard');
   const [copied, setCopied] = useState('');
 
   useEffect(() => {
@@ -161,7 +162,7 @@ export default function DeployToFluxPage() {
                     <label className="block text-sm font-medium text-text mb-1.5">Plan</label>
                     <select className="input-base w-full text-sm" value={plan} onChange={(event) => setPlan(event.target.value)}>
                       <option value="">Orbit default</option>
-                      <option value="free">Free</option>
+                      {FREE_PLAN_AVAILABLE && <option value="free">Free</option>}
                       <option value="standard">Standard</option>
                       <option value="pro">Pro</option>
                       <option value="custom">Custom</option>

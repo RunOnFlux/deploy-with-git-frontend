@@ -5,6 +5,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import GoogleLoginButton from './GoogleLoginButton';
 import authService from '../../services/authService';
+import { FREE_PLAN_AVAILABLE } from '../../config/offer';
 
 // Views within the modal
 const VIEW = {
@@ -308,7 +309,9 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
           <div className="mb-1">
             <h2 className="text-2xl font-semibold text-text mb-2">Create your account</h2>
             <p className="text-sm text-text-secondary/70">
-              Free forever • No credit card required
+              {FREE_PLAN_AVAILABLE
+                ? 'Free forever • No credit card required'
+                : 'Paid plans from $0.99/month • Cancel any time'}
             </p>
           </div>
 

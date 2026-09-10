@@ -24,3 +24,30 @@ export const FREE_TRIAL_BLOCKS = FREE_TRIAL_DAYS * 2880; // 20160
 
 /** Money-back guarantee on the first PAID period, trial or no trial. */
 export const MONEY_BACK_DAYS = 30;
+
+/**
+ * ── OFFERS PAUSED ───────────────────────────────────────────────────────────
+ *
+ * Both introductory offers are currently switched OFF, and the website says so rather than
+ * hiding them: only a paying customer can register a new app.
+ *
+ *   FREE_TRIAL_AVAILABLE — the trial above (the "first month free" as customers still call it,
+ *   now a week). While false, no registration ever asks for FREE_TRIAL_BLOCKS: every deployment
+ *   registers a paid billing period and goes through checkout.
+ *
+ *   FREE_PLAN_AVAILABLE — the $0 plan. While false it cannot be selected for a NEW deployment.
+ *   Apps ALREADY running on it are untouched: appsmonitor keeps renewing them month after month
+ *   (fluxmonitormaster appsMonitor.js, isFreeOrbitPlan + isOnlyOrbitAppForOwner), which is the
+ *   one part of the offer that stays on.
+ *
+ * The other half of this switch lives in appsmonitor: its freeOrbitApps service, which is what
+ * actually pays a free registration on-chain, is off too (config.freeOffers.orbitOfferEnabled).
+ * Turning either flag back on here without turning that service back on registers apps nothing
+ * settles: they never install. Flip both sides together.
+ */
+export const FREE_TRIAL_AVAILABLE = false;
+
+export const FREE_PLAN_AVAILABLE = false;
+
+/** True while either offer is off, for copy that advertised both at once. */
+export const OFFERS_PAUSED = !FREE_TRIAL_AVAILABLE || !FREE_PLAN_AVAILABLE;

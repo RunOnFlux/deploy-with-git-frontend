@@ -2,12 +2,17 @@
  * Orbit pricing plans — matches spec resource requirements exactly.
  * Resource values map to Flux app spec (v8) compose fields.
  */
+import { FREE_PLAN_AVAILABLE, FREE_TRIAL_AVAILABLE } from './offer.js';
+
+/** What the card's offer pill claims. Both offers are paused, so neither may be advertised. */
+const FREE_PLAN_TAGLINE = FREE_PLAN_AVAILABLE ? 'Free forever*' : 'Currently unavailable';
+const PAID_PLAN_TAGLINE = FREE_TRIAL_AVAILABLE ? 'First week free*' : '';
 
 export const ORBIT_PLANS = [
   {
     id: 'free',
     name: 'Free',
-    tagline: 'Free forever*',
+    tagline: FREE_PLAN_TAGLINE,
     description: 'Perfect for side projects and learning',
     price: 0,
     priceLabel: '$0*',
@@ -20,7 +25,7 @@ export const ORBIT_PLANS = [
   {
     id: 'standard',
     name: 'Standard',
-    tagline: 'First week free*',
+    tagline: PAID_PLAN_TAGLINE,
     description: 'For growing projects and small apps',
     price: 2.49,
     priceLabel: '$2.49/mo',
@@ -33,7 +38,7 @@ export const ORBIT_PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    tagline: 'First week free*',
+    tagline: PAID_PLAN_TAGLINE,
     description: 'For active development and production apps',
     price: 3.99,
     priceLabel: '$3.99/mo',
@@ -46,7 +51,7 @@ export const ORBIT_PLANS = [
   {
     id: 'custom',
     name: 'Custom',
-    tagline: 'First week free*',
+    tagline: PAID_PLAN_TAGLINE,
     description: 'Configure your own resources and pricing',
     price: null,
     priceLabel: 'Starting at $0.99/mo',
