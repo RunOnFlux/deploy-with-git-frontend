@@ -16,6 +16,11 @@ import RelatedLinksSection from '../components/landing/RelatedLinksSection';
 import CTASection from '../components/landing/CTASection';
 import MobileStickyCTA from '../components/landing/MobileStickyCTA';
 import Footer from '../components/landing/Footer';
+import { FREE_PLAN_AVAILABLE } from '../config/offer';
+
+const HOME_DESCRIPTION = FREE_PLAN_AVAILABLE
+  ? 'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Start free, with paid plans from $0.99/mo.'
+  : 'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Plans from $0.99/mo.';
 
 const DEPLOY_LINK_PARAMS = ['repo', 'repolink', 'repository'];
 
@@ -52,12 +57,12 @@ export default function Home() {
         <title>Deploy with Git to the Flux Decentralized Cloud | Orbit</title>
         <meta
           name="description"
-          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Start free, with paid plans from $0.99/mo."
+          content={HOME_DESCRIPTION}
         />
         <meta property="og:title" content="Deploy with Git to the Flux Decentralized Cloud | Orbit" />
         <meta
           property="og:description"
-          content="Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Start free, with paid plans from $0.99/mo."
+          content={HOME_DESCRIPTION}
         />
       </Helmet>
 

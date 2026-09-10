@@ -49,5 +49,12 @@ export const FREE_TRIAL_AVAILABLE = false;
 
 export const FREE_PLAN_AVAILABLE = false;
 
+/**
+ * Two files cannot read these flags and were edited by hand, so they need editing back when
+ * the offers return: index.html (its three meta descriptions carry a comment saying what to
+ * restore) and public/llms.txt (the Pricing section's note and the Free plan bullet).
+ * Everything else in the app, prerender and JSON-LD included, follows the flags.
+ */
+
 /** True while either offer is off, for copy that advertised both at once. */
 export const OFFERS_PAUSED = !FREE_TRIAL_AVAILABLE || !FREE_PLAN_AVAILABLE;

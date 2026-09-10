@@ -15,6 +15,7 @@
 
 import { SITE_FACTS, FAQS, FEATURES } from '../src/content/landingContent.js'
 import { ORBIT_PLANS } from '../src/config/plans.js'
+import { FREE_PLAN_AVAILABLE } from '../src/config/offer.js'
 import { REVIEWS, RATING_BEST } from '../src/config/reviews.js'
 
 const ORIGIN = '__SITE_URL__'
@@ -98,8 +99,9 @@ export function buildJsonLd() {
       '@id': `${ORIGIN}/#website`,
       name: 'Orbit by Flux',
       url: `${ORIGIN}/`,
-      description:
-        'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes — free tier, paid plans from $0.99/mo.',
+      description: FREE_PLAN_AVAILABLE
+        ? 'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes — free tier, paid plans from $0.99/mo.'
+        : 'Deploy any Git repo to the Flux decentralized cloud. Orbit auto-detects your framework and ships to global nodes. Plans from $0.99/mo.',
       publisher: { '@id': `${ORIGIN}/#organization` },
     },
     {
@@ -109,8 +111,10 @@ export function buildJsonLd() {
       url: `${ORIGIN}/`,
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Web',
-      description: `Git-native deployment platform for the Flux decentralized network. Deploy any stack — Next.js, Vue, Rust, Go, Rails, Erlang, Elixir, Dart and more — across ${SITE_FACTS.nodeCount} of global nodes. Free tier, zero configuration, built-in CI/CD.`,
-      offers: ORBIT_PLANS.map((plan) => ({
+      description: `Git-native deployment platform for the Flux decentralized network. Deploy any stack — Next.js, Vue, Rust, Go, Rails, Erlang, Elixir, Dart and more — across ${SITE_FACTS.nodeCount} of global nodes. ${FREE_PLAN_AVAILABLE ? 'Free tier, zero' : 'Plans from $0.99/mo, zero'} configuration, built-in CI/CD.`,
+      // A $0 Offer here is what puts "Free" in a rich result. While the free plan is closed to
+      // new deployments it must not be advertised as buyable, so it drops out of the graph.
+      offers: ORBIT_PLANS.filter((plan) => FREE_PLAN_AVAILABLE || plan.price !== 0).map((plan) => ({
         '@type': 'Offer',
         name: plan.name,
         description: `${plan.description}. ${specList(plan).join(', ')}.`,
