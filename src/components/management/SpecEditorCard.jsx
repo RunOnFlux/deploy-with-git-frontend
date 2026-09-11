@@ -483,7 +483,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       const result = await validateRepoReachability(repository);
       if (!active) return;
       setRepositoryValidation(result.success
-        ? { status: 'valid', message: 'Repository verified.' }
+        ? { status: 'valid', message: 'Repository verified.', authUsername: result.authUsername }
         : { status: 'invalid', message: result.error });
     }, 600);
     return () => {
@@ -529,6 +529,12 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   // ── Helpers ───────────────────────────────────────────────────────────
   function updateOrbit(key, value) {
     setOrbitSettings((s) => ({ ...s, [key]: value }));
+  }
+
+  function actualOrbitKey(def) {
+    return orbitSettings[def.key] !== undefined
+      ? def.key
+      : (def.aliases ?? []).find((alias) => orbitSettings[alias] !== undefined) ?? def.key;
   }
 
   function updateAppResource(field, value) {
@@ -602,7 +608,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       .map(([k, v]) => ({ key: k, value: v }));
     const validUser = userEnvRows.filter((r) => r.key.trim());
     const repositoryRows = repositoryChanged
-      ? writeRepositorySettings(hiddenEnvRows, repository)
+      ? writeRepositorySettings(hiddenEnvRows, {
+          ...repository,
+          username: repositoryValidation.authUsername || repository.username,
+        })
       : hiddenEnvRows;
     const allRows = [...repositoryRows, ...orbitRows, ...validUser];
     const resourcesEditable = isCustomResourceSpec(latest);
@@ -1044,27 +1053,32 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                 aria-invalid={repositoryValidation.status === 'invalid'}
                 aria-describedby="repository-validation-message"
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                <div>
-                  <label className="block text-xs text-text-muted mb-1">Git Username</label>
-                  <input
-                    className="input w-full text-xs font-mono"
-                    value={repository.username}
-                    onChange={(event) => setRepository((current) => ({ ...current, username: event.target.value }))}
-                    placeholder="Required for Bitbucket tokens"
-                    disabled={isSaving}
-                    autoComplete="username"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-text-muted mb-1">Git Access Token</label>
-                  <PasswordInput
-                    value={repository.token}
-                    onChange={(event) => setRepository((current) => ({ ...current, token: event.target.value }))}
-                    placeholder="Optional for public repositories"
-                    disabled={isSaving}
-                  />
-                </div>
+              {ORBIT_SETTINGS_DEFS
+                .filter(({ key }) => key === 'GIT_BRANCH' || key === 'PROJECT_PATH')
+                .map((def) => {
+                  const actualKey = actualOrbitKey(def);
+                  return (
+                    <div key={def.key} className="mt-2">
+                      <label className="block text-xs text-text-muted mb-1">{def.label}</label>
+                      <input
+                        className="input w-full text-sm font-mono"
+                        type="text"
+                        value={orbitSettings[actualKey] ?? ''}
+                        onChange={(event) => updateOrbit(actualKey, event.target.value)}
+                        placeholder={def.label}
+                        disabled={isSaving}
+                      />
+                    </div>
+                  );
+                })}
+              <div className="mt-2">
+                <label className="block text-xs text-text-muted mb-1">Git Access Token</label>
+                <PasswordInput
+                  value={repository.token}
+                  onChange={(event) => setRepository((current) => ({ ...current, token: event.target.value }))}
+                  placeholder="Optional for public repositories"
+                  disabled={isSaving}
+                />
               </div>
               {repositoryValidation.status !== 'idle' && (
                 <p
@@ -1088,15 +1102,14 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
               )}
               {repositoryChanged && repositoryValidation.status === 'valid' && (
                 <p className="text-xs text-warning mt-2">
-                  After you apply this repository change, wait 15 minutes, then run a hard redeploy for it to take effect.
+                  After you apply this repository change, wait 15 minutes, then hard redeploy your instances for it to take effect.
                 </p>
               )}
             </div>
-            {ORBIT_SETTINGS_DEFS.map((def) => {
-              const actualKey =
-                orbitSettings[def.key] !== undefined
-                  ? def.key
-                  : (def.aliases ?? []).find((a) => orbitSettings[a] !== undefined) ?? def.key;
+            {ORBIT_SETTINGS_DEFS
+              .filter(({ key }) => key !== 'GIT_BRANCH' && key !== 'PROJECT_PATH')
+              .map((def) => {
+              const actualKey = actualOrbitKey(def);
               const value = orbitSettings[actualKey] ?? '';
               return (
                 <div key={def.key}>

@@ -88,22 +88,47 @@ export async function validateRepoReachability({ url, username = '', token = '' 
       error: 'Repository is not reachable. Enter a valid HTTPS GitHub, GitLab, or Bitbucket repository URL.',
     };
   }
-  if (parsed.provider === 'bitbucket.org' && token && !username.trim()) {
-    return {
-      success: false,
-      error: 'Repository is not reachable. A Bitbucket username is required with an access token.',
-    };
-  }
-
   try {
-    const response = await fetch(repositoryApiUrl(parsed), {
-      headers: {
-        Accept: 'application/json',
-        ...buildAuthHeaders(parsed, username.trim(), token.trim()),
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (response.ok) return { success: true };
+    const tokenValue = token.trim();
+    if (parsed.provider === 'bitbucket.org' && tokenValue) {
+      // Bitbucket supports Bearer API-token authentication, which avoids asking
+      // for an account email or username. Git cloning uses the documented static
+      // username, which is returned for the spec writer below.
+      const bearerResponse = await fetch(repositoryApiUrl(parsed), {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${tokenValue}` },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (bearerResponse.ok) {
+        const existingStaticUsername = ['x-bitbucket-api-token-auth', 'x-token-auth']
+          .includes(username.trim()) ? username.trim() : null;
+        return {
+          success: true,
+          authUsername: existingStaticUsername || 'x-bitbucket-api-token-auth',
+        };
+      }
+
+      // Preserve compatibility with older app passwords already embedded in an
+      // app spec. They require the extracted username for Basic authentication.
+      if (username.trim()) {
+        const basicResponse = await fetch(repositoryApiUrl(parsed), {
+          headers: {
+            Accept: 'application/json',
+            ...buildAuthHeaders(parsed, username.trim(), tokenValue),
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (basicResponse.ok) return { success: true, authUsername: username.trim() };
+      }
+    } else {
+      const response = await fetch(repositoryApiUrl(parsed), {
+        headers: {
+          Accept: 'application/json',
+          ...buildAuthHeaders(parsed, username.trim(), tokenValue),
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (response.ok) return { success: true };
+    }
     return {
       success: false,
       error: token

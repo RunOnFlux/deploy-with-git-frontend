@@ -58,6 +58,13 @@ export function writeRepositorySettings(rows, settings) {
     storedUrl = parsed.toString();
   }
 
+  if (provider === 'bitbucket.org' && token && !username) {
+    const parsed = new URL(url);
+    parsed.username = 'x-bitbucket-api-token-auth';
+    parsed.password = token;
+    storedUrl = parsed.toString();
+  }
+
   const next = [...preserved, { key: settings?.key || 'GIT_REPO_URL', value: storedUrl }];
   if (token && provider !== 'bitbucket.org') next.push({ key: 'GIT_TOKEN', value: token });
   return next;

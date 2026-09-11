@@ -37,18 +37,18 @@ test('writes GitHub tokens separately and preserves unrelated hidden settings', 
   ]);
 });
 
-test('writes Bitbucket credentials in the runtime-compatible repository URL', () => {
+test('writes Bitbucket tokens with the static runtime-compatible username', () => {
   const result = writeRepositorySettings([], {
     key: 'GIT_REPO_URL',
     url: 'https://bitbucket.org/team/private-repo',
-    username: 'deploy-user',
-    token: 'app-password',
+    username: '',
+    token: 'api-token',
   });
 
   assert.equal(result.length, 1);
   const stored = new URL(result[0].value);
-  assert.equal(stored.username, 'deploy-user');
-  assert.equal(stored.password, 'app-password');
+  assert.equal(stored.username, 'x-bitbucket-api-token-auth');
+  assert.equal(stored.password, 'api-token');
   assert.equal(stored.hostname, 'bitbucket.org');
 });
 

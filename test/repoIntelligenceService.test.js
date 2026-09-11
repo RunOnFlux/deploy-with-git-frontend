@@ -53,6 +53,45 @@ test('repository reachability does not send auth for a public repository', async
   }), { success: true });
 });
 
+test('Bitbucket reachability uses a token without asking for a username', async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url: String(url), options });
+    return { ok: true, status: 200 };
+  });
+
+  const result = await validateRepoReachability({
+    url: 'https://bitbucket.org/team/private-repo',
+    token: 'bitbucket-api-token',
+  });
+
+  assert.deepEqual(result, {
+    success: true,
+    authUsername: 'x-bitbucket-api-token-auth',
+  });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].options.headers.Authorization, 'Bearer bitbucket-api-token');
+  assert.doesNotMatch(requests[0].url, /source|commits|branches/);
+});
+
+test('Bitbucket reachability retains Basic auth fallback for an existing app password', async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    requests.push(options.headers.Authorization);
+    return { ok: requests.length === 2, status: requests.length === 2 ? 200 : 401 };
+  });
+
+  const result = await validateRepoReachability({
+    url: 'https://bitbucket.org/team/private-repo',
+    username: 'legacy-user',
+    token: 'legacy-app-password',
+  });
+
+  assert.deepEqual(result, { success: true, authUsername: 'legacy-user' });
+  assert.equal(requests[0], 'Bearer legacy-app-password');
+  assert.match(requests[1], /^Basic /);
+});
+
 test('repository reachability rejects inaccessible and invalid repositories', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 404 }));
   const inaccessible = await validateRepoReachability({
