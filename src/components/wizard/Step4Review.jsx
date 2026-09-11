@@ -12,7 +12,6 @@ import { DB_MIN_INSTANCES, DB_TYPES, REDIS_ADDON, getDatabaseConnectionString, g
 import { useAuth } from '../../context/AuthContext';
 import { FREE_TRIAL_AVAILABLE, FREE_TRIAL_DAYS, MONEY_BACK_DAYS } from '../../config/offer';
 import { isFreeTierPlan } from '../../services/deployService';
-import OfferPausedNotice from '../common/OfferPausedNotice';
 
 function Row({ label, value, mono }) {
   return (
@@ -176,8 +175,6 @@ export default function Step4Review({ plan, repo, config, ports, termsAccepted, 
       <p className="text-sm text-text-secondary mb-6">
         Confirm your deployment settings before signing.
       </p>
-
-      {!isFreePlan && <OfferPausedNotice className="mb-4" />}
 
       {/* Duplicate repo warning */}
       {dupCheckStatus === 'checking' && (
