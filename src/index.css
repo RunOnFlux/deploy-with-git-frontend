@@ -78,6 +78,16 @@
   color: #78350f;
 }
 
+/* Free plan and trial availability notice */
+[data-theme="light"] .offer-paused-warning {
+  color: #92400e;
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+}
+[data-theme="light"] .offer-paused-warning-detail {
+  color: #78350f;
+}
+
 /* ── Log panel light mode ── */
 [data-theme="light"] .log-output               { background-color: #f6f8fa; }
 [data-theme="light"] .log-output .log-default  { color: #24292f; }

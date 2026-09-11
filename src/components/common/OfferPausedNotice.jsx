@@ -24,12 +24,12 @@ export default function OfferPausedNotice({ className = '', rounded = false }) {
 
   return (
     <div
-      className={`flex items-start gap-2.5 border border-amber-400/25 bg-amber-400/5 px-4 py-3 text-amber-200 ${shape} ${className}`}
+      className={`offer-paused-warning flex items-start gap-2.5 border border-amber-400/25 bg-amber-400/5 px-4 py-3 text-amber-200 ${shape} ${className}`}
     >
       <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
       <div>
         <p className="text-sm font-medium">{heading}</p>
-        <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
+        <p className="offer-paused-warning-detail text-xs text-amber-200/80 mt-1 leading-relaxed">
           {!FREE_TRIAL_AVAILABLE && (
             <>
               New deployments start on a paid plan, so the free {FREE_TRIAL_DAYS}-day trial is not
