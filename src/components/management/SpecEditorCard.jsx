@@ -24,10 +24,17 @@ import { redeployAllInstances, fetchLatestAppSpec } from '../../services/managem
 import Step6Payment from '../wizard/Step6Payment';
 import ResourceSlider from '../wizard/ResourceSlider';
 import { DB_MIN_INSTANCES, REDIS_ADDON, isDatabaseCompose } from '../../services/databaseSpec';
+import { validateRepoReachability } from '../../services/repoIntelligenceService';
+import {
+  readRepositorySettings,
+  repositorySettingsEqual,
+  writeRepositorySettings,
+} from '../../services/repositorySettingsService';
 
 // Keys that are completely hidden — never shown, always preserved as-is
 const HIDDEN_KEYS = new Set([
   'GIT_REPO_URL', 'GIT_REPO', 'REPO_URL',
+  'GIT_TOKEN',
   'ORBIT_RUNTIME', 'ORBIT_RUNTIME_VERSION',
 ]);
 
@@ -36,7 +43,6 @@ const ORBIT_SETTINGS_DEFS = [
   { key: 'POLLING_INTERVAL', label: 'Polling Interval', type: 'select' },
   { key: 'APP_PORT', label: 'App Port', type: 'number', aliases: ['PORT'] },
   { key: 'GIT_BRANCH', label: 'Git Branch', type: 'text', aliases: ['BRANCH'] },
-  { key: 'GIT_TOKEN', label: 'Git Token', type: 'password' },
   { key: 'BUILD_COMMAND', label: 'Build Command', type: 'text' },
   { key: 'RUN_COMMAND', label: 'Run Command', type: 'text' },
   { key: 'PROJECT_PATH', label: 'Project Path', type: 'text' },
@@ -389,6 +395,9 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   const [customDomain, setCustomDomain] = useState('');
   const [userEnvRows, setUserEnvRows] = useState([]); // { key, value }
   const [hiddenEnvRows, setHiddenEnvRows] = useState([]); // { key, value } — preserved, never shown
+  const [repository, setRepository] = useState({ key: 'GIT_REPO_URL', url: '', username: '', token: '' });
+  const [repositoryBaseline, setRepositoryBaseline] = useState({ key: 'GIT_REPO_URL', url: '', username: '', token: '' });
+  const [repositoryValidation, setRepositoryValidation] = useState({ status: 'idle', message: '' });
   const [appResources, setAppResources] = useState({ cpu: 1, ram: 2000, hdd: 10, instances: 1 });
   const [addonResources, setAddonResources] = useState({});
   // orbit settings: keyed by the actual env key found in spec (could be alias)
@@ -450,16 +459,44 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     }
 
     setHiddenEnvRows(hidden);
+    const repositorySettings = readRepositorySettings(all);
+    setRepository(repositorySettings);
+    setRepositoryBaseline(repositorySettings);
+    setRepositoryValidation({ status: 'idle', message: '' });
     setOrbitSettings(orbit);
     setUserEnvRows(user);
     setGeolocation(parseGeoSpec(spec.geolocation ?? []));
   }, [spec]);
 
   // ── Dirty check ──────────────────────────────────────────────────────
+  const repositoryChanged = !repositorySettingsEqual(repository, repositoryBaseline);
+
+  useEffect(() => {
+    if (!repositoryChanged) {
+      setRepositoryValidation({ status: 'idle', message: '' });
+      return undefined;
+    }
+
+    let active = true;
+    setRepositoryValidation({ status: 'checking', message: '' });
+    const timer = setTimeout(async () => {
+      const result = await validateRepoReachability(repository);
+      if (!active) return;
+      setRepositoryValidation(result.success
+        ? { status: 'valid', message: 'Repository verified.' }
+        : { status: 'invalid', message: result.error });
+    }, 600);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [repository, repositoryChanged]);
+
   const isDirty = useCallback(() => {
     if (!spec) return false;
     const compose = spec.compose?.[0] ?? {};
     if (customDomain !== (compose.domains?.[0] ?? '')) return true;
+    if (!repositorySettingsEqual(repository, repositoryBaseline)) return true;
     if (isCustomResourceSpec(spec)) {
       const minInstances = hasAddonComponents(spec) ? DB_MIN_INSTANCES : 1;
       const resources = normalizeAppResources(appResources, minInstances);
@@ -487,7 +524,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     if (JSON.stringify(origUser) !== JSON.stringify(userEnvRows)) return true;
     if (JSON.stringify(buildGeoSpec(geolocation)) !== JSON.stringify(spec.geolocation ?? [])) return true;
     return false;
-  }, [spec, customDomain, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
+  }, [spec, customDomain, repository, repositoryBaseline, appResources, addonResources, orbitSettings, userEnvRows, geolocation]);
 
   // ── Helpers ───────────────────────────────────────────────────────────
   function updateOrbit(key, value) {
@@ -526,6 +563,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
   async function handleSave() {
     if (!spec || !zelidauth) return;
+    if (repositoryChanged && repositoryValidation.status !== 'valid') {
+      setSaveError('Verify that the repository is reachable before applying changes.');
+      return;
+    }
     setSaveError(null);
     setUpdateContext(null);
     cancelPollRef.current?.();
@@ -560,7 +601,10 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
       .filter(([k]) => k.trim())
       .map(([k, v]) => ({ key: k, value: v }));
     const validUser = userEnvRows.filter((r) => r.key.trim());
-    const allRows = [...hiddenEnvRows, ...orbitRows, ...validUser];
+    const repositoryRows = repositoryChanged
+      ? writeRepositorySettings(hiddenEnvRows, repository)
+      : hiddenEnvRows;
+    const allRows = [...repositoryRows, ...orbitRows, ...validUser];
     const resourcesEditable = isCustomResourceSpec(latest);
     const minInstances = hasAddonComponents(latest) ? DB_MIN_INSTANCES : 1;
     const resources = normalizeAppResources(appResources, minInstances);
@@ -686,9 +730,9 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
     setSavePhase(null);
     if (price?.flux > 0) {
-      setPaymentContext({ txid: result, verifiedSpec, price });
+      setPaymentContext({ txid: result, verifiedSpec, price, repositoryChanged });
     } else {
-      startUpdatePolling(result);
+      startUpdatePolling(result, repositoryChanged);
     }
   }
 
@@ -718,6 +762,11 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   }, [saveRequested]);
 
   async function requestSave() {
+    if (repositoryChanged && repositoryValidation.status !== 'valid') {
+      setSaveError('Repository is not reachable. Verify the repository before applying changes.');
+      setActiveTab('deploy');
+      return;
+    }
     const geoTokens = buildGeoSpec(geolocation);
     // No locations set deploys globally: the pool is the whole network, and there is
     // nothing to be too narrow about.
@@ -748,8 +797,8 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
     setSaveRequested(true);
   }
 
-  function startUpdatePolling(updateHash) {
-    setUpdateContext({ hash: updateHash, polling: 'waiting', redeploying: false, redeployResult: null });
+  function startUpdatePolling(updateHash, hasRepositoryChange = false) {
+    setUpdateContext({ hash: updateHash, polling: 'waiting', redeploying: false, redeployResult: null, repositoryChanged: hasRepositoryChange });
     cancelPollRef.current = pollUpdate(spec.name, updateHash, {
       onSuccess: () => {
         setUpdateContext((c) => ({ ...c, polling: 'confirmed' }));
@@ -764,7 +813,12 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
   async function handleRedeployAll() {
     setUpdateContext((c) => ({ ...c, redeploying: true, redeployResult: null }));
     try {
-      const result = await redeployAllInstances(spec.name, nodeStatuses, zelidauth);
+      const result = await redeployAllInstances(
+        spec.name,
+        nodeStatuses,
+        zelidauth,
+        updateContext?.repositoryChanged === true,
+      );
       setUpdateContext((c) => ({ ...c, redeploying: false, redeployResult: result }));
     } catch {
       setUpdateContext((c) => ({ ...c, redeploying: false, redeployResult: { ok: 0, failed: nodeStatuses.length } }));
@@ -792,7 +846,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
           onBack={() => {
             setPaymentContext(null);
             // Payment was completed (user pressed "I've paid") — start polling
-            startUpdatePolling(paymentContext.txid);
+            startUpdatePolling(paymentContext.txid, paymentContext.repositoryChanged);
           }}
         />
       </div>
@@ -978,6 +1032,66 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
         {/* ── Deploy Options ── */}
         {activeTab === 'deploy' && (
           <div className="space-y-3 py-1">
+            <div className="pb-3 border-b border-border/50">
+              <label className="block text-xs text-text-muted mb-1">Git Repository URL</label>
+              <input
+                className={`input w-full text-sm font-mono ${repositoryValidation.status === 'invalid' ? 'border-danger focus:border-danger' : ''}`}
+                type="url"
+                value={repository.url}
+                onChange={(event) => setRepository((current) => ({ ...current, url: event.target.value }))}
+                placeholder="https://github.com/owner/repository"
+                disabled={isSaving}
+                aria-invalid={repositoryValidation.status === 'invalid'}
+                aria-describedby="repository-validation-message"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="block text-xs text-text-muted mb-1">Git Username</label>
+                  <input
+                    className="input w-full text-xs font-mono"
+                    value={repository.username}
+                    onChange={(event) => setRepository((current) => ({ ...current, username: event.target.value }))}
+                    placeholder="Required for Bitbucket tokens"
+                    disabled={isSaving}
+                    autoComplete="username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-text-muted mb-1">Git Access Token</label>
+                  <PasswordInput
+                    value={repository.token}
+                    onChange={(event) => setRepository((current) => ({ ...current, token: event.target.value }))}
+                    placeholder="Optional for public repositories"
+                    disabled={isSaving}
+                  />
+                </div>
+              </div>
+              {repositoryValidation.status !== 'idle' && (
+                <p
+                  id="repository-validation-message"
+                  className={`flex items-center gap-1.5 text-xs mt-2 ${
+                    repositoryValidation.status === 'valid'
+                      ? 'text-accent'
+                      : repositoryValidation.status === 'invalid'
+                        ? 'text-danger'
+                        : 'text-text-muted'
+                  }`}
+                >
+                  {repositoryValidation.status === 'checking' ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />Checking repository reachability...</>
+                  ) : repositoryValidation.status === 'valid' ? (
+                    <><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{repositoryValidation.message}</>
+                  ) : (
+                    <><AlertCircle className="w-3.5 h-3.5 shrink-0" />{repositoryValidation.message}</>
+                  )}
+                </p>
+              )}
+              {repositoryChanged && repositoryValidation.status === 'valid' && (
+                <p className="text-xs text-warning mt-2">
+                  After you apply this repository change, wait 15 minutes, then run a hard redeploy for it to take effect.
+                </p>
+              )}
+            </div>
             {ORBIT_SETTINGS_DEFS.map((def) => {
               const actualKey =
                 orbitSettings[def.key] !== undefined
@@ -1117,7 +1231,9 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
           {updateContext.polling === 'confirmed' && (
             <div className="px-3 py-3">
               <p className="text-xs text-text-muted mb-2.5">
-                Update is live on-chain. Redeploy all running instances to apply the new spec immediately.
+                {updateContext.repositoryChanged
+                  ? 'Repository change is live on-chain. Wait 15 minutes after Apply, then hard redeploy every running instance so it clones the new repository.'
+                  : 'Update is live on-chain. Redeploy all running instances to apply the new spec immediately.'}
               </p>
               {updateContext.redeployResult ? (
                 <div className={`flex items-center gap-2 text-sm ${updateContext.redeployResult.failed === 0 ? 'text-accent' : 'text-warning'}`}>
@@ -1137,7 +1253,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
                   {updateContext.redeploying ? (
                     <><Loader2 className="w-3.5 h-3.5 animate-spin" />Redeploying…</>
                   ) : (
-                    <><RefreshCw className="w-3.5 h-3.5" />Redeploy all instances ({nodeStatuses.length})</>
+                    <><RefreshCw className="w-3.5 h-3.5" />{updateContext.repositoryChanged ? 'Hard redeploy' : 'Redeploy'} all instances ({nodeStatuses.length})</>
                   )}
                 </button>
               )}
@@ -1148,7 +1264,7 @@ export default function SpecEditorCard({ spec, nodeStatuses = [], onSaved, maxHe
 
       <button
         onClick={requestSave}
-        disabled={isSaving || verifyingCapacity || !isDirty()}
+        disabled={isSaving || verifyingCapacity || !isDirty() || (repositoryChanged && repositoryValidation.status !== 'valid')}
         className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-border text-text-secondary hover:bg-surface-hover hover:text-text disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
       >
         {verifyingCapacity ? (

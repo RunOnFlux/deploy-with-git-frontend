@@ -19,7 +19,7 @@ export function parseRepoUrl(url) {
 
     if (host === 'github.com') {
       const parts = path.split('/');
-      if (parts.length < 2 || !parts[0] || !parts[1]) return null;
+      if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
       return { provider: 'github.com', owner: parts[0], repo: parts[1] };
     }
 
@@ -34,7 +34,7 @@ export function parseRepoUrl(url) {
 
     if (host === 'bitbucket.org') {
       const parts = path.split('/');
-      if (parts.length < 2 || !parts[0] || !parts[1]) return null;
+      if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
       return { provider: 'bitbucket.org', owner: parts[0], repo: parts[1] };
     }
   } catch {
@@ -54,6 +54,68 @@ export function buildAuthHeaders(parsed, username, token) {
     return { Authorization: `Basic ${encoded}` };
   }
   return {};
+}
+
+function repositoryApiUrl(parsed) {
+  if (parsed?.provider === 'github.com') {
+    return `https://api.github.com/repos/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}`;
+  }
+  if (parsed?.provider === 'gitlab.com') {
+    return `https://gitlab.com/api/v4/projects/${encodeURIComponent(`${parsed.owner}/${parsed.repo}`)}`;
+  }
+  if (parsed?.provider === 'bitbucket.org') {
+    return `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}`;
+  }
+  return null;
+}
+
+/**
+ * Check that a repository itself is reachable. This intentionally requests only
+ * provider metadata: app settings do not need to inspect branches or contents.
+ */
+export async function validateRepoReachability({ url, username = '', token = '' }) {
+  const parsed = parseRepoUrl(url);
+  let protocol;
+  try {
+    protocol = new URL(String(url).trim()).protocol;
+  } catch {
+    protocol = '';
+  }
+
+  if (!parsed || protocol !== 'https:') {
+    return {
+      success: false,
+      error: 'Repository is not reachable. Enter a valid HTTPS GitHub, GitLab, or Bitbucket repository URL.',
+    };
+  }
+  if (parsed.provider === 'bitbucket.org' && token && !username.trim()) {
+    return {
+      success: false,
+      error: 'Repository is not reachable. A Bitbucket username is required with an access token.',
+    };
+  }
+
+  try {
+    const response = await fetch(repositoryApiUrl(parsed), {
+      headers: {
+        Accept: 'application/json',
+        ...buildAuthHeaders(parsed, username.trim(), token.trim()),
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (response.ok) return { success: true };
+    return {
+      success: false,
+      error: token
+        ? 'Repository is not reachable. Check the URL and access token.'
+        : 'Repository is not reachable. Check the URL or provide an access token for a private repository.',
+    };
+  } catch {
+    return {
+      success: false,
+      error: 'Repository is not reachable right now. Check the URL and try again.',
+    };
+  }
 }
 
 function bitbucketApiUrl(next, parsed, collection) {

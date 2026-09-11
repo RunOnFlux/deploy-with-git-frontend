@@ -6,6 +6,7 @@ import {
   fetchBranches,
   listDirectories,
   testPrivateAuth,
+  validateRepoReachability,
 } from '../src/services/repoIntelligenceService.js';
 
 const parsedRepo = {
@@ -20,6 +21,55 @@ const cases = [
   { projectPath: 'erlang', markerFile: 'rebar.config', framework: 'Erlang' },
   { projectPath: 'static', markerFile: 'index.html', framework: 'Static HTML' },
 ];
+
+test('repository reachability checks only GitLab metadata with the provided token', async (t) => {
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    requests.push({ url: String(url), options });
+    return { ok: true, status: 200 };
+  });
+
+  const result = await validateRepoReachability({
+    url: 'https://gitlab.com/group/subgroup/private-project',
+    token: 'read-token',
+  });
+
+  assert.deepEqual(result, { success: true });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://gitlab.com/api/v4/projects/group%2Fsubgroup%2Fprivate-project');
+  assert.equal(requests[0].options.headers['PRIVATE-TOKEN'], 'read-token');
+  assert.doesNotMatch(requests[0].url, /repository|tree|branches/);
+});
+
+test('repository reachability does not send auth for a public repository', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(String(url), 'https://api.github.com/repos/RunOnFlux/orbit');
+    assert.deepEqual(options.headers, { Accept: 'application/json' });
+    return { ok: true, status: 200 };
+  });
+
+  assert.deepEqual(await validateRepoReachability({
+    url: 'https://github.com/RunOnFlux/orbit',
+  }), { success: true });
+});
+
+test('repository reachability rejects inaccessible and invalid repositories', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status: 404 }));
+  const inaccessible = await validateRepoReachability({
+    url: 'https://github.com/example/missing',
+    token: 'bad-token',
+  });
+  assert.equal(inaccessible.success, false);
+  assert.match(inaccessible.error, /not reachable/i);
+
+  const invalid = await validateRepoReachability({ url: 'http://github.com/example/repo' });
+  assert.equal(invalid.success, false);
+  assert.match(invalid.error, /valid HTTPS/i);
+
+  const pageUrl = await validateRepoReachability({ url: 'https://github.com/example/repo/tree/main' });
+  assert.equal(pageUrl.success, false);
+  assert.match(pageUrl.error, /valid HTTPS/i);
+});
 
 for (const expected of cases) {
   test(`detects the ${expected.framework} sample`, async (t) => {

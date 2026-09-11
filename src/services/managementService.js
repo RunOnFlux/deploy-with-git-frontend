@@ -395,20 +395,21 @@ export async function triggerOrbitDeploy(nodeIp, mgmtPort, webhookSecret, branch
 }
 
 /**
- * Trigger a Flux soft-redeploy on all running instances of an app.
- * This tells each node's Flux daemon to pull the updated spec and redeploy.
+ * Trigger a Flux redeploy on all running instances of an app.
+ * Repository changes use a hard redeploy so each container is recreated.
  * Errors per-node are collected and returned; we never throw globally.
  *
  * @param {string} appName
  * @param {Array<{ ip: string }>} nodeStatuses
  * @param {string} zelidauth  - raw zelidauth query-string from useAuth
+ * @param {boolean} hard
  * @returns {Promise<{ ok: number, failed: number }>}
  */
-export async function redeployAllInstances(appName, nodeStatuses, zelidauth) {
+export async function redeployAllInstances(appName, nodeStatuses, zelidauth, hard = false) {
   const results = await Promise.allSettled(
     nodeStatuses.map((node) => {
       const base = nodeBaseUrl(node.ip);
-      return performNodeAction(base, 'redeploy', appName, zelidauth, () => {});
+      return performNodeAction(base, hard ? 'hard-redeploy' : 'redeploy', appName, zelidauth, () => {});
     }),
   );
   const ok     = results.filter((r) => r.status === 'fulfilled' && r.value?.status !== 'error').length;
